@@ -31,7 +31,13 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Visitor on a 320px-wide mobile screen can use the site with no cumulative layout shift, and can operate global keyboard shortcuts (`/` focus, `Enter` execute, `Esc` clear) with logical focus order and accessible copy confirmations.
   4. `sitemap.xml`, `robots.txt`, and a published privacy notice are live, and no tracking cookies are set.
   5. A PR that adds a new tool touches only its own module plus one registry entry; PRs require passing tests/type-check/lint/build before merge, `main` auto-deploys, and a brand-new fake sensitive query param is excluded from analytics without any code change (allow-list, not block-list).
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 01-01-PLAN.md — Walking skeleton: Next.js scaffold + tool registry + landing card grid + light/dark theme toggle (wave 1)
+- [ ] 01-02-PLAN.md — Registry-driven navigation + 320px mobile nav + reusable keyboard framework (wave 2)
+- [ ] 01-03-PLAN.md — Visitor-IP widget (forwarded-header route) + reusable copy-with-confirmation hook (wave 2)
+- [ ] 01-04-PLAN.md — Analytics allow-list redaction + cookie-free Vercel Analytics + privacy notice + footer (wave 3)
+- [ ] 01-05-PLAN.md — Registry-derived sitemap/robots + CI merge gate + Vercel deploy (wave 2)
 **UI hint**: yes
 
 ### Phase 2: UUID Generator
@@ -97,7 +103,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
-| 1. Shared Shell + Registry | 0/TBD | Not started | - |
+| 1. Shared Shell + Registry | 0/5 | Planned | - |
 | 2. UUID Generator | 0/TBD | Not started | - |
 | 3. IP Subnet Calculator | 0/TBD | Not started | - |
 | 4. DNS Lookup | 0/TBD | Not started | - |
