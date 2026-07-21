@@ -124,11 +124,62 @@ Explicitly excluded. Documented to prevent scope creep.
 
 Populated during roadmap creation (`/gsd-new-project` → roadmap step).
 
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| SHELL-01 | Phase 1 | Pending |
+| SHELL-02 | Phase 1 | Pending |
+| SHELL-03 | Phase 1 | Pending |
+| SHELL-04 | Phase 1 | Pending |
+| SHELL-05 | Phase 1 | Pending |
+| SHELL-06 | Phase 1 | Pending |
+| QUAL-03 | Phase 1 | Pending |
+| QUAL-04 | Phase 1 | Pending |
+| QUAL-05 | Phase 1 | Pending |
+| QUAL-06 | Phase 1 | Pending |
+| QUAL-07 | Phase 1 | Pending |
+| QUAL-09 | Phase 1 | Pending |
+| UUID-01 | Phase 2 | Pending |
+| UUID-02 | Phase 2 | Pending |
+| UUID-03 | Phase 2 | Pending |
+| UUID-04 | Phase 2 | Pending |
+| UUID-05 | Phase 2 | Pending |
+| UUID-06 | Phase 2 | Pending |
+| QUAL-01 | Phase 2 | Pending |
+| QUAL-02 | Phase 2 | Pending |
+| SUBNET-01 | Phase 3 | Pending |
+| SUBNET-02 | Phase 3 | Pending |
+| SUBNET-03 | Phase 3 | Pending |
+| SUBNET-04 | Phase 3 | Pending |
+| SUBNET-05 | Phase 3 | Pending |
+| SUBNET-06 | Phase 3 | Pending |
+| SUBNET-07 | Phase 3 | Pending |
+| DNS-01 | Phase 4 | Pending |
+| DNS-02 | Phase 4 | Pending |
+| DNS-03 | Phase 4 | Pending |
+| DNS-04 | Phase 4 | Pending |
+| DNS-05 | Phase 4 | Pending |
+| DNS-06 | Phase 4 | Pending |
+| DNS-07 | Phase 4 | Pending |
+| DNS-08 | Phase 4 | Pending |
+| DNS-09 | Phase 4 | Pending |
+| DNS-10 | Phase 4 | Pending |
+| QUAL-08 | Phase 4 | Pending |
+| MAC-01 | Phase 5 | Pending |
+| MAC-02 | Phase 5 | Pending |
+| MAC-03 | Phase 5 | Pending |
+| MAC-04 | Phase 5 | Pending |
+| MAC-05 | Phase 5 | Pending |
+| MAC-06 | Phase 5 | Pending |
+| MAC-07 | Phase 5 | Pending |
+| MAC-08 | Phase 5 | Pending |
+| MAC-09 | Phase 5 | Pending |
+| MAC-10 | Phase 5 | Pending |
+
 **Coverage:**
-- v1 requirements: 41 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 41 ⚠️ (expected — roadmap not yet created)
+- v1 requirements: 48 total (corrected — original draft header stated 41; itemized count across SHELL(6)/UUID(6)/SUBNET(7)/DNS(10)/MAC(10)/QUAL(9) = 48)
+- Mapped to phases: 48/48 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-07-21*
-*Last updated: 2026-07-21 after initial definition*
+*Last updated: 2026-07-21 after roadmap creation — 100% coverage across 5 phases*
