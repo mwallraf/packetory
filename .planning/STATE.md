@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 01
 current_phase_name: shared-shell-registry
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-07-22T14:34:49.387Z"
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-07-22T15:22:57.067Z"
 last_activity: 2026-07-21
 last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 5
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: 01 (shared-shell-registry) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-07-21 — Phase 01 execution started
 
-Progress: [████░░░░░░] 40%
+Progress: [██████░░░░] 60%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [████░░░░░░] 40%
 |------|----------|-------|-------|
 | Phase 01 P01 | 50min | 3 tasks | 29 files |
 | Phase 01 P02 | 55min | 3 tasks | 7 files |
+| Phase 01 P03 | 35min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 1 Plan 02: nav hrefs assume the /tools/{slug} route shape from project-brief.md, so Phase 2's active tool routes need no nav-logic change
 - [Phase ?]: Phase 1 Plan 02: useKeyboardShortcut's copy-shortcut editable-field guard checks tag name + isContentEditable + the contenteditable attribute/property directly, since jsdom (used by the hook's own unit tests) doesn't compute isContentEditable
 - [Phase ?]: Phase 1 Plan 02: e2e visibility checks for header content while the mobile Sheet drawer is open use getByTestId, not getByRole, since Radix correctly aria-hides background content while the modal is open
+- [Phase ?]: Phase 1 Plan 03: IPv6 literal validation via the WHATWG URL bracket trick (new URL('http://[candidate]')) rather than a regex or new dependency
+- [Phase ?]: Phase 1 Plan 03: x-forwarded-for anti-spoof selection trusts the LEFT-MOST comma-separated entry (Vercel convention), per the plan's explicit behavior spec and threat_model T-03-01
+- [Phase ?]: Phase 1 Plan 03: IpBadge performs a real client-side fetch("/api/ip") in a mount effect (matching the plan's literal action + e2e mocking design, which requires a browser-initiated request for Playwright's page.route() to intercept), mitigating the loading-state tension with a no-store fetch and a content-free CLS spacer rather than any visible skeleton
 
 ### Pending Todos
 
@@ -97,6 +101,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-22T14:34:49.381Z
-Stopped at: Completed 01-02-PLAN.md
+Last session: 2026-07-22T15:21:04.197Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None

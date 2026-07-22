@@ -11,7 +11,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [x] **SHELL-01**: Visitor sees a landing page listing all tools with name, description, and category, sourced from a single tool registry (`tools/registry.ts`)
 - [x] **SHELL-02**: Every tool page is reachable via consistent, instant navigation
-- [ ] **SHELL-03**: Visitor's own public IP address is displayed on the landing page with a one-click copy button
+- [x] **SHELL-03**: Visitor's own public IP address is displayed on the landing page with a one-click copy button
 - [x] **SHELL-04**: Adding a new tool requires only a new module + registry entry — no manual edits to nav, cards, sitemap, or related-tools components
 - [x] **SHELL-05**: Site supports light and dark mode
 - [x] **SHELL-06**: Site is usable at 320px mobile width with no cumulative layout shift when results appear
@@ -128,7 +128,7 @@ Populated during roadmap creation (`/gsd-new-project` → roadmap step).
 |-------------|-------|--------|
 | SHELL-01 | Phase 1 | Complete |
 | SHELL-02 | Phase 1 | Complete |
-| SHELL-03 | Phase 1 | Pending |
+| SHELL-03 | Phase 1 | Complete |
 | SHELL-04 | Phase 1 | Complete |
 | SHELL-05 | Phase 1 | Complete |
 | SHELL-06 | Phase 1 | Complete |
