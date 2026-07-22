@@ -3,7 +3,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/components/ThemeProvider";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -34,14 +34,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <ThemeProvider>
           <TooltipProvider>
-            <header className="border-b border-border">
-              <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-                <span className="text-[16px] leading-[1.5] font-semibold">
-                  Packetory
-                </span>
-                <ThemeToggle />
-              </div>
-            </header>
+            <SiteHeader />
             {children}
           </TooltipProvider>
         </ThemeProvider>
