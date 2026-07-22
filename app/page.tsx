@@ -1,5 +1,6 @@
 import { getSortedTools } from "@/tools/registry";
 import { ToolCard } from "@/components/ToolCard";
+import { IpBadge } from "@/components/IpBadge";
 
 export default function Home() {
   const tools = getSortedTools();
@@ -17,6 +18,11 @@ export default function Home() {
             and developers — every tool below shows a useful result the
             instant you land, no forms required.
           </p>
+          {/* Visitor-IP widget: secondary to the tool grid below, not a tool
+              card of its own (D-08, SHELL-03). */}
+          <div className="mt-6 flex justify-center">
+            <IpBadge />
+          </div>
         </div>
 
         {/* Flat responsive grid: single column at 320px, no category grouping (D-02, SHELL-06). */}
