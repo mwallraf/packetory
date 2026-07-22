@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 01
 current_phase_name: shared-shell-registry
 status: executing
-stopped_at: Completed 01-01-PLAN.md
-last_updated: "2026-07-22T05:18:31.246Z"
+stopped_at: Completed 01-02-PLAN.md
+last_updated: "2026-07-22T14:34:49.387Z"
 last_activity: 2026-07-21
 last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 5
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: 01 (shared-shell-registry) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-07-21 — Phase 01 execution started
 
-Progress: [██░░░░░░░░] 20%
+Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Progress: [██░░░░░░░░] 20%
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 01 P01 | 50min | 3 tasks | 29 files |
+| Phase 01 P02 | 55min | 3 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 1 Plan 01: shadcn CLI redesigned around presets (nova/vega/...) with no style=new-york/baseColor flags; used base=radix preset=nova and manually applied the UI-SPEC color/radius contract via CSS custom properties instead.
 - [Phase ?]: Phase 1 Plan 01: pinned typescript to 6.0.3 (not CLAUDE.md's 7.0.2) and eslint to 9.39.5 (not 10.7.0) — typescript-eslint and eslint-plugin-react (via eslint-config-next) do not yet support those major versions; tracked as tech debt.
 - [Phase ?]: Phase 1 Plan 01: Playwright baseURL/webServer.url use localhost, not 127.0.0.1 — the latter trips Next.js dev's HMR cross-origin block and silently stalls client hydration with no error.
+- [Phase ?]: Phase 1 Plan 02: nav hrefs assume the /tools/{slug} route shape from project-brief.md, so Phase 2's active tool routes need no nav-logic change
+- [Phase ?]: Phase 1 Plan 02: useKeyboardShortcut's copy-shortcut editable-field guard checks tag name + isContentEditable + the contenteditable attribute/property directly, since jsdom (used by the hook's own unit tests) doesn't compute isContentEditable
+- [Phase ?]: Phase 1 Plan 02: e2e visibility checks for header content while the mobile Sheet drawer is open use getByTestId, not getByRole, since Radix correctly aria-hides background content while the modal is open
 
 ### Pending Todos
 
@@ -93,6 +97,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-22T05:18:31.239Z
-Stopped at: Completed 01-01-PLAN.md
+Last session: 2026-07-22T14:34:49.381Z
+Stopped at: Completed 01-02-PLAN.md
 Resume file: None

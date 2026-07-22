@@ -232,3 +232,7 @@ Four coverage items are flagged `human_judgment: true` (D2, D3, D7, D8 above) â€
 ---
 *Phase: 01-shared-shell-registry*
 *Completed: 2026-07-22*
+
+## Self-Check: PASSED
+
+All 7 created/modified files verified present on disk (`components/SiteHeader.tsx`, `components/MobileNav.tsx`, `components/ui/sheet.tsx`, `lib/hooks/useKeyboardShortcut.ts`, `lib/hooks/useKeyboardShortcut.test.ts`, `tests/e2e/navigation.spec.ts`, `app/layout.tsx`). All five commits (`430781c`, `9611aac`, `8b6e8a7`, `1416096`, `5ab01f5`) verified present in `git log`.
