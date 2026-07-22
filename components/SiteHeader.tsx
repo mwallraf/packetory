@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { getSortedTools } from "@/tools/registry";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { MobileNav } from "@/components/MobileNav";
 
 /**
  * Registry-driven top nav bar, rendered on every route via app/layout.tsx
@@ -14,8 +15,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
  * render as real links, with the current-route link distinguished by both
  * the accent tint AND a non-color underline indicator (QUAL-05).
  *
- * The <=320px hamburger slot below is a fixed-size placeholder reserved so
- * Task 2's MobileNav mounts with no layout shift (CLS) once wired in.
+ * At <=320px the desktop nav hides and MobileNav's hamburger trigger takes
+ * over (D-04); the logo and ThemeToggle stay visible outside its drawer.
  */
 export function SiteHeader() {
   const pathname = usePathname();
@@ -26,6 +27,7 @@ export function SiteHeader() {
       <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
         <Link
           href="/"
+          data-testid="site-logo"
           className="shrink-0 rounded-md text-[16px] leading-[1.5] font-semibold text-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           Packetory
@@ -79,13 +81,7 @@ export function SiteHeader() {
 
         <div className="flex shrink-0 items-center gap-1">
           <ThemeToggle />
-          {/* Hamburger slot: matches the theme toggle's 44x44 footprint so
-              Task 2's MobileNav mounts here with no CLS. */}
-          <div
-            data-testid="mobile-nav-slot"
-            aria-hidden="true"
-            className="size-11 shrink-0 sm:hidden"
-          />
+          <MobileNav tools={tools} pathname={pathname} />
         </div>
       </div>
     </header>
