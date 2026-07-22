@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 1
-current_phase_name: Shared Shell + Registry
+current_phase: 01
+current_phase_name: shared-shell-registry
 status: executing
-stopped_at: Phase 1 UI-SPEC approved
-last_updated: "2026-07-21T17:41:05.536Z"
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-07-22T05:18:31.246Z"
 last_activity: 2026-07-21
-last_activity_desc: Roadmap created, 48/48 v1 requirements mapped to 5 phases
+last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 1
   completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_plans: 5
+  completed_plans: 1
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-21)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Phase 1 — Shared Shell + Registry
+**Current focus:** Phase 01 — shared-shell-registry
 
 ## Current Position
 
-Phase: 1 of 5 (Shared Shell + Registry)
-Plan: 0 of TBD in current phase
+Phase: 01 (shared-shell-registry) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-07-21 — Roadmap created, 48/48 v1 requirements mapped to 5 phases
+Last activity: 2026-07-21 — Phase 01 execution started
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
@@ -54,6 +54,11 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+**Per-Plan Metrics:**
+
+| Plan | Duration | Tasks | Files |
+|------|----------|-------|-------|
+| Phase 01 P01 | 50min | 3 tasks | 29 files |
 
 ## Accumulated Context
 
@@ -65,6 +70,9 @@ Recent decisions affecting current work:
 - [Roadmap]: Build order confirmed as Shell → UUID → Subnet → DNS → MAC; each tool after the first deliberately stresses a new architectural seam (client/server split → URL state → external async data → API-route extraction).
 - [Roadmap]: Analytics allow-list (QUAL-06) placed in Phase 1, before Phase 3 (Subnet), since Subnet is the first tool with sensitive URL state.
 - [Roadmap]: Cross-cutting QUAL requirements distributed to the phase that first establishes/most fully exercises the underlying pattern (QUAL-01/02 → Phase 2 UUID as first real tool page; QUAL-08 → Phase 4 DNS as richest error-state matrix; QUAL-03/04/05/06/07/09 → Phase 1 as shared infrastructure) rather than a separate polish phase.
+- [Phase ?]: Phase 1 Plan 01: shadcn CLI redesigned around presets (nova/vega/...) with no style=new-york/baseColor flags; used base=radix preset=nova and manually applied the UI-SPEC color/radius contract via CSS custom properties instead.
+- [Phase ?]: Phase 1 Plan 01: pinned typescript to 6.0.3 (not CLAUDE.md's 7.0.2) and eslint to 9.39.5 (not 10.7.0) — typescript-eslint and eslint-plugin-react (via eslint-config-next) do not yet support those major versions; tracked as tech debt.
+- [Phase ?]: Phase 1 Plan 01: Playwright baseURL/webServer.url use localhost, not 127.0.0.1 — the latter trips Next.js dev's HMR cross-origin block and silently stalls client hydration with no error.
 
 ### Pending Todos
 
@@ -85,6 +93,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-21T17:00:10.160Z
-Stopped at: Phase 1 UI-SPEC approved
-Resume file: .planning/phases/01-shared-shell-registry/01-UI-SPEC.md
+Last session: 2026-07-22T05:18:31.239Z
+Stopped at: Completed 01-01-PLAN.md
+Resume file: None
