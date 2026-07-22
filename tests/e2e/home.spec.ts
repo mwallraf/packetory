@@ -51,3 +51,32 @@ test.describe("Landing page — tool registry grid", () => {
     }
   });
 });
+
+test.describe("Theme toggle — light/dark persistence (SHELL-05)", () => {
+  test("clicking the toggle flips the <html> theme class and persists across reload", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const html = page.locator("html");
+    const toggle = page.getByTestId("theme-toggle");
+
+    const initiallyDark = await html.evaluate((el) =>
+      el.classList.contains("dark")
+    );
+
+    await toggle.click();
+
+    const afterToggleDark = await html.evaluate((el) =>
+      el.classList.contains("dark")
+    );
+    expect(afterToggleDark).toBe(!initiallyDark);
+
+    await page.reload();
+
+    const afterReloadDark = await page
+      .locator("html")
+      .evaluate((el) => el.classList.contains("dark"));
+    expect(afterReloadDark).toBe(afterToggleDark);
+  });
+});
