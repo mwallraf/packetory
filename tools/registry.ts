@@ -31,7 +31,7 @@ export const tools: ToolDefinition[] = [
     category: "generate",
     keywords: ["uuid", "guid", "v4", "v7", "identifier"],
     icon: "Fingerprint",
-    status: "planned",
+    status: "active",
     clientOnly: true,
     featured: true,
   },

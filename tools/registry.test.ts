@@ -33,10 +33,16 @@ describe("tools/registry", () => {
     expect(notFeaturedNames).toEqual(sortedNotFeaturedNames);
   });
 
-  it("every entry has status 'planned' in Phase 1 (no tool logic ships yet)", () => {
-    for (const tool of tools) {
-      expect(tool.status).toBe("planned");
-    }
+  it("uuid is 'active' as of Phase 2 Plan 01; the remaining v1 tools stay 'planned' until their own phase ships", () => {
+    const statuses = Object.fromEntries(
+      tools.map((tool) => [tool.slug, tool.status])
+    );
+    expect(statuses).toEqual({
+      uuid: "active",
+      subnet: "planned",
+      dns: "planned",
+      mac: "planned",
+    });
   });
 
   it("getToolBySlug() returns the matching entry or undefined", () => {

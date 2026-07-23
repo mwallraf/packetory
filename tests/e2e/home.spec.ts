@@ -34,19 +34,32 @@ test.describe("Landing page — tool registry grid", () => {
     ]);
   });
 
-  test("each card shows a muted 'Coming soon' badge and is not a clickable link", async ({
+  test("each 'planned' card shows a muted 'Coming soon' badge; the 'active' uuid card does not (Phase 2 Plan 01); no card is itself a clickable link (ToolCard renders no wrapping anchor)", async ({
     page,
   }) => {
     await page.goto("/");
 
+    // Registry sort order: Subnet, UUID, DNS, MAC (see the preceding test) —
+    // uuid is the only "active" entry as of this plan.
+    const cardNames = [
+      "IP Subnet Calculator",
+      "UUID Generator",
+      "DNS Lookup",
+      "MAC Address Inspector",
+    ];
     const cards = page.getByTestId("tool-card");
-    const count = await cards.count();
-    expect(count).toBe(4);
+    await expect(cards).toHaveCount(4);
 
-    for (let i = 0; i < count; i++) {
+    for (let i = 0; i < cardNames.length; i++) {
       const card = cards.nth(i);
-      await expect(card.getByText("Coming soon")).toBeVisible();
-      // No anchor tag wrapping the card — status:"planned" cards are not clickable.
+      const isActive = cardNames[i] === "UUID Generator";
+
+      if (isActive) {
+        await expect(card.getByText("Coming soon")).toHaveCount(0);
+      } else {
+        await expect(card.getByText("Coming soon")).toBeVisible();
+      }
+      // ToolCard never wraps itself in an anchor tag, active or planned.
       await expect(card.locator("a")).toHaveCount(0);
     }
   });

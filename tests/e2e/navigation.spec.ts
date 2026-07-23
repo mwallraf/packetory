@@ -28,14 +28,18 @@ test.describe("Mobile nav drawer (320px, D-04, SHELL-06)", () => {
     const drawer = page.getByTestId("mobile-nav-drawer");
     await expect(drawer).toBeVisible();
 
-    // shortName items per tools/registry.ts — all four are status:"planned"
-    // in Phase 1, rendered muted/non-clickable (D-01).
+    // shortName items per tools/registry.ts — uuid is "active" (Phase 2 Plan
+    // 01) and rendered as a real link; the remaining three stay
+    // status:"planned", rendered muted/non-clickable (D-01).
     for (const shortName of ["Subnet", "UUID", "DNS", "MAC"]) {
       await expect(
         drawer.getByText(shortName, { exact: true })
       ).toBeVisible();
     }
-    await expect(drawer.locator("a")).toHaveCount(0);
+    await expect(drawer.locator("a")).toHaveCount(1);
+    await expect(
+      drawer.getByTestId("mobile-nav-link").getByText("UUID", { exact: true })
+    ).toBeVisible();
 
     // Logo and theme toggle remain visible outside the drawer while it's open (D-04).
     await expect(logo).toBeVisible();
