@@ -3,7 +3,7 @@ import { getSortedTools, getToolBySlug, tools } from "./registry";
 
 describe("tools/registry", () => {
   it("contains exactly the four v1 tool entries", () => {
-    expect(tools).toHaveLength(999); // DELIBERATE FAILURE: merge-gate test
+    expect(tools).toHaveLength(4);
     const slugs = tools.map((t) => t.slug).sort();
     expect(slugs).toEqual(["dns", "mac", "subnet", "uuid"]);
   });
