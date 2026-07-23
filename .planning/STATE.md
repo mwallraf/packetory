@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 01
 current_phase_name: shared-shell-registry
 status: executing
-stopped_at: Completed 01-03-PLAN.md
-last_updated: "2026-07-22T15:22:57.067Z"
+stopped_at: Completed 01-05-PLAN.md
+last_updated: "2026-07-23T12:04:52.755Z"
 last_activity: 2026-07-21
 last_activity_desc: Phase 01 execution started
 progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 5
-  completed_plans: 3
+  completed_plans: 4
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-21)
 ## Current Position
 
 Phase: 01 (shared-shell-registry) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-07-21 — Phase 01 execution started
 
-Progress: [██████░░░░] 60%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [██████░░░░] 60%
 | Phase 01 P01 | 50min | 3 tasks | 29 files |
 | Phase 01 P02 | 55min | 3 tasks | 7 files |
 | Phase 01 P03 | 35min | 3 tasks | 8 files |
+| Phase 01 P05 | ~20min (Task 3 verification only; Tasks 1-2 done in prior session) | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,9 @@ Recent decisions affecting current work:
 - [Phase ?]: Phase 1 Plan 03: IPv6 literal validation via the WHATWG URL bracket trick (new URL('http://[candidate]')) rather than a regex or new dependency
 - [Phase ?]: Phase 1 Plan 03: x-forwarded-for anti-spoof selection trusts the LEFT-MOST comma-separated entry (Vercel convention), per the plan's explicit behavior spec and threat_model T-03-01
 - [Phase ?]: Phase 1 Plan 03: IpBadge performs a real client-side fetch("/api/ip") in a mount effect (matching the plan's literal action + e2e mocking design, which requires a browser-initiated request for Playwright's page.route() to intercept), mitigating the loading-state tension with a no-store fetch and a content-free CLS spacer rather than any visible skeleton
+- [Phase ?]: Phase 1 Plan 05: Vercel Framework Preset was misconfigured as 'Other' instead of Next.js on initial project connection; fixed by committing vercel.json with {"framework": "nextjs"} rather than relying on dashboard auto-detection.
+- [Phase ?]: Phase 1 Plan 05: package-lock.json (generated with local npm 11.10.1) failed npm ci's integrity check under GitHub Actions' bundled npm 10.9.8; fixed by pinning npm install -g npm@11.10.1 before npm ci in every CI job.
+- [Phase ?]: Phase 1 Plan 05: the GitHub ruleset 'protect-main' was initially missing required_status_checks and a pull_request rule; fixed via the GitHub API and verified live by pushing a deliberately failing test/lint commit to an open PR and confirming gh pr merge was rejected (mergeStateStatus=BLOCKED), then reverting and confirming CLEAN before merging PR #1 (a7ad760).
 
 ### Pending Todos
 
@@ -101,6 +105,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-22T15:21:04.197Z
-Stopped at: Completed 01-03-PLAN.md
+Last session: 2026-07-23T12:04:52.747Z
+Stopped at: Completed 01-05-PLAN.md
 Resume file: None
