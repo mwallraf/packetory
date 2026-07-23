@@ -398,7 +398,7 @@ function downloadFile(content: string, filename: string, mimeType: string) {
 | A3 | Download filenames follow `uuids.txt`/`uuids.csv`/`uuids.json` (already flagged `[ASSUMPTION]` in `02-UI-SPEC.md` — no convention was specified by the user) | Code Examples — `downloadFile()` | Low — cosmetic, trivially changed |
 | A4 | No OG image is required this phase (none exists in the repo; QUAL-01 requires "Open Graph metadata," not necessarily an image) | Code Examples — metadata example | Low — a missing OG image degrades social-share preview quality but doesn't fail any locked requirement; add later as a `public/` asset without touching this phase's logic |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should the CSV export include a header row?**
    - What we know: D-08 explicitly forbids index/version/timestamp *metadata columns*; it's silent on whether the single `uuid` column itself gets a header label.
