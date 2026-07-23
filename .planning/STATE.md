@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 02
 current_phase_name: uuid-generator
 status: executing
-stopped_at: Completed 02-01-PLAN.md
-last_updated: "2026-07-23T15:57:18.319Z"
+stopped_at: Completed 02-02-PLAN.md
+last_updated: "2026-07-23T16:06:43.038Z"
 last_activity: 2026-07-23
 last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 2
   completed_phases: 1
   total_plans: 9
-  completed_plans: 6
+  completed_plans: 7
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-23)
 ## Current Position
 
 Phase: 02 (uuid-generator) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-07-23 — Phase 02 execution started
 
-Progress: [███████░░░] 67%
+Progress: [████████░░] 78%
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Progress: [███████░░░] 67%
 | Phase 01 P05 | ~20min (Task 3 verification only; Tasks 1-2 done in prior session) | 3 tasks | 6 files |
 | Phase 01 P04 | 15min | 3 tasks | 8 files |
 | Phase 02 P01 | 6min | 3 tasks | 13 files |
+| Phase 02 P02 | 7min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 02] Plan 01: uuid pinned to an exact version (14.0.1, no caret) per threat_model T-02-SC mitigation, unlike most other caret-ranged dependencies
 - [Phase ?]: [Phase 02] Plan 01: next/dynamic(ssr:false) inside a dedicated "use client" loader file is the locked pattern for any CSPRNG-derived first-paint value — verified live via built-HTML curl showing only the skeleton, never a baked-in UUID
 - [Phase ?]: [Phase 02] Plan 01: flipping tools/registry.ts uuid to status:active broke four pre-existing Phase-1 tests that hard-coded an 'every tool is planned' assumption; fixed in place (uuid=active, others=planned) rather than deferred
+- [Phase ?]: [Phase 02] Plan 02: lib/uuid/format.ts's hyphen reformat always strips existing hyphens then conditionally reinserts them at canonical 8-4-4-4-12 positions (not one-way removal), making the hyphens:false->true round trip restore the byte-identical original
+- [Phase ?]: [Phase 02] Plan 02: UuidTool.tsx tracks a separate raw countInput string from the clamped count/rawUuids state, so the batch-count field always echoes exactly what the user typed while generation stays clamped to the last valid value
 
 ### Pending Todos
 
@@ -115,6 +118,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-23T15:57:18.312Z
-Stopped at: Completed 02-01-PLAN.md
+Last session: 2026-07-23T16:06:37.325Z
+Stopped at: Completed 02-02-PLAN.md
 Resume file: None

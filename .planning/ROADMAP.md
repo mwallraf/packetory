@@ -67,7 +67,7 @@ Plans:
   4. User can copy a single value, copy all values, or download the result, each with a visible copy confirmation.
   5. The UUID tool page has a unique title, meta description, canonical URL, and Open Graph tags, plus a worked example and genuine FAQ content.
 
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 Plans:
 **Wave 1**
 
@@ -75,7 +75,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 02-02-PLAN.md — Customization: v4/v7 toggle, live batch 1–100, regenerate, case/hyphen reformat, keyboard shortcuts (wave 2)
+- [x] 02-02-PLAN.md — Customization: v4/v7 toggle, live batch 1–100, regenerate, case/hyphen reformat, keyboard shortcuts (wave 2)
 - [ ] 02-03-PLAN.md — SEO/content: metadata + canonical/OG, worked example, FAQ prose + FAQPage JSON-LD (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
@@ -143,7 +143,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
 | 1. Shared Shell + Registry | 5/5 | Complete    | 2026-07-23 |
-| 2. UUID Generator | 1/4 | In Progress|  |
+| 2. UUID Generator | 2/4 | In Progress|  |
 | 3. IP Subnet Calculator | 0/TBD | Not started | - |
 | 4. DNS Lookup | 0/TBD | Not started | - |
 | 5. MAC Address Inspector | 0/TBD | Not started | - |
