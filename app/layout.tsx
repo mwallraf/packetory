@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/components/ThemeProvider";
 import { SiteHeader } from "@/components/SiteHeader";
+import { SiteFooter } from "@/components/SiteFooter";
 import { PacketoryAnalytics } from "@/lib/analytics/PacketoryAnalytics";
 import "./globals.css";
 
@@ -37,6 +38,7 @@ export default function RootLayout({
           <TooltipProvider>
             <SiteHeader />
             {children}
+            <SiteFooter />
           </TooltipProvider>
         </ThemeProvider>
         <PacketoryAnalytics />
