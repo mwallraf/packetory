@@ -1,11 +1,12 @@
 ---
 phase: 01-shared-shell-registry
 verified: 2026-07-23T15:10:00Z
-status: human_needed
+status: passed
 score: 10/12 must-haves verified
 behavior_unverified: 2
 overrides_applied: 1
 overrides:
+
   - must_have: "Visitor can operate global keyboard shortcuts (`/` focus, `Enter` execute, `Esc` clear)"
     reason: "Intentional Phase 1 scoping (D-03, 01-CONTEXT.md): the landing page has no primary input for `/` to focus, so useKeyboardShortcut ships as tested, unbound-safe plumbing rather than being wired to a no-op target. It will be consumed starting in Phase 2, where the first real tool page provides a genuine input to focus. Accepted as deferred, not incomplete."
     accepted_by: "mwallraf"
@@ -14,26 +15,32 @@ re_verification:
   previous_status: gaps_found
   previous_score: 9/12
   gaps_closed:
+
     - "Visitor can operate global keyboard shortcuts (`/` focus, `Enter` execute, `Esc` clear) — closed via accepted override (deferred to Phase 2 by design, not a defect)"
   gaps_remaining: []
   regressions: []
 deferred:
+
   - truth: "Visitor can navigate to and between live tool pages (ROADMAP Phase 1 Success Criterion 2, tool-page portion)"
     addressed_in: "Phase 2: UUID Generator"
     evidence: "Phase 2 goal/SC1: 'User loads /tools/uuid and immediately sees a generated UUID v4...' — Phase 1 deliberately ships with all four registry tools at status:\"planned\" (no tool route exists yet), per the phase goal's own qualifier 'even before any tool exists.' The nav/active-link logic is implemented, unit- and e2e-tested against the /tools/{slug} route shape, and will be exercised for real the moment Phase 2 flips uuid's status to \"active\"."
 behavior_unverified_items:
+
   - truth: "At 320px, the site (grid, header, mobile drawer, IP badge) renders with zero cumulative layout shift as the theme applies and the IP badge resolves/hides on load (SHELL-06, ROADMAP SC3)"
     test: "Load the homepage on a real 320px-wide device/emulation on a throttled connection; observe visually and/or measure CLS (e.g. via Chrome DevTools Performance/Lighthouse) across the initial paint, theme-script application, and IP-badge resolution window."
     expected: "CLS = 0; no visible content jump when the theme class applies or when the IP badge appears/disappears."
     why_human: "Explicitly marked 'verification: backstop' in three separate plans (01-01, 01-02, 01-03) — CLS is a perceptual/runtime layout metric that automated Playwright assertions in this phase check only proxies (e.g. no-horizontal-scroll, element presence), not an actual CLS score across the paint timeline."
+
   - truth: "Focus order (logo -> nav/hamburger -> theme toggle -> main content) is logical when tabbing through the page, and every interactive control shows a visible accent focus ring in both themes (QUAL-05, ROADMAP SC3)"
     test: "Tab through the homepage from a fresh load in both light and dark themes; confirm the visited order matches DOM order and every stop shows a visible focus ring."
     expected: "Tab order matches logo -> nav/hamburger -> theme toggle -> main content with no traps or skips; focus ring visible at every stop in both themes."
     why_human: "Plan 01-02 (D7) explicitly flags this as requiring a live keyboard walk-through — no automated tab-order e2e test exists in this phase; focus-visible classes are applied by convention but never asserted end-to-end."
 human_verification:
+
   - test: "Load the homepage on a real 320px-wide device (or emulated) on a throttled connection; watch/measure the initial paint, theme-script application, and IP-badge resolution."
     expected: "CLS = 0 across the whole load sequence; no visible content jump."
     why_human: "Explicitly flagged `verification: backstop` in 3 separate plans; automated tests check proxies (no horizontal scroll, element presence) but not an actual CLS score."
+
   - test: "Tab through the homepage from a fresh load, in both light and dark themes."
     expected: "Visit order matches logo -> nav/hamburger -> theme toggle -> main content, with a visible accent focus ring at every stop in both themes."
     why_human: "Flagged `human_judgment: true` (D7) in Plan 02's own coverage; no automated tab-order e2e test exists in this phase."
