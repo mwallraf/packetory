@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 2
-current_phase_name: UUID Generator
+current_phase: 02
+current_phase_name: uuid-generator
 status: executing
-stopped_at: Phase 2 UI-SPEC approved
-last_updated: "2026-07-23T15:40:44.365Z"
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-07-23T15:57:18.319Z"
 last_activity: 2026-07-23
-last_activity_desc: Phase 01 complete, transitioned to Phase 2
+last_activity_desc: Phase 02 execution started
 progress:
   total_phases: 2
   completed_phases: 1
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 9
+  completed_plans: 6
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-23)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Phase 2 — UUID Generator
+**Current focus:** Phase 02 — uuid-generator
 
 ## Current Position
 
-Phase: 2 — UUID Generator
-Plan: Not started
+Phase: 02 (uuid-generator) — EXECUTING
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-23 — Phase 01 complete, transitioned to Phase 2
+Last activity: 2026-07-23 — Phase 02 execution started
 
-Progress: [██████████] 100%
+Progress: [███████░░░] 67%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [██████████] 100%
 | Phase 01 P03 | 35min | 3 tasks | 8 files |
 | Phase 01 P05 | ~20min (Task 3 verification only; Tasks 1-2 done in prior session) | 3 tasks | 6 files |
 | Phase 01 P04 | 15min | 3 tasks | 8 files |
+| Phase 02 P01 | 6min | 3 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 01-COVERAGE.md's api-coverage gate parser expects a strict 3-column `| capability | decision | reason |` table (decision in column index 1) — a 4-column format (Capability/Source/Disposition/Reason) silently miscounted every row as a malformed decision even though the matrix was fully decided. Fixed by conforming to the 3-column schema; future COVERAGE.md files must use it directly.
 - [Phase ?]: Phase 1 security review (gsd-secure-phase) verified 15/15 threats closed against actual implementation (not just plan-time claims), including a live re-check of the GitHub branch-protection ruleset. SECURITY.md sign-off recorded 2026-07-23.
 - [Phase ?]: Phase 1 UAT (CLS at 320px, keyboard focus order/ring) both passed with zero issues 2026-07-23 — phase fully verified and transitioned to Phase 2.
+- [Phase ?]: [Phase 02] Plan 01: uuid pinned to an exact version (14.0.1, no caret) per threat_model T-02-SC mitigation, unlike most other caret-ranged dependencies
+- [Phase ?]: [Phase 02] Plan 01: next/dynamic(ssr:false) inside a dedicated "use client" loader file is the locked pattern for any CSPRNG-derived first-paint value — verified live via built-HTML curl showing only the skeleton, never a baked-in UUID
+- [Phase ?]: [Phase 02] Plan 01: flipping tools/registry.ts uuid to status:active broke four pre-existing Phase-1 tests that hard-coded an 'every tool is planned' assumption; fixed in place (uuid=active, others=planned) rather than deferred
 
 ### Pending Todos
 
@@ -111,6 +115,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-23T14:49:15.515Z
-Stopped at: Phase 2 UI-SPEC approved
-Resume file: .planning/phases/02-uuid-generator/02-UI-SPEC.md
+Last session: 2026-07-23T15:57:18.312Z
+Stopped at: Completed 02-01-PLAN.md
+Resume file: None

@@ -18,7 +18,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### UUID (UUID Generator)
 
-- [ ] **UUID-01**: A UUID v4 is generated and displayed immediately on page load
+- [x] **UUID-01**: A UUID v4 is generated and displayed immediately on page load
 - [ ] **UUID-02**: User can switch generation to UUID v7
 - [ ] **UUID-03**: User can regenerate a single UUID or generate a batch of 1–100
 - [ ] **UUID-04**: User can toggle uppercase/lowercase and hyphens on/off
@@ -138,7 +138,7 @@ Populated during roadmap creation (`/gsd-new-project` → roadmap step).
 | QUAL-06 | Phase 1 | Complete |
 | QUAL-07 | Phase 1 | Complete |
 | QUAL-09 | Phase 1 | Complete |
-| UUID-01 | Phase 2 | Pending |
+| UUID-01 | Phase 2 | Complete |
 | UUID-02 | Phase 2 | Pending |
 | UUID-03 | Phase 2 | Pending |
 | UUID-04 | Phase 2 | Pending |
