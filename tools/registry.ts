@@ -94,5 +94,3 @@ export function getSortedTools(): ToolDefinition[] {
 export function getToolBySlug(slug: string): ToolDefinition | undefined {
   return tools.find((tool) => tool.slug === slug);
 }
-
-const unusedDeliberateLintFailure = "this line exists only to trip eslint no-unused-vars for a merge-gate test";
