@@ -63,8 +63,8 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### QUAL (Quality, SEO, accessibility, privacy — cross-cutting)
 
-- [ ] **QUAL-01**: Each tool page has a unique title, meta description, canonical URL, and Open Graph metadata
-- [ ] **QUAL-02**: Each tool page includes a concise explanation, one or two worked examples, and genuine FAQ content
+- [x] **QUAL-01**: Each tool page has a unique title, meta description, canonical URL, and Open Graph metadata
+- [x] **QUAL-02**: Each tool page includes a concise explanation, one or two worked examples, and genuine FAQ content
 - [x] **QUAL-03**: `sitemap.xml` and `robots.txt` are generated
 - [x] **QUAL-04**: Site supports full keyboard navigation (`/` focus, `Enter` execute, `Esc` clear, `Ctrl/Cmd+C` copy) with accessible copy confirmations
 - [x] **QUAL-05**: Color contrast, labels, and focus order meet accessibility standards; no interaction depends only on color
@@ -144,8 +144,8 @@ Populated during roadmap creation (`/gsd-new-project` → roadmap step).
 | UUID-04 | Phase 2 | Complete |
 | UUID-05 | Phase 2 | Pending |
 | UUID-06 | Phase 2 | Pending |
-| QUAL-01 | Phase 2 | Pending |
-| QUAL-02 | Phase 2 | Pending |
+| QUAL-01 | Phase 2 | Complete |
+| QUAL-02 | Phase 2 | Complete |
 | SUBNET-01 | Phase 3 | Pending |
 | SUBNET-02 | Phase 3 | Pending |
 | SUBNET-03 | Phase 3 | Pending |
