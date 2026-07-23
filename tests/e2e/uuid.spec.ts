@@ -167,3 +167,81 @@ test.describe("UUID Generator controls (UUID-02, UUID-03, UUID-04)", () => {
     expect(hasHorizontalScroll).toBe(false);
   });
 });
+
+test.describe("UUID Generator export (UUID-05, UUID-06, D-07)", () => {
+  test("copy all in CSV format copies a uuid-header CSV of every batch value", async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+
+    await page.goto("/tools/uuid");
+
+    await page.getByTestId("uuid-batch-count").fill("3");
+    await expect(page.getByTestId("uuid-batch-row")).toHaveCount(3);
+
+    await page.getByTestId("uuid-format-csv").click();
+    await page.getByTestId("uuid-copy-all").click();
+
+    await expect(page.getByTestId("uuid-copy-all-status")).toHaveText(
+      "Copied!"
+    );
+
+    const clipboardText = await page.evaluate(() =>
+      navigator.clipboard.readText()
+    );
+    expect(clipboardText.startsWith("uuid\n")).toBe(true);
+    // Header row + 3 batch values = 4 lines.
+    expect(clipboardText.split("\n")).toHaveLength(4);
+  });
+
+  test("copy all in JSON format copies a raw-string array of every batch value", async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+
+    await page.goto("/tools/uuid");
+
+    await page.getByTestId("uuid-batch-count").fill("3");
+    await expect(page.getByTestId("uuid-batch-row")).toHaveCount(3);
+
+    await page.getByTestId("uuid-format-json").click();
+    await page.getByTestId("uuid-copy-all").click();
+
+    await expect(page.getByTestId("uuid-copy-all-status")).toHaveText(
+      "Copied!"
+    );
+
+    const clipboardText = await page.evaluate(() =>
+      navigator.clipboard.readText()
+    );
+    const parsed = JSON.parse(clipboardText);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed).toHaveLength(3);
+    for (const value of parsed) {
+      expect(typeof value).toBe("string");
+    }
+  });
+
+  test("download triggers a file named per the selected format", async ({
+    page,
+  }) => {
+    await page.goto("/tools/uuid");
+
+    const formats: Array<{ testId: string; filename: string }> = [
+      { testId: "uuid-format-text", filename: "uuids.txt" },
+      { testId: "uuid-format-csv", filename: "uuids.csv" },
+      { testId: "uuid-format-json", filename: "uuids.json" },
+    ];
+
+    for (const { testId, filename } of formats) {
+      await page.getByTestId(testId).click();
+      const [download] = await Promise.all([
+        page.waitForEvent("download"),
+        page.getByTestId("uuid-download").click(),
+      ]);
+      expect(download.suggestedFilename()).toBe(filename);
+    }
+  });
+});
