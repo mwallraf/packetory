@@ -18,14 +18,14 @@ There is therefore **no external capability surface to enumerate** — nothing t
 
 ## Capability Matrix
 
-The only "API"-shaped surface in this phase is our own internal route handler. Its full capability surface:
+The only "API"-shaped surface in this phase is our own internal route handler. Its full capability surface (strict 3-column schema — `capability | decision | reason` — required by the `api-coverage` gate parser; source/plan references folded into the reason column):
 
-| Capability | Source | Disposition | Reason |
-|------------|--------|-------------|--------|
-| Read the request's forwarded-IP header (`x-forwarded-for`, fallback `x-real-ip`) and return the visitor's IP | `app/api/ip/route.ts` (D-05, Plan 03) | INTEGRATE | This is SHELL-03 — the whole point of the route. Fully covered by Plan 03. |
-| Return whichever single address family (IPv4 or IPv6) the request provides | D-06 | INTEGRATE | Covered by Plan 03. |
-| Signal "unavailable" (null) when no header is present so the client hides the widget | D-07 | INTEGRATE | Covered by Plan 03. |
-| Any third-party / external IP-echo, geolocation, or vendor API | — | OPT-OUT | Explicitly excluded by D-05 ("no third-party requests when avoidable") and the brief's local-first / no-third-party-requests constraint. Not a gap — a locked decision. |
+| capability | decision | reason |
+|------------|----------|--------|
+| Read forwarded-IP header (`x-forwarded-for`, fallback `x-real-ip`), return IP | INTEGRATE | This is SHELL-03 — the whole point of the route (`app/api/ip/route.ts`, D-05, Plan 03). Fully covered. |
+| Return whichever single address family (IPv4 or IPv6) the request provides | INTEGRATE | D-06, covered by Plan 03. |
+| Signal "unavailable" (null) when no header present, so client hides widget | INTEGRATE | D-07, covered by Plan 03. |
+| Any third-party / external IP-echo, geolocation, or vendor API | OPT-OUT | Explicitly excluded by D-05 ("no third-party requests when avoidable") and the brief's local-first / no-third-party-requests constraint. Not a gap — a locked decision. |
 
 ## Conclusion
 
