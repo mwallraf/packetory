@@ -68,8 +68,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **QUAL-03**: `sitemap.xml` and `robots.txt` are generated
 - [x] **QUAL-04**: Site supports full keyboard navigation (`/` focus, `Enter` execute, `Esc` clear, `Ctrl/Cmd+C` copy) with accessible copy confirmations
 - [x] **QUAL-05**: Color contrast, labels, and focus order meet accessibility standards; no interaction depends only on color
-- [ ] **QUAL-06**: Analytics excludes/redacts sensitive query parameters (MACs, internal hostnames, private IP ranges, secrets/tokens) via an allow-list, not a block-list
-- [ ] **QUAL-07**: No tracking cookies; a concise privacy notice is published
+- [x] **QUAL-06**: Analytics excludes/redacts sensitive query parameters (MACs, internal hostnames, private IP ranges, secrets/tokens) via an allow-list, not a block-list
+- [x] **QUAL-07**: No tracking cookies; a concise privacy notice is published
 - [ ] **QUAL-08**: Validation and runtime errors appear inline and distinguish invalid input, no result, rate limiting, resolver failure, and temporary service unavailability
 - [x] **QUAL-09**: PRs require passing tests, type checking, linting, and build validation before merge; `main` auto-deploys to Vercel production; feature branches get preview deployments
 
@@ -135,8 +135,8 @@ Populated during roadmap creation (`/gsd-new-project` → roadmap step).
 | QUAL-03 | Phase 1 | Complete |
 | QUAL-04 | Phase 1 | Complete |
 | QUAL-05 | Phase 1 | Complete |
-| QUAL-06 | Phase 1 | Pending |
-| QUAL-07 | Phase 1 | Pending |
+| QUAL-06 | Phase 1 | Complete |
+| QUAL-07 | Phase 1 | Complete |
 | QUAL-09 | Phase 1 | Complete |
 | UUID-01 | Phase 2 | Pending |
 | UUID-02 | Phase 2 | Pending |
