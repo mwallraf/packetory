@@ -19,22 +19,21 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ Shared site shell: landing page, consistent navigation, tool registry (`tools/registry.ts`) driving nav/cards/sitemap — Phase 1
+- ✓ CI: tests, type checking, linting, build validation required on PRs; Vercel preview deployments per PR, `main` auto-deploys to production — Phase 1 (live-verified: a deliberately failing commit was confirmed to block merge via `gh pr merge` rejection before being reverted; production deploy confirmed live at packetory.vercel.app)
+- ✓ Privacy-oriented cookie-free analytics with redaction of sensitive query params — Phase 1 (`lib/analytics/redact.ts` safe-by-default allow-list, currently empty; will be exercised for real once Phase 3 Subnet introduces the first sensitive query param)
 
 ### Active
 
-- [ ] Shared site shell: landing page, consistent navigation, tool registry (`tools/registry.ts`) driving nav/cards/sitemap/related-tools
 - [ ] UUID Generator — v4 (default) and v7, single or batch (1–100) generation, uppercase/lowercase, hyphens on/off, plain text/CSV/JSON output, copy/copy-all/download
 - [ ] IP Subnet Calculator — CIDR input (IPv4 + IPv6, auto-detected), full network breakdown (network/broadcast/usable range/host count/masks/binary/reverse DNS zone), inline validation, bookmarkable URL state (`?cidr=`)
 - [ ] DNS Lookup — A/AAAA/MX/TXT/NS/CNAME via DNS-over-HTTPS with primary+fallback resolver, debounced typed input (~600–800ms), instant on paste/Enter, `AbortController` for stale-request cancellation, bookmarkable URL state (`?name=&type=`)
 - [ ] MAC Address Inspector — format normalization as-you-type, vendor/OUI lookup, locally/universally administered + unicast/multicast + randomized-MAC detection, per-field and full-result copy
 - [ ] Framework-agnostic core logic (`lib/`) per tool, independently unit-testable, shared by pages and future API routes
-- [ ] Global interaction model: `/` focus input, `Enter` execute, `Esc` clear, keyboard-first throughout, accessible copy confirmations
-- [ ] Per-tool SEO: unique title/meta/canonical/OG tags, worked examples, FAQ content, related-tool links; sitemap.xml + robots.txt
-- [ ] Accessibility: full keyboard nav, contrast, labels, logical focus order, screen-reader announcements
-- [ ] Privacy-oriented cookie-free analytics with redaction of sensitive query params (MACs, internal hostnames, private IPs, secrets/tokens)
-- [ ] Light/dark mode, mobile usability down to 320px, CLS-free async states (loading/error/empty/success)
-- [ ] CI: tests, type checking, linting, build validation required on PRs; Vercel preview deployments per PR, `main` auto-deploys to production
+- [ ] Global interaction model: `/` focus input, `Enter` execute, `Esc` clear, keyboard-first throughout, accessible copy confirmations — plumbing (`useKeyboardShortcut`) built and unit-tested in Phase 1, but not yet wired to any page (landing page has no primary input for `/` to target); becomes a real, verifiable requirement starting Phase 2's first tool page
+- [ ] Per-tool SEO: unique title/meta/canonical/OG tags, worked examples, FAQ content, related-tool links — sitemap.xml/robots.txt infrastructure (registry-derived) shipped in Phase 1; per-tool content pending actual tool pages
+- [ ] Accessibility: full keyboard nav, contrast, labels, logical focus order, screen-reader announcements — shell-level focus order and focus-ring visibility manually verified in Phase 1 UAT; remains an ongoing per-tool requirement
+- [ ] Light/dark mode, mobile usability down to 320px, CLS-free async states (loading/error/empty/success) — shell-level theme toggle and 320px CLS manually verified in Phase 1 UAT; remains an ongoing per-tool requirement
 
 ### Out of Scope
 
@@ -76,6 +75,10 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 | Build order: UUID → Subnet → DNS → MAC | UUID has zero external dependencies, fastest to ship end-to-end and validate the shared shell/registry pattern; DNS and MAC need external resolver/vendor-data decisions best made closer to their own phase | — Pending |
 | Defer remaining open decisions (DNS resolver, MAC vendor source, ad slot, logo, package naming) to their owning phases rather than resolving upfront | Brief already flags these explicitly as open; resolving them now would block project setup on decisions better informed by phase-specific research | — Pending |
 | Use project-brief.md as-is, distilled into PROJECT.md rather than rewritten from scratch | User confirmed the brief is accurate and complete; re-deriving it via cold questioning would be redundant | ✓ Good |
+| Vercel Framework Preset must be explicitly pinned via `vercel.json` (`{"framework":"nextjs"}`) rather than relying on dashboard auto-detection | Dashboard defaulted to "Other" (static) on project creation, causing every deploy to fail looking for a `public/` output dir | ✓ Fixed (Phase 1) |
+| CI must pin the npm version to match the committed lockfile's origin | GitHub Actions' bundled npm (10.9.8) failed `npm ci` against a lockfile generated with local npm 11.10.1 | ✓ Fixed (Phase 1) |
+| GitHub branch protection requires an explicit `required_status_checks` + `pull_request` ruleset rule, not just deletion/non-fast-forward | Initial ruleset only blocked deletion/force-push, silently allowing merges/pushes with red CI; verified live by pushing a deliberately failing commit and confirming `gh pr merge` was rejected before fixing | ✓ Fixed (Phase 1) |
+| Keyboard-shortcut hook (`useKeyboardShortcut`) ships as unbound, tested plumbing in Phase 1 rather than being wired to a no-op target | Landing page has no primary input for `/` to focus until Phase 2's first tool page exists | Accepted override (Phase 1 VERIFICATION.md) — becomes live in Phase 2 |
 
 ## Evolution
 
@@ -95,4 +98,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-21 after initialization*
+*Last updated: 2026-07-23 after Phase 1*
