@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider, THEME_INIT_SCRIPT } from "@/components/ThemeProvider";
 import { SiteHeader } from "@/components/SiteHeader";
+import { PacketoryAnalytics } from "@/lib/analytics/PacketoryAnalytics";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -38,6 +39,7 @@ export default function RootLayout({
             {children}
           </TooltipProvider>
         </ThemeProvider>
+        <PacketoryAnalytics />
       </body>
     </html>
   );
