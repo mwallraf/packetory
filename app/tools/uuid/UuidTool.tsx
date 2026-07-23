@@ -1,11 +1,16 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Check, Copy, RefreshCw } from "lucide-react";
+import { Check, Copy, Download, RefreshCw } from "lucide-react";
 import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
 import { useKeyboardShortcut } from "@/lib/hooks/useKeyboardShortcut";
 import { generateBatch, type UuidVersion } from "@/lib/uuid/generate";
 import { formatUuids, type UuidCase } from "@/lib/uuid/format";
+import {
+  EXPORT_FILE,
+  serializeUuids,
+  type ExportFormat,
+} from "@/lib/uuid/export";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -23,6 +28,9 @@ type UuidToolState = {
   count: number;
   case: UuidCase;
   hyphens: boolean;
+  /** Single selector governing BOTH Copy All and Download output (D-07) —
+   * never two independent format pickers. */
+  format: ExportFormat;
 };
 
 /** Parses a raw batch-count input string; returns the clamped integer
@@ -58,11 +66,19 @@ export function UuidTool() {
     count: 1,
     case: "lower",
     hyphens: true,
+    format: "text",
   }));
   const [countInput, setCountInput] = useState("1");
   const [countError, setCountError] = useState(false);
 
   const { copy, copied, error } = useCopyToClipboard();
+  // Independent hook instance (RESEARCH read_first) so Copy All's
+  // confirmation state never collides with the hero single-copy button's.
+  const {
+    copy: copyAll,
+    copied: copiedAll,
+    error: errorAll,
+  } = useCopyToClipboard();
   const countInputRef = useRef<HTMLInputElement>(null);
 
   const displayValues = formatUuids(state.rawUuids, {
@@ -116,6 +132,34 @@ export function UuidTool() {
 
   function handleHyphensChange(checked: boolean) {
     setState((prev) => ({ ...prev, hyphens: checked }));
+  }
+
+  function handleFormatChange(nextFormat: string) {
+    // Radix's single-select ToggleGroup emits "" on deselect (clicking the
+    // already-active item) — ignore it so a format is always selected.
+    if (nextFormat !== "text" && nextFormat !== "csv" && nextFormat !== "json")
+      return;
+    setState((prev) => ({ ...prev, format: nextFormat }));
+  }
+
+  function handleCopyAll() {
+    // Snapshot the current displayed array at click time (must_haves: no
+    // torn/partial copy from a mid-session regeneration).
+    copyAll(serializeUuids(displayValues, state.format));
+  }
+
+  function handleDownload() {
+    // Snapshot at click time, same as Copy All. Browser-only Blob/anchor
+    // helper stays inline here (not in framework-agnostic lib/uuid).
+    const content = serializeUuids(displayValues, state.format);
+    const meta = EXPORT_FILE[state.format];
+    const blob = new Blob([content], { type: meta.mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = meta.filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0); // Pitfall 3 cleanup
   }
 
   return (
@@ -230,6 +274,106 @@ export function UuidTool() {
             {state.hyphens ? "On" : "Off"}
           </span>
         </div>
+      </div>
+
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="flex flex-col gap-1.5">
+          <Label className="text-[14px] leading-[1.4] font-semibold">
+            Export format
+          </Label>
+          {/* Single selector drives BOTH Copy All and Download (D-07) — no
+              second format picker exists anywhere on this page. */}
+          <ToggleGroup
+            type="single"
+            variant="outline"
+            value={state.format}
+            onValueChange={handleFormatChange}
+            data-testid="uuid-format"
+          >
+            <ToggleGroupItem
+              value="text"
+              data-testid="uuid-format-text"
+              className="data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
+            >
+              Text
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="csv"
+              data-testid="uuid-format-csv"
+              className="data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
+            >
+              CSV
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="json"
+              data-testid="uuid-format-json"
+              className="data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
+            >
+              JSON
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+
+        {state.count > 1 && (
+          <div className="flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={handleCopyAll}
+              aria-label={copiedAll ? "Copied!" : "Copy all"}
+              data-testid="uuid-copy-all"
+              // 44x44 minimum hit area via padding; accent-tinted per
+              // UI-SPEC's reserved list (every copy action on this page).
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-3 text-primary outline-none transition-colors hover:bg-muted hover:text-primary focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            >
+              {copiedAll ? (
+                <>
+                  <Check aria-hidden="true" className="size-4" />
+                  <span className="text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
+                    Copied!
+                  </span>
+                </>
+              ) : (
+                <>
+                  <Copy aria-hidden="true" className="size-5" />
+                  <span className="text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
+                    Copy all
+                  </span>
+                </>
+              )}
+            </button>
+            {/* Not color-alone: icon+label swap above is the primary
+                confirmation signal; this announces the same change to
+                screen readers (QUAL-04/QUAL-05), mirroring the hero copy
+                button's exact pattern. */}
+            <span
+              aria-live="polite"
+              className="sr-only"
+              data-testid="uuid-copy-all-status"
+            >
+              {copiedAll ? "Copied!" : ""}
+            </span>
+            {errorAll && (
+              <span className="text-[14px] leading-[1.4] font-normal text-muted-foreground">
+                Couldn&apos;t copy — select the text and copy manually.
+              </span>
+            )}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={handleDownload}
+          aria-label="Download"
+          data-testid="uuid-download"
+          // Neutral/outline styling, NOT accent — Download is secondary to
+          // copy per UI-SPEC's reserved accent list (copy is primary).
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-border px-3 text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          <Download aria-hidden="true" className="size-5" />
+          <span className="text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
+            Download
+          </span>
+        </button>
       </div>
 
       {state.count === 1 ? (
