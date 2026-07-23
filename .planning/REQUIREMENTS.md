@@ -9,12 +9,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Shell (Shared shell, registry, landing page)
 
-- [ ] **SHELL-01**: Visitor sees a landing page listing all tools with name, description, and category, sourced from a single tool registry (`tools/registry.ts`)
-- [ ] **SHELL-02**: Every tool page is reachable via consistent, instant navigation
-- [ ] **SHELL-03**: Visitor's own public IP address is displayed on the landing page with a one-click copy button
-- [ ] **SHELL-04**: Adding a new tool requires only a new module + registry entry — no manual edits to nav, cards, sitemap, or related-tools components
-- [ ] **SHELL-05**: Site supports light and dark mode
-- [ ] **SHELL-06**: Site is usable at 320px mobile width with no cumulative layout shift when results appear
+- [x] **SHELL-01**: Visitor sees a landing page listing all tools with name, description, and category, sourced from a single tool registry (`tools/registry.ts`)
+- [x] **SHELL-02**: Every tool page is reachable via consistent, instant navigation
+- [x] **SHELL-03**: Visitor's own public IP address is displayed on the landing page with a one-click copy button
+- [x] **SHELL-04**: Adding a new tool requires only a new module + registry entry — no manual edits to nav, cards, sitemap, or related-tools components
+- [x] **SHELL-05**: Site supports light and dark mode
+- [x] **SHELL-06**: Site is usable at 320px mobile width with no cumulative layout shift when results appear
 
 ### UUID (UUID Generator)
 
@@ -66,8 +66,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **QUAL-01**: Each tool page has a unique title, meta description, canonical URL, and Open Graph metadata
 - [ ] **QUAL-02**: Each tool page includes a concise explanation, one or two worked examples, and genuine FAQ content
 - [ ] **QUAL-03**: `sitemap.xml` and `robots.txt` are generated
-- [ ] **QUAL-04**: Site supports full keyboard navigation (`/` focus, `Enter` execute, `Esc` clear, `Ctrl/Cmd+C` copy) with accessible copy confirmations
-- [ ] **QUAL-05**: Color contrast, labels, and focus order meet accessibility standards; no interaction depends only on color
+- [x] **QUAL-04**: Site supports full keyboard navigation (`/` focus, `Enter` execute, `Esc` clear, `Ctrl/Cmd+C` copy) with accessible copy confirmations
+- [x] **QUAL-05**: Color contrast, labels, and focus order meet accessibility standards; no interaction depends only on color
 - [ ] **QUAL-06**: Analytics excludes/redacts sensitive query parameters (MACs, internal hostnames, private IP ranges, secrets/tokens) via an allow-list, not a block-list
 - [ ] **QUAL-07**: No tracking cookies; a concise privacy notice is published
 - [ ] **QUAL-08**: Validation and runtime errors appear inline and distinguish invalid input, no result, rate limiting, resolver failure, and temporary service unavailability
@@ -126,15 +126,15 @@ Populated during roadmap creation (`/gsd-new-project` → roadmap step).
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SHELL-01 | Phase 1 | Pending |
-| SHELL-02 | Phase 1 | Pending |
-| SHELL-03 | Phase 1 | Pending |
-| SHELL-04 | Phase 1 | Pending |
-| SHELL-05 | Phase 1 | Pending |
-| SHELL-06 | Phase 1 | Pending |
+| SHELL-01 | Phase 1 | Complete |
+| SHELL-02 | Phase 1 | Complete |
+| SHELL-03 | Phase 1 | Complete |
+| SHELL-04 | Phase 1 | Complete |
+| SHELL-05 | Phase 1 | Complete |
+| SHELL-06 | Phase 1 | Complete |
 | QUAL-03 | Phase 1 | Pending |
-| QUAL-04 | Phase 1 | Pending |
-| QUAL-05 | Phase 1 | Pending |
+| QUAL-04 | Phase 1 | Complete |
+| QUAL-05 | Phase 1 | Complete |
 | QUAL-06 | Phase 1 | Pending |
 | QUAL-07 | Phase 1 | Pending |
 | QUAL-09 | Phase 1 | Pending |
@@ -176,6 +176,7 @@ Populated during roadmap creation (`/gsd-new-project` → roadmap step).
 | MAC-10 | Phase 5 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 48 total (corrected — original draft header stated 41; itemized count across SHELL(6)/UUID(6)/SUBNET(7)/DNS(10)/MAC(10)/QUAL(9) = 48)
 - Mapped to phases: 48/48 ✓
 - Unmapped: 0
