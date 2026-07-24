@@ -1,0 +1,1 @@
+{"content":"No official documented HTTP 429 contract for Cloudflare 1.1.1.1 DoH; community reports suggest ~10 req/s per-IP threshold before rate limiting, unverified/anecdotal.","source":"web","provider":"websearch","confidence":"LOW","fetched_at":"2026-07-24T15:23:58.417Z","ttl":86400000,"kind":"web"}

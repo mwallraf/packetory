@@ -1,0 +1,1 @@
+{"content":"Combine debounce with AbortController + a monotonic sequence-token ref to guarantee a slower earlier async request never overwrites a newer result; AbortController alone is insufficient since debounce doesn't cancel in-flight requests.","source":"web","provider":"websearch","confidence":"LOW","fetched_at":"2026-07-24T15:23:58.175Z","ttl":86400000,"kind":"web"}
