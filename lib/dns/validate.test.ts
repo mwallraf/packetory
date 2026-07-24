@@ -15,19 +15,23 @@ describe("isValidDomainInput", () => {
   });
 
   it("accepts a 253-char valid domain (QUAL-08 boundary)", () => {
-    // 62-char labels joined by dots, padded to exactly 253 chars total.
-    const label = "a".repeat(61);
-    const domain = `${label}.${label}.${label}.${"b".repeat(
-      MAX_DOMAIN_LENGTH - 3 * (61 + 1)
+    // Three max-length (63-char) labels + dots + a final label sized to
+    // land exactly on 253 total, every label staying within the 63-char
+    // per-label ceiling.
+    const label63 = "a".repeat(63);
+    const lastLabelLength = MAX_DOMAIN_LENGTH - 3 * (63 + 1);
+    const domain = `${label63}.${label63}.${label63}.${"b".repeat(
+      lastLabelLength
     )}`;
     expect(domain.length).toBe(MAX_DOMAIN_LENGTH);
     expect(isValidDomainInput(domain)).toBe(true);
   });
 
   it("rejects a 254-char domain (QUAL-08 boundary, MAX_DOMAIN_LENGTH=253)", () => {
-    const label = "a".repeat(61);
-    const domain = `${label}.${label}.${label}.${"b".repeat(
-      MAX_DOMAIN_LENGTH - 3 * (61 + 1) + 1
+    const label63 = "a".repeat(63);
+    const lastLabelLength = MAX_DOMAIN_LENGTH - 3 * (63 + 1) + 1;
+    const domain = `${label63}.${label63}.${label63}.${"b".repeat(
+      lastLabelLength
     )}`;
     expect(domain.length).toBe(MAX_DOMAIN_LENGTH + 1);
     expect(isValidDomainInput(domain)).toBe(false);
