@@ -21,20 +21,20 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 
 - ✓ Shared site shell: landing page, consistent navigation, tool registry (`tools/registry.ts`) driving nav/cards/sitemap — Phase 1
 - ✓ CI: tests, type checking, linting, build validation required on PRs; Vercel preview deployments per PR, `main` auto-deploys to production — Phase 1 (live-verified: a deliberately failing commit was confirmed to block merge via `gh pr merge` rejection before being reverted; production deploy confirmed live at packetory.vercel.app)
-- ✓ Privacy-oriented cookie-free analytics with redaction of sensitive query params — Phase 1 (`lib/analytics/redact.ts` safe-by-default allow-list, currently empty; will be exercised for real once Phase 3 Subnet introduces the first sensitive query param)
+- ✓ Privacy-oriented cookie-free analytics with redaction of sensitive query params — Phase 1 (`lib/analytics/redact.ts` safe-by-default allow-list); exercised for real in Phase 3 — `cidr` was deliberately never added to the allow-list, live-verified via grep and UAT, so the subnet CIDR never reaches analytics
 - ✓ UUID Generator — v4 (default) and v7, single or batch (1–100) generation, uppercase/lowercase, hyphens on/off, plain text/CSV/JSON output, copy/copy-all/download — Phase 2 (`/tools/uuid`; 70 unit + 27 e2e tests; security-reviewed, 0 open threats)
-- ✓ Global interaction model, first live instance — Phase 2: `/` focuses batch-count input, `Enter` regenerates (now guarded against double-firing when focus is on a native button/toggle), Ctrl/Cmd+C copies (disabled in batch view where no visible confirmation exists). Confirms the `useKeyboardShortcut` plumbing built in Phase 1; still needs the same treatment on Subnet/DNS/MAC pages.
-- ✓ Per-tool SEO, first live instance — Phase 2: `/tools/uuid` ships unique title/meta/canonical/OG tags, a worked v4/v7 example, and FAQPage JSON-LD (4 items) server-rendered and content-matched against the visible FAQ. Establishes the pattern; Subnet/DNS/MAC still need their own instances.
+- ✓ Global interaction model, first live instance — Phase 2: `/` focuses batch-count input, `Enter` regenerates (now guarded against double-firing when focus is on a native button/toggle), Ctrl/Cmd+C copies (disabled in batch view where no visible confirmation exists). Confirms the `useKeyboardShortcut` plumbing built in Phase 1; carried onto Subnet in Phase 3 (`/` focus, `Esc` reset, copy shortcut).
+- ✓ Per-tool SEO, first live instance — Phase 2: `/tools/uuid` ships unique title/meta/canonical/OG tags, a worked v4/v7 example, and FAQPage JSON-LD (4 items) server-rendered and content-matched against the visible FAQ. Repeated for `/tools/subnet` in Phase 3 (5 FAQ items, worked IPv4+IPv6 examples); DNS/MAC still need their own instances.
+- ✓ IP Subnet Calculator — CIDR input (IPv4 + IPv6, auto-detected), full network breakdown (network/broadcast/usable range/host count/masks/binary/reverse DNS zone for IPv4; normalized prefix/RFC-5952 compressed+expanded/first-last/count/reverse DNS/subdivision options for IPv6), inline validation, bookmarkable URL state (`?cidr=`) — Phase 3 (`/tools/subnet`; 130 unit + 39 e2e tests; BigInt end-to-end, correct at /31,/32,/127,/128 boundaries; security-reviewed, 0 open threats; 2 UAT items user-confirmed)
 
 ### Active
 
-- [ ] IP Subnet Calculator — CIDR input (IPv4 + IPv6, auto-detected), full network breakdown (network/broadcast/usable range/host count/masks/binary/reverse DNS zone), inline validation, bookmarkable URL state (`?cidr=`)
 - [ ] DNS Lookup — A/AAAA/MX/TXT/NS/CNAME via DNS-over-HTTPS with primary+fallback resolver, debounced typed input (~600–800ms), instant on paste/Enter, `AbortController` for stale-request cancellation, bookmarkable URL state (`?name=&type=`)
 - [ ] MAC Address Inspector — format normalization as-you-type, vendor/OUI lookup, locally/universally administered + unicast/multicast + randomized-MAC detection, per-field and full-result copy
-- [ ] Framework-agnostic core logic (`lib/`) per tool, independently unit-testable, shared by pages and future API routes — Phase 2 shipped the reference instance (`lib/uuid/{generate,format,export}.ts`, zero framework imports, fast-check property tests); remains an ongoing per-tool requirement for Subnet/DNS/MAC
-- [ ] Related-tool links (part of per-tool SEO) — not yet built on any tool page, including UUID
+- [ ] Framework-agnostic core logic (`lib/`) per tool, independently unit-testable, shared by pages and future API routes — Phase 2 shipped the reference instance (`lib/uuid/{generate,format,export}.ts`); Phase 3 added `lib/subnet/{parse,ipv4,ipv6,format,reverse-dns,subdivide}.ts` (zero framework imports, fast-check property tests); remains an ongoing per-tool requirement for DNS/MAC
+- [ ] Related-tool links (part of per-tool SEO) — not yet built on any tool page, including UUID and Subnet
 - [ ] Accessibility: full keyboard nav, contrast, labels, logical focus order, screen-reader announcements — shell-level focus order and focus-ring visibility manually verified in Phase 1 UAT; Phase 2 added accessible names to the UUID tool's Version/Export-format toggle groups; remains an ongoing per-tool requirement
-- [ ] Light/dark mode, mobile usability down to 320px, CLS-free async states (loading/error/empty/success) — shell-level theme toggle and 320px CLS manually verified in Phase 1 UAT; remains an ongoing per-tool requirement
+- [ ] Light/dark mode, mobile usability down to 320px, CLS-free async states (loading/error/empty/success) — shell-level theme toggle and 320px CLS manually verified in Phase 1 UAT; Phase 3 user-confirmed 320px text wrapping (no clipping/scroll) for all subnet field values; remains an ongoing per-tool requirement
 
 ### Out of Scope
 
@@ -73,7 +73,11 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Build order: UUID → Subnet → DNS → MAC | UUID has zero external dependencies, fastest to ship end-to-end and validate the shared shell/registry pattern; DNS and MAC need external resolver/vendor-data decisions best made closer to their own phase | ✓ UUID leg shipped (Phase 2) — Subnet/DNS/MAC pending |
+| Build order: UUID → Subnet → DNS → MAC | UUID has zero external dependencies, fastest to ship end-to-end and validate the shared shell/registry pattern; DNS and MAC need external resolver/vendor-data decisions best made closer to their own phase | ✓ UUID (Phase 2) and Subnet (Phase 3) shipped — DNS/MAC pending |
+| URL state via raw History API (`window.history.replaceState`), never `router.replace()`/`next/navigation` | App Router has no Pages-Router-style shallow routing; `router.replace` re-triggers client navigation machinery on every keystroke — undesirable for a live-typing CIDR field. Established in Phase 3, reusable for DNS's `?name=&type=` state | ✓ Shipped (Phase 3) — reapply for DNS Lookup phase |
+| BigInt end-to-end for all subnet/address math, zero `Number()` coercion | IPv6 128-bit addresses and counts overflow `Number`'s safe-integer range; fast-check property tests prove exact counts over the full prefix range (0-128) rather than spot-checking a few values | ✓ Shipped (Phase 3) |
+| Reverse-DNS zone for non-aligned prefixes: truncate to nearest fully-covered boundary + explanatory note (not a full RFC 2317 classless-delegation name) | Simpler to implement and reason about than classless delegation; flagged as an unresolved planner assumption (A1) and explicitly confirmed as desired UX via UAT | ✓ Confirmed by user (Phase 3 UAT) |
+| Subdivision suggestions: bounded ≤3-item `{48,56,64}` prefix list, never per-child enumeration | A wide IPv6 prefix (e.g. `/32`) could otherwise enumerate an astronomically large child list — DoS risk (T-03-04) and unusable UI | ✓ Shipped (Phase 3) |
 | Defer remaining open decisions (DNS resolver, MAC vendor source, ad slot, logo, package naming) to their owning phases rather than resolving upfront | Brief already flags these explicitly as open; resolving them now would block project setup on decisions better informed by phase-specific research | — Pending |
 | Use project-brief.md as-is, distilled into PROJECT.md rather than rewritten from scratch | User confirmed the brief is accurate and complete; re-deriving it via cold questioning would be redundant | ✓ Good |
 | Vercel Framework Preset must be explicitly pinned via `vercel.json` (`{"framework":"nextjs"}`) rather than relying on dashboard auto-detection | Dashboard defaulted to "Other" (static) on project creation, causing every deploy to fail looking for a `public/` output dir | ✓ Fixed (Phase 1) |
@@ -102,4 +106,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-24 after Phase 2*
+*Last updated: 2026-07-24 after Phase 3*
