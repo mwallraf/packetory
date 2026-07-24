@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 04
 current_phase_name: dns-lookup
-status: executing
-stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-07-24T16:39:50.777Z"
+status: verifying
+stopped_at: Completed 04-03-PLAN.md
+last_updated: "2026-07-24T16:46:02.839Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 4
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 17
-  completed_plans: 16
+  completed_plans: 17
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-07-24)
 
 Phase: 04 (dns-lookup) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-24 — Phase 04 execution started
 
-Progress: [█████████░] 94%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -76,6 +76,7 @@ Progress: [█████████░] 94%
 | Phase 03 P04 | 10min | 3 tasks | 5 files |
 | Phase 04 P01 | 17min | 3 tasks | 18 files |
 | Phase 04 P02 | 19min | 2 tasks | 5 files |
+| Phase 04 P03 | 3min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -136,6 +137,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 04] Plan 01: flipping tools/registry.ts dns to status:active broke 4 pre-existing tests hard-coding dns:'planned' (registry.test.ts, sitemap.test.ts, home.spec.ts, navigation.spec.ts); fixed in place, same class of break as Phase 2's uuid flip
 - [Phase ?]: [Phase 04] Plan 02: result panel shows exactly one of skeleton/loading-dim/success/one-of-4-error-cards; only invalid-input renders inline near the input, leaving the last valid result panel untouched
 - [Phase ?]: [Phase 04] Plan 02: fixed a pre-existing useKeyboardShortcut bug where Enter never fired while focus was inside a tool's own text input (isInteractiveTarget wrongly delegated to isEditableTarget) -- un-breaks DNS-03 and Subnet's Enter-blur, benefits all future tools
+- [Phase ?]: [Phase 04] Plan 03: sampleFields.value/ttl are the literal first Answer[] entry from a real live cloudflare-dns.com type-A query for cloudflare.com, captured during implementation (2026-07-24) rather than a lib/dns import
+- [Phase ?]: [Phase 04] Plan 03: privacy-notice D-02 disclosure added as a new paragraph inside the existing 'No accounts, no personal data' section rather than a new top-level section
 
 ### Pending Todos
 
@@ -156,6 +159,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-24T16:39:50.769Z
-Stopped at: Completed 04-02-PLAN.md
+Last session: 2026-07-24T16:46:02.831Z
+Stopped at: Completed 04-03-PLAN.md
 Resume file: None
