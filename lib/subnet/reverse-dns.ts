@@ -50,8 +50,12 @@ export function ipv4ReverseZone(
   const coveredOctets = Math.floor(prefixLength / 8);
   const aligned = prefixLength % 8 === 0;
   const zoneLabels = octets.slice(0, coveredOctets).reverse();
+  const zone =
+    zoneLabels.length > 0
+      ? `${zoneLabels.join(".")}.in-addr.arpa.`
+      : "in-addr.arpa.";
 
-  return { zone: `${zoneLabels.join(".")}.in-addr.arpa.`, aligned };
+  return { zone, aligned };
 }
 
 /**
@@ -77,6 +81,10 @@ export function ipv6ReverseZone(
   const coveredNibbles = Math.floor(prefixLength / 4);
   const aligned = prefixLength % 4 === 0;
   const zoneLabels = fullNibbles.slice(IPV6_NIBBLE_COUNT_NUMBER - coveredNibbles);
+  const zone =
+    zoneLabels.length > 0
+      ? `${zoneLabels.join(".")}.ip6.arpa.`
+      : "ip6.arpa.";
 
-  return { zone: `${zoneLabels.join(".")}.ip6.arpa.`, aligned };
+  return { zone, aligned };
 }

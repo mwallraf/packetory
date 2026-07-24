@@ -35,6 +35,18 @@ describe("ipv4ReverseZone", () => {
     expect(result.zone).toBe("168.192.in-addr.arpa.");
     expect(result.aligned).toBe(false);
   });
+
+  it("0.0.0.0/0 -> zero covered octets does not produce a leading '.' (WR-01 regression)", () => {
+    const result = ipv4ReverseZone(parseIpv4Address("0.0.0.0/0"), 0);
+    expect(result.zone).toBe("in-addr.arpa.");
+    expect(result.aligned).toBe(true);
+  });
+
+  it("10.0.0.0/4 -> floor(4/8)=0 covered octets does not produce a leading '.' (WR-01 regression)", () => {
+    const result = ipv4ReverseZone(parseIpv4Address("10.0.0.0/4"), 4);
+    expect(result.zone).toBe("in-addr.arpa.");
+    expect(result.aligned).toBe(false);
+  });
 });
 
 describe("ipv6ReverseZone", () => {
@@ -53,6 +65,18 @@ describe("ipv6ReverseZone", () => {
   it("2001:db8::/54 -> truncated to floor(54/4)=13 nibbles, aligned:false (Pitfall 2 / Assumption A1)", () => {
     const result = ipv6ReverseZone(parseIpv6Address("2001:db8::/54"), 54);
     expect(result.zone).toBe("0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.");
+    expect(result.aligned).toBe(false);
+  });
+
+  it("::/0 -> zero covered nibbles does not produce a leading '.' (WR-01 regression)", () => {
+    const result = ipv6ReverseZone(parseIpv6Address("::/0"), 0);
+    expect(result.zone).toBe("ip6.arpa.");
+    expect(result.aligned).toBe(true);
+  });
+
+  it("2001:db8::/3 -> floor(3/4)=0 covered nibbles does not produce a leading '.' (WR-01 regression)", () => {
+    const result = ipv6ReverseZone(parseIpv6Address("2001:db8::/3"), 3);
+    expect(result.zone).toBe("ip6.arpa.");
     expect(result.aligned).toBe(false);
   });
 });
