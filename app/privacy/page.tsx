@@ -55,6 +55,13 @@ export default function PrivacyPage() {
               from your browser to the relevant service, not through
               Packetory&apos;s own servers where avoidable.
             </p>
+            <p className="mt-2">
+              For example, the DNS Lookup tool sends the domain you enter
+              directly from your browser to Cloudflare (the primary
+              DNS-over-HTTPS resolver) and, only if Cloudflare is
+              unavailable, to Google (an explicit fallback) — the domain is
+              never stored or sent anywhere else.
+            </p>
           </section>
 
           <section>
