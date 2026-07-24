@@ -133,7 +133,7 @@ Plans:
   4. NXDOMAIN, empty-NOERROR, invalid-input, rate-limited, and resolver-unavailable states each render a distinct, clearly worded message, and a slower earlier response can never overwrite a newer result on screen (verified under simulated out-of-order resolution).
   5. The current domain and record-type state is reflected in the URL and can be bookmarked/shared.
 
-**Plans**: 1/3 plans executed
+**Plans**: 2/3 plans executed
 Plans:
 **Wave 1**
 
@@ -141,7 +141,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 04-02-PLAN.md — Error-state matrix (QUAL-08): 5 distinct inline states (invalid-input, NXDOMAIN, empty-NOERROR, rate-limited, resolver-unavailable) with Try-again, record-type display completeness, out-of-order race E2E (wave 2)
+- [x] 04-02-PLAN.md — Error-state matrix (QUAL-08): 5 distinct inline states (invalid-input, NXDOMAIN, empty-NOERROR, rate-limited, resolver-unavailable) with Try-again, record-type display completeness, out-of-order race E2E (wave 2)
 - [ ] 04-03-PLAN.md — SEO/content: metadata + canonical/OG + hand-verified worked example + FAQ (incl. D-02 Cloudflare/Google resolver disclosure) + FAQPage JSON-LD + privacy-notice disclosure (wave 2)
 
 **UI hint**: yes
@@ -173,5 +173,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Shared Shell + Registry | 5/5 | Complete    | 2026-07-23 |
 | 2. UUID Generator | 4/4 | Complete    | 2026-07-24 |
 | 3. IP Subnet Calculator | 5/5 | Complete    | 2026-07-24 |
-| 4. DNS Lookup | 1/3 | In Progress|  |
+| 4. DNS Lookup | 2/3 | In Progress|  |
 | 5. MAC Address Inspector | 0/TBD | Not started | - |

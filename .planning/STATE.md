@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: dns-lookup
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-07-24T16:18:43.954Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-07-24T16:39:50.777Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 4
   completed_phases: 3
   total_plans: 17
-  completed_plans: 15
+  completed_plans: 16
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-24)
 ## Current Position
 
 Phase: 04 (dns-lookup) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-07-24 — Phase 04 execution started
 
-Progress: [█████████░] 88%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
@@ -75,6 +75,7 @@ Progress: [█████████░] 88%
 | Phase 03 P03 | 15min | 3 tasks | 5 files |
 | Phase 03 P04 | 10min | 3 tasks | 5 files |
 | Phase 04 P01 | 17min | 3 tasks | 18 files |
+| Phase 04 P02 | 19min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -133,6 +134,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 04] Plan 01: lib/dns/resolve.ts's resolveWithFallback falls back to Google only on genuine failure (network error, non-2xx, 429, timeout, or Status-2 SERVFAIL per Assumption A1) -- never on a legitimate NXDOMAIN/empty-NOERROR answer
 - [Phase ?]: [Phase 04] Plan 01: ?name=&type= URL state syncs only on a committed lookup (debounce fires or an immediate trigger runs), never on every keystroke (Assumption A2) -- differs from Subnet's per-keystroke sync since DNS lookups are async
 - [Phase ?]: [Phase 04] Plan 01: flipping tools/registry.ts dns to status:active broke 4 pre-existing tests hard-coding dns:'planned' (registry.test.ts, sitemap.test.ts, home.spec.ts, navigation.spec.ts); fixed in place, same class of break as Phase 2's uuid flip
+- [Phase ?]: [Phase 04] Plan 02: result panel shows exactly one of skeleton/loading-dim/success/one-of-4-error-cards; only invalid-input renders inline near the input, leaving the last valid result panel untouched
+- [Phase ?]: [Phase 04] Plan 02: fixed a pre-existing useKeyboardShortcut bug where Enter never fired while focus was inside a tool's own text input (isInteractiveTarget wrongly delegated to isEditableTarget) -- un-breaks DNS-03 and Subnet's Enter-blur, benefits all future tools
 
 ### Pending Todos
 
@@ -153,6 +156,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-24T16:18:43.945Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-07-24T16:39:50.769Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None

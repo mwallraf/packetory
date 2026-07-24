@@ -44,7 +44,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **DNS-05**: User can trigger an explicit refresh
 - [x] **DNS-06**: Supports A, AAAA, MX, TXT, NS, and CNAME record types
 - [x] **DNS-07**: Results display record values, TTL, resolver used, and lookup duration
-- [ ] **DNS-08**: NXDOMAIN and empty-result states are distinguished and shown clearly
+- [x] **DNS-08**: NXDOMAIN and empty-result states are distinguished and shown clearly
 - [x] **DNS-09**: Lookups use DNS-over-HTTPS with a primary resolver and an explicit fallback, never silently switching when results could differ
 - [x] **DNS-10**: Current domain + record-type state is reflected in the URL and can be bookmarked/shared (e.g. `/tools/dns?name=&type=`)
 
@@ -70,7 +70,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **QUAL-05**: Color contrast, labels, and focus order meet accessibility standards; no interaction depends only on color
 - [x] **QUAL-06**: Analytics excludes/redacts sensitive query parameters (MACs, internal hostnames, private IP ranges, secrets/tokens) via an allow-list, not a block-list
 - [x] **QUAL-07**: No tracking cookies; a concise privacy notice is published
-- [ ] **QUAL-08**: Validation and runtime errors appear inline and distinguish invalid input, no result, rate limiting, resolver failure, and temporary service unavailability
+- [x] **QUAL-08**: Validation and runtime errors appear inline and distinguish invalid input, no result, rate limiting, resolver failure, and temporary service unavailability
 - [x] **QUAL-09**: PRs require passing tests, type checking, linting, and build validation before merge; `main` auto-deploys to Vercel production; feature branches get preview deployments
 
 ## v2 Requirements
@@ -160,10 +160,10 @@ Populated during roadmap creation (`/gsd-new-project` → roadmap step).
 | DNS-05 | Phase 4 | Complete |
 | DNS-06 | Phase 4 | Complete |
 | DNS-07 | Phase 4 | Complete |
-| DNS-08 | Phase 4 | Pending |
+| DNS-08 | Phase 4 | Complete |
 | DNS-09 | Phase 4 | Complete |
 | DNS-10 | Phase 4 | Complete |
-| QUAL-08 | Phase 4 | Pending |
+| QUAL-08 | Phase 4 | Complete |
 | MAC-01 | Phase 5 | Pending |
 | MAC-02 | Phase 5 | Pending |
 | MAC-03 | Phase 5 | Pending |
