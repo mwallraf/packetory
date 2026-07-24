@@ -66,6 +66,50 @@ test.describe("IP Subnet Calculator IPv6 (SUBNET-01, SUBNET-05)", () => {
   });
 });
 
+test.describe("IP Subnet Calculator subdivision pills (SUBNET-05, D-05, D-06)", () => {
+  test("clicking a subdivision pill replaces the CIDR input and URL with the first sub-block and recomputes", async ({
+    page,
+  }) => {
+    await page.goto("/tools/subnet?cidr=2001%3Adb8%3A%3A%2F32");
+
+    await expect(page.getByTestId("subnet-subdivision-section")).toBeVisible();
+    await expect(
+      page.getByTestId("subnet-field-normalized-prefix-value")
+    ).toHaveText("2001:db8::/32");
+
+    await page.getByTestId("subnet-subdivision-64").click();
+
+    const input = page.getByTestId("subnet-cidr-input");
+    await expect(input).toHaveValue("2001:db8::/64");
+    await expect(page).toHaveURL(/cidr=2001%3Adb8%3A%3A%2F64/);
+    await expect(
+      page.getByTestId("subnet-field-normalized-prefix-value")
+    ).toHaveText("2001:db8::/64");
+  });
+
+  test("a /64 IPv6 CIDR shows no subdivision section (already the universal building block)", async ({
+    page,
+  }) => {
+    await page.goto("/tools/subnet?cidr=2001%3Adb8%3A%3A%2F64");
+
+    await expect(page.getByTestId("subnet-ipv6-grid")).toBeVisible();
+    await expect(
+      page.getByTestId("subnet-subdivision-section")
+    ).toHaveCount(0);
+  });
+
+  test("an IPv4 CIDR shows no subdivision section (IPv6-only feature)", async ({
+    page,
+  }) => {
+    await page.goto("/tools/subnet");
+
+    await expect(page.getByTestId("subnet-ipv4-grid")).toBeVisible();
+    await expect(
+      page.getByTestId("subnet-subdivision-section")
+    ).toHaveCount(0);
+  });
+});
+
 test.describe("IP Subnet Calculator bookmarkable URL state (SUBNET-07)", () => {
   test("loading a ?cidr= URL in a fresh context reproduces the exact result (bookmark round-trip)", async ({
     browser,
