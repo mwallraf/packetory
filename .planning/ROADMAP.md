@@ -98,11 +98,11 @@ Plans:
   4. Every output value has its own copy button.
   5. The current CIDR is reflected in the URL, and pasting a shared/bookmarked subnet URL into a fresh browser tab reproduces the exact same result.
 
-**Plans**: 5 plans
+**Plans**: 1/5 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 03-01-PLAN.md — Walking skeleton: IPv4 core breakdown on load + per-field copy + inline validation + `?cidr=` URL state + registry flip (wave 1)
+- [x] 03-01-PLAN.md — Walking skeleton: IPv4 core breakdown on load + per-field copy + inline validation + `?cidr=` URL state + registry flip (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -162,6 +162,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|-----------------|--------|-----------|
 | 1. Shared Shell + Registry | 5/5 | Complete    | 2026-07-23 |
 | 2. UUID Generator | 4/4 | Complete    | 2026-07-24 |
-| 3. IP Subnet Calculator | 0/5 | Not started | - |
+| 3. IP Subnet Calculator | 1/5 | In Progress|  |
 | 4. DNS Lookup | 0/TBD | Not started | - |
 | 5. MAC Address Inspector | 0/TBD | Not started | - |
