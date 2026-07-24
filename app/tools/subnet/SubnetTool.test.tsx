@@ -124,4 +124,77 @@ describe("SubnetTool", () => {
       screen.getByTestId("subnet-field-reverse-dns-note").textContent
     ).toContain("doesn't align exactly");
   });
+
+  const IPV6_FIELD_KEYS = [
+    "normalized-prefix",
+    "compressed",
+    "expanded",
+    "first",
+    "last",
+    "address-count",
+    "reverse-dns",
+  ];
+
+  it("renders the IPv6 grid and hides the IPv4-only fields for an IPv6 CIDR (SUBNET-01, SUBNET-05)", () => {
+    setUrl("?cidr=2001%3Adb8%3A%3A%2F32");
+    render(<SubnetTool />);
+
+    expect(screen.getByTestId("subnet-ipv6-grid")).toBeTruthy();
+    expect(screen.queryByTestId("subnet-ipv4-grid")).toBeNull();
+    expect(screen.getByTestId("subnet-family-badge").textContent).toBe("IPv6");
+    expect(
+      screen.getByTestId("subnet-field-compressed-value").textContent
+    ).toBe("2001:db8::");
+    expect(
+      screen.getByTestId("subnet-field-expanded-value").textContent
+    ).toBe("2001:db8:0:0:0:0:0:0");
+    expect(screen.getByTestId("subnet-field-first-value").textContent).toBe(
+      "2001:db8::"
+    );
+    expect(screen.getByTestId("subnet-field-last-value").textContent).toBe(
+      "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"
+    );
+    expect(
+      screen.getByTestId("subnet-field-address-count-value").textContent
+    ).toBe("79228162514264337593543950336");
+    expect(
+      screen.getByTestId("subnet-field-normalized-prefix-value").textContent
+    ).toBe("2001:db8::/32");
+    expect(screen.queryByTestId("subnet-boundary-note")).toBeNull();
+  });
+
+  it("exposes an independent copy button and status region for every IPv6 field (SUBNET-06)", () => {
+    setUrl("?cidr=2001%3Adb8%3A%3A%2F32");
+    render(<SubnetTool />);
+    for (const key of IPV6_FIELD_KEYS) {
+      expect(screen.getByTestId(`subnet-field-${key}`)).toBeTruthy();
+      expect(screen.getByTestId(`subnet-field-${key}-value`)).toBeTruthy();
+      expect(screen.getByTestId(`subnet-copy-${key}`)).toBeTruthy();
+      expect(screen.getByTestId(`subnet-copy-${key}-status`)).toBeTruthy();
+    }
+  });
+
+  it("renders the single-address boundary note for a /128 with first==last (D-04)", () => {
+    setUrl("?cidr=2001%3Adb8%3A%3A5%2F128");
+    render(<SubnetTool />);
+
+    expect(
+      screen.getByTestId("subnet-field-first-value").textContent
+    ).toBe(screen.getByTestId("subnet-field-last-value").textContent);
+    expect(
+      screen.getByTestId("subnet-field-address-count-value").textContent
+    ).toBe("1");
+    expect(screen.getByTestId("subnet-boundary-note")).toBeTruthy();
+  });
+
+  it("shows the reverse-DNS zone plus the truncation note for a non-nibble-aligned IPv6 prefix", () => {
+    setUrl("?cidr=2001%3Adb8%3A%3A%2F54");
+    render(<SubnetTool />);
+    expect(
+      screen.getByTestId("subnet-field-reverse-dns-value").textContent
+    ).toBe("0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.");
+    expect(
+      screen.getByTestId("subnet-field-reverse-dns-note").textContent
+    ).toContain("doesn't align exactly");
+  });
 });
