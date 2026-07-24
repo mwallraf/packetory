@@ -21,7 +21,7 @@ Users get an instant, customizable UUID (v4 or v7) with zero required input, ful
 
 ### Batch UX & local history
 - **D-05:** Batch results (2–100 values) render as a single scrollable list, one UUID per line — no pagination, same treatment regardless of batch size.
-- **D-06:** Local-only "last 5 generated UUIDs" convenience history (mentioned in project-brief.md §5 as an optional example) is explicitly **deferred**, not part of Phase 2 — see Deferred Ideas.
+- **D-06 [informational]:** Local-only "last 5 generated UUIDs" convenience history (mentioned in project-brief.md §5 as an optional example) is explicitly **deferred**, not part of Phase 2 — see Deferred Ideas. (No plan action expected — this is a record of the deferral, not an implementation decision.)
 - **D-07:** One format selector (plain text / CSV / JSON) governs both the "Copy All" clipboard content and the "Download" file — not two independent pickers.
 - **D-08:** CSV/JSON exports contain only the raw UUID strings — no index, version, or timestamp metadata columns/fields.
 
