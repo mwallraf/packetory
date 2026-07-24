@@ -30,7 +30,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **SUBNET-01**: User can enter CIDR notation and have IPv4 vs IPv6 auto-detected
 - [x] **SUBNET-02**: Page pre-fills a sensible example CIDR and calculates immediately on load
 - [x] **SUBNET-03**: Invalid input is validated inline without page reload or popup errors
-- [ ] **SUBNET-04**: IPv4 input returns network address, broadcast address, first/last usable host, usable host count, subnet mask, wildcard mask, binary representation, and reverse DNS zone (core fields shipped in Plan 01; reverse DNS zone ships in Plan 02)
+- [x] **SUBNET-04**: IPv4 input returns network address, broadcast address, first/last usable host, usable host count, subnet mask, wildcard mask, binary representation, and reverse DNS zone (core fields shipped in Plan 01; reverse DNS zone ships in Plan 02)
 - [ ] **SUBNET-05**: IPv6 input returns normalized prefix, compressed and expanded notation, first/last address, address count, reverse DNS zone, and common subdivision options (/48–/64)
 - [x] **SUBNET-06**: Every output value is individually copyable
 - [x] **SUBNET-07**: Current CIDR state is reflected in the URL and can be bookmarked/shared (e.g. `/tools/subnet?cidr=...`)
