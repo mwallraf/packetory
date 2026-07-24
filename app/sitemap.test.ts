@@ -19,7 +19,7 @@ describe("app/sitemap", () => {
     expect(urls).toContain(`${BASE_URL}/privacy`);
   });
 
-  it("contains exactly the /tools/* entries for 'active' registry tools (uuid, subnet, as of Phase 3 Plan 01)", async () => {
+  it("contains exactly the /tools/* entries for 'active' registry tools (uuid, subnet, dns, as of Phase 4 Plan 01)", async () => {
     vi.resetModules();
     const { default: sitemap } = await import("./sitemap");
     const toolUrls = sitemap()
@@ -27,7 +27,11 @@ describe("app/sitemap", () => {
       .filter((url) => url.includes("/tools/"));
 
     expect(toolUrls.sort()).toEqual(
-      [`${BASE_URL}/tools/uuid`, `${BASE_URL}/tools/subnet`].sort()
+      [
+        `${BASE_URL}/tools/uuid`,
+        `${BASE_URL}/tools/subnet`,
+        `${BASE_URL}/tools/dns`,
+      ].sort()
     );
   });
 

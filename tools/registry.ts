@@ -57,8 +57,8 @@ export const tools: ToolDefinition[] = [
     category: "dns",
     keywords: ["dns", "doh", "records", "mx", "txt"],
     icon: "Globe",
-    status: "planned",
-    clientOnly: false,
+    status: "active",
+    clientOnly: true,
     featured: false,
   },
   {
