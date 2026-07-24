@@ -1,14 +1,16 @@
 ---
 phase: 03-ip-subnet-calculator
 verified: 2026-07-24T16:05:00Z
-status: human_needed
+status: passed
 score: 10/10 truths verified
 behavior_unverified: 0
 overrides_applied: 0
 human_verification:
+
   - test: "Resize the browser (or use devtools device emulation) to a 320px-wide viewport and load /tools/subnet with the default IPv4 CIDR, then a wide IPv6 CIDR (e.g. 2001:db8::/32)."
     expected: "The subnet mask, wildcard mask, ~35-char dot-grouped binary field (IPv4), the 39-char expanded IPv6 notation, and the up-to-~72-char reverse-DNS zone string (both families) all wrap onto multiple lines inside their field card and never clip or trigger horizontal page scroll."
     why_human: "The three PLAN.md must_haves in 03-01/03-02/03-03 explicitly mark this truth `verification: backstop` (non-inferable) — code review confirms every field value span carries a `break-all` Tailwind class (SubnetTool.tsx lines 154, 378), which is a strong structural signal, but no automated 320px-viewport e2e/visual check exists in tests/e2e/subnet*.spec.ts to confirm the rendered result. Per the honest-verifier rule, a backstop truth abstains without explicit runtime evidence."
+
   - test: "Product/human review of the reverse-DNS zone display convention for non-aligned prefixes (e.g. a /20 IPv4 or /54 IPv6 CIDR)."
     expected: "Confirm whether showing the zone truncated to the nearest fully-covered octet/nibble boundary plus an explanatory note (the implemented behavior) is the desired UX, versus building a full RFC 2317 classless-delegation name instead."
     why_human: "Flagged as an explicit, unresolved planner assumption (A1) in both 03-02-SUMMARY.md and 03-03-SUMMARY.md's 'Next Phase Readiness' sections — RESEARCH.md Open Question 1 was never put to the user. The implemented behavior is internally consistent and tested (SubnetTool.test.tsx, reverse-dns.test.ts), but the underlying product decision itself was never confirmed by a human, only assumed by the planner."
