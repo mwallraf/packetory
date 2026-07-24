@@ -44,7 +44,7 @@ export const tools: ToolDefinition[] = [
     category: "network",
     keywords: ["subnet", "cidr", "ipv4", "ipv6", "netmask"],
     icon: "Network",
-    status: "planned",
+    status: "active",
     clientOnly: true,
     featured: true,
   },

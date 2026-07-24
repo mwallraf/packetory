@@ -33,13 +33,13 @@ describe("tools/registry", () => {
     expect(notFeaturedNames).toEqual(sortedNotFeaturedNames);
   });
 
-  it("uuid is 'active' as of Phase 2 Plan 01; the remaining v1 tools stay 'planned' until their own phase ships", () => {
+  it("uuid and subnet are 'active' (Phase 2 Plan 01, Phase 3 Plan 01); dns and mac stay 'planned' until their own phase ships", () => {
     const statuses = Object.fromEntries(
       tools.map((tool) => [tool.slug, tool.status])
     );
     expect(statuses).toEqual({
       uuid: "active",
-      subnet: "planned",
+      subnet: "active",
       dns: "planned",
       mac: "planned",
     });
