@@ -21,6 +21,12 @@ describe("normalizeValue", () => {
     expect(normalizeValue("v=spf1 -all", "TXT")).toBe("v=spf1 -all");
   });
 
+  it("joins a multi-segment quoted TXT value without leaving stray embedded quotes (WR-01)", () => {
+    expect(normalizeValue('"first-255-bytes" "rest"', "TXT")).toBe(
+      "first-255-bytesrest"
+    );
+  });
+
   it("passes an MX value through as \"priority exchange\"", () => {
     expect(normalizeValue("10 mxa.example.com.", "MX")).toBe(
       "10 mxa.example.com."

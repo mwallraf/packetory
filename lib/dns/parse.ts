@@ -21,17 +21,23 @@ export function stripTrailingDot(s: string): string {
 
 /**
  * Normalizes one record's raw `data` value per its record type. TXT values
- * have exactly one layer of surrounding double-quotes stripped (Pitfall 5);
- * NS/CNAME target hostnames have a single trailing dot stripped; MX values
- * pass through unchanged as `"priority exchange"` (the UI splits on the
- * first space if it wants to render the two parts separately); A/AAAA pass
- * through unchanged.
+ * have surrounding double-quotes stripped from every `<character-string>`
+ * segment (Pitfall 5, WR-01) — a TXT RDATA can consist of multiple
+ * individually-quoted, space-joined segments per RFC 1035 (common for long
+ * SPF includes/DKIM keys exceeding 255 bytes), and joining before stripping
+ * avoids leaving stray embedded quote characters in the displayed/copied
+ * value; NS/CNAME target hostnames have a single trailing dot stripped; MX
+ * values pass through unchanged as `"priority exchange"` (the UI splits on
+ * the first space if it wants to render the two parts separately); A/AAAA
+ * pass through unchanged.
  */
 export function normalizeValue(data: string, type: RecordType): string {
   if (type === "TXT") {
-    return data.startsWith('"') && data.endsWith('"')
-      ? data.slice(1, -1)
-      : data;
+    const segments = data.match(/"(?:[^"\\]|\\.)*"/g);
+    if (segments) {
+      return segments.map((s) => s.slice(1, -1)).join("");
+    }
+    return data;
   }
   if (type === "CNAME" || type === "NS") {
     return stripTrailingDot(data);
