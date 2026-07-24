@@ -50,6 +50,22 @@ test.describe("IP Subnet Calculator (SUBNET-01, SUBNET-02, SUBNET-04)", () => {
   });
 });
 
+test.describe("IP Subnet Calculator IPv6 (SUBNET-01, SUBNET-05)", () => {
+  test("loading an IPv6 ?cidr= URL renders the IPv6 grid and hides the IPv4-only rows", async ({
+    page,
+  }) => {
+    await page.goto("/tools/subnet?cidr=2001%3Adb8%3A%3A%2F32");
+
+    await expect(page.getByTestId("subnet-ipv6-grid")).toBeVisible();
+    await expect(
+      page.getByTestId("subnet-field-compressed-value")
+    ).toHaveText("2001:db8::");
+    await expect(page.getByTestId("subnet-family-badge")).toHaveText("IPv6");
+
+    await expect(page.getByTestId("subnet-ipv4-grid")).toHaveCount(0);
+  });
+});
+
 test.describe("IP Subnet Calculator bookmarkable URL state (SUBNET-07)", () => {
   test("loading a ?cidr= URL in a fresh context reproduces the exact result (bookmark round-trip)", async ({
     browser,
