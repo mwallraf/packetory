@@ -357,17 +357,19 @@ function ipv6ReverseZone(addressBigInt: bigint, prefixLength: number): string {
 | A2 | The BigInt mask-arithmetic code shape (Pattern 3, Code Examples) is presented as illustrative pseudocode, not verified against a specific canonical open-source implementation | Architecture Patterns Pattern 3, Code Examples | Low risk — the underlying identities (AND with prefix mask = network address; OR with inverted mask = broadcast) are standard, well-known networking math, but Claude must still write full first-party test coverage (fast-check boundary tests) rather than trusting this snippet verbatim, per D-03's explicit expectation that Claude owns full correctness |
 | A3 | "Binary representation" (IPv4 output field, SUBNET-04) should render as dot-separated 8-bit groups (e.g. `11000000.10101000.00000001.00000000`) matching common subnet-calculator convention | Standard Stack / Code Examples (implied) | Low risk — this is a display-only formatting choice with no functional consequence; project-brief.md only says "binary representation where useful" without specifying exact grouping |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Exact reverse-DNS zone display convention for non-aligned prefixes**
    - What we know: RFC-clean zone names only exist at octet (IPv4) / nibble (IPv6) boundaries.
    - What's unclear: Whether the product wants a simplified truncated-boundary display (this research's default assumption, A1) or a full RFC 2317 classless-delegation-style name for IPv4.
    - Recommendation: Default to the truncated-boundary approach with an inline note (matches D-04's "always show a real value + short note, never N/A" precedent for boundary prefixes) — planner should treat this as consistent with, and extending, D-04's spirit rather than a new open decision requiring another discuss-phase round.
+   - **RESOLVED:** Planner adopted the truncated-boundary recommendation and surfaced it as an explicit flagged assumption (not a locked decision) in `03-02-PLAN.md` and in `03-UI-SPEC.md`'s UI Considerations table, so `/gsd-verify-work` re-confirms it against user expectations rather than treating it as silently settled.
 
 2. **Exact subdivision-option list contents for IPv6 (SUBNET-05/D-05/D-06)**
    - What we know: Options must be interactive (clicking recomputes/replaces the top-level CIDR, D-05/D-06) and span "/48–/64."
    - What's unclear: The precise set of prefix lengths to always offer (e.g., always show `/56` and `/64` regardless of input prefix? Or only show subdivisions strictly longer than the input's current prefix, capped at `/64`?).
    - Recommendation: Offer a small fixed list of standard next-step prefixes greater than the current prefix and ≤ `/64` (e.g., input `/32` → offer `/48`, `/56`, `/64`; input `/56` → offer `/64` only), following RFC 6177's `/56`/`/64` convention (State of the Art table) — this keeps the list short, standards-aligned, and avoids the enumeration anti-pattern.
+   - **RESOLVED:** Planner implemented the fixed-list recommendation directly in `03-04-PLAN.md` (`lib/subnet/subdivide.ts`, bounded option list, no enumeration anti-pattern).
 
 ## Environment Availability
 
