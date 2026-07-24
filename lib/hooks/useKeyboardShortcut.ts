@@ -38,6 +38,19 @@ function isEditableTarget(target: EventTarget | null): boolean {
   return target.contentEditable === "true";
 }
 
+/** True when focus is on a native/ARIA interactive control (button, link,
+ * radio, or an editable field) that self-activates on Enter. Used to guard
+ * the global `Enter` shortcut (CR-01) so it doesn't double-fire alongside a
+ * focused control's own `click` — otherwise both the control's `onClick`
+ * (against a stale pre-update closure, since React batches the `enter`
+ * handler's state update) and the global `enter` handler run for the same
+ * keypress, desyncing what's copied/downloaded from what's displayed. */
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  if (isEditableTarget(target)) return true;
+  return target.closest('button, [role="button"], [role="radio"], a[href]') !== null;
+}
+
 /**
  * Reusable global keyboard-shortcut hook (D-03, QUAL-04, project-brief.md
  * §6). Attaches a single window-level keydown listener dispatching to at
@@ -76,7 +89,12 @@ export function useKeyboardShortcut(handlers: KeyboardShortcutHandlers): void {
       }
 
       if (event.key === "Enter") {
-        current.enter?.();
+        // Guard against double-firing alongside a focused native control's
+        // own Enter-activation (CR-01) — only fire the global shortcut when
+        // focus isn't already on a control that handles Enter itself.
+        if (!isInteractiveTarget(event.target)) {
+          current.enter?.();
+        }
         return;
       }
 
