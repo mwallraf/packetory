@@ -188,7 +188,10 @@ export function UuidTool() {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1.5">
-          <Label className="text-[14px] leading-[1.4] font-semibold">
+          <Label
+            id="uuid-version-label"
+            className="text-[14px] leading-[1.4] font-semibold"
+          >
             Version
           </Label>
           <ToggleGroup
@@ -196,6 +199,7 @@ export function UuidTool() {
             variant="outline"
             value={state.version}
             onValueChange={handleVersionChange}
+            aria-labelledby="uuid-version-label"
             data-testid="uuid-version-toggle"
           >
             <ToggleGroupItem
@@ -300,7 +304,10 @@ export function UuidTool() {
 
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex flex-col gap-1.5">
-          <Label className="text-[14px] leading-[1.4] font-semibold">
+          <Label
+            id="uuid-format-label"
+            className="text-[14px] leading-[1.4] font-semibold"
+          >
             Export format
           </Label>
           {/* Single selector drives BOTH Copy All and Download (D-07) — no
@@ -310,6 +317,7 @@ export function UuidTool() {
             variant="outline"
             value={state.format}
             onValueChange={handleFormatChange}
+            aria-labelledby="uuid-format-label"
             data-testid="uuid-format"
           >
             <ToggleGroupItem
