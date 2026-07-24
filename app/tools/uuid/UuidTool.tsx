@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Copy, Download, RefreshCw } from "lucide-react";
 import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
 import { useKeyboardShortcut } from "@/lib/hooks/useKeyboardShortcut";
@@ -71,13 +71,14 @@ export function UuidTool() {
   const [countInput, setCountInput] = useState("1");
   const [countError, setCountError] = useState(false);
 
-  const { copy, copied, error } = useCopyToClipboard();
+  const { copy, copied, error, reset: resetCopy } = useCopyToClipboard();
   // Independent hook instance (RESEARCH read_first) so Copy All's
   // confirmation state never collides with the hero single-copy button's.
   const {
     copy: copyAll,
     copied: copiedAll,
     error: errorAll,
+    reset: resetCopyAll,
   } = useCopyToClipboard();
   const countInputRef = useRef<HTMLInputElement>(null);
 
@@ -86,6 +87,17 @@ export function UuidTool() {
     hyphens: state.hyphens,
   });
   const primaryValue = displayValues[0] ?? "";
+
+  // WR-02: a pending "Copied!" confirmation must not linger next to a value
+  // it no longer matches. Any change to what's displayed (regenerate,
+  // version switch, batch-count change, case/hyphen reformat) or to what a
+  // fresh Copy All/Download would serialize (export format) immediately
+  // clears both copy confirmations rather than waiting out the ~2s timer.
+  useEffect(() => {
+    resetCopy();
+    resetCopyAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- resetCopy/resetCopyAll are stable useCallback identities from useCopyToClipboard; omitted to avoid re-running on hook-identity changes.
+  }, [state.rawUuids, state.case, state.hyphens, state.format]);
 
   useKeyboardShortcut({
     slash: () => countInputRef.current?.focus(),

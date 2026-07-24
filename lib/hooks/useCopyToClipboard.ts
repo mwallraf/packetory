@@ -50,5 +50,21 @@ export function useCopyToClipboard(revertMs: number = DEFAULT_REVERT_MS) {
     [revertMs]
   );
 
-  return { copy, copied, error };
+  /**
+   * Clears any pending "Copied!" confirmation and error state immediately
+   * (WR-02). Consumers call this when the underlying value being copied
+   * changes out from under a still-visible confirmation — e.g. the user
+   * copies a UUID, then regenerates/reformats before the ~2s auto-revert —
+   * so the confirmation never lingers next to a value it no longer matches.
+   */
+  const reset = useCallback(() => {
+    if (revertTimeoutRef.current) {
+      clearTimeout(revertTimeoutRef.current);
+      revertTimeoutRef.current = null;
+    }
+    setCopied(false);
+    setError(false);
+  }, []);
+
+  return { copy, copied, error, reset };
 }
