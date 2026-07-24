@@ -27,13 +27,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### SUBNET (IP Subnet Calculator)
 
-- [ ] **SUBNET-01**: User can enter CIDR notation and have IPv4 vs IPv6 auto-detected
-- [ ] **SUBNET-02**: Page pre-fills a sensible example CIDR and calculates immediately on load
-- [ ] **SUBNET-03**: Invalid input is validated inline without page reload or popup errors
-- [ ] **SUBNET-04**: IPv4 input returns network address, broadcast address, first/last usable host, usable host count, subnet mask, wildcard mask, binary representation, and reverse DNS zone
-- [ ] **SUBNET-05**: IPv6 input returns normalized prefix, compressed and expanded notation, first/last address, address count, reverse DNS zone, and common subdivision options (/48–/64)
-- [ ] **SUBNET-06**: Every output value is individually copyable
-- [ ] **SUBNET-07**: Current CIDR state is reflected in the URL and can be bookmarked/shared (e.g. `/tools/subnet?cidr=...`)
+- [x] **SUBNET-01**: User can enter CIDR notation and have IPv4 vs IPv6 auto-detected
+- [x] **SUBNET-02**: Page pre-fills a sensible example CIDR and calculates immediately on load
+- [x] **SUBNET-03**: Invalid input is validated inline without page reload or popup errors
+- [x] **SUBNET-04**: IPv4 input returns network address, broadcast address, first/last usable host, usable host count, subnet mask, wildcard mask, binary representation, and reverse DNS zone (core fields shipped in Plan 01; reverse DNS zone shipped in Plan 02)
+- [x] **SUBNET-05**: IPv6 input returns normalized prefix, compressed and expanded notation, first/last address, address count, reverse DNS zone, and common subdivision options (/48–/64)
+- [x] **SUBNET-06**: Every output value is individually copyable
+- [x] **SUBNET-07**: Current CIDR state is reflected in the URL and can be bookmarked/shared (e.g. `/tools/subnet?cidr=...`)
 
 ### DNS (DNS Lookup)
 
@@ -146,13 +146,13 @@ Populated during roadmap creation (`/gsd-new-project` → roadmap step).
 | UUID-06 | Phase 2 | Complete |
 | QUAL-01 | Phase 2 | Complete |
 | QUAL-02 | Phase 2 | Complete |
-| SUBNET-01 | Phase 3 | Pending |
-| SUBNET-02 | Phase 3 | Pending |
-| SUBNET-03 | Phase 3 | Pending |
-| SUBNET-04 | Phase 3 | Pending |
-| SUBNET-05 | Phase 3 | Pending |
-| SUBNET-06 | Phase 3 | Pending |
-| SUBNET-07 | Phase 3 | Pending |
+| SUBNET-01 | Phase 3 | Complete |
+| SUBNET-02 | Phase 3 | Complete |
+| SUBNET-03 | Phase 3 | Complete |
+| SUBNET-04 | Phase 3 | Complete |
+| SUBNET-05 | Phase 3 | Complete |
+| SUBNET-06 | Phase 3 | Complete |
+| SUBNET-07 | Phase 3 | Complete |
 | DNS-01 | Phase 4 | Pending |
 | DNS-02 | Phase 4 | Pending |
 | DNS-03 | Phase 4 | Pending |

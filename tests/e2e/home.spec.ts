@@ -34,25 +34,26 @@ test.describe("Landing page — tool registry grid", () => {
     ]);
   });
 
-  test("each 'planned' card shows a muted 'Coming soon' badge; the 'active' uuid card does not (Phase 2 Plan 01); no card is itself a clickable link (ToolCard renders no wrapping anchor)", async ({
+  test("each 'planned' card shows a muted 'Coming soon' badge; the 'active' uuid/subnet cards do not (Phase 2 Plan 01, Phase 3 Plan 01); no card is itself a clickable link (ToolCard renders no wrapping anchor)", async ({
     page,
   }) => {
     await page.goto("/");
 
     // Registry sort order: Subnet, UUID, DNS, MAC (see the preceding test) —
-    // uuid is the only "active" entry as of this plan.
+    // uuid and subnet are "active" as of this plan; DNS/MAC stay "planned".
     const cardNames = [
       "IP Subnet Calculator",
       "UUID Generator",
       "DNS Lookup",
       "MAC Address Inspector",
     ];
+    const activeCardNames = ["IP Subnet Calculator", "UUID Generator"];
     const cards = page.getByTestId("tool-card");
     await expect(cards).toHaveCount(4);
 
     for (let i = 0; i < cardNames.length; i++) {
       const card = cards.nth(i);
-      const isActive = cardNames[i] === "UUID Generator";
+      const isActive = activeCardNames.includes(cardNames[i]!);
 
       if (isActive) {
         await expect(card.getByText("Coming soon")).toHaveCount(0);

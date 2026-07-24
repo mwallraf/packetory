@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 3
-current_phase_name: IP Subnet Calculator
-status: planning
-stopped_at: Completed 02-04-PLAN.md
-last_updated: "2026-07-24T09:16:44.410Z"
+current_phase: 4
+current_phase_name: DNS Lookup
+status: "Phase 03 shipped — PR #11"
+stopped_at: Completed 03-04-PLAN.md
+last_updated: "2026-07-24T14:43:18.321Z"
 last_activity: 2026-07-24
-last_activity_desc: Phase 02 complete, transitioned to Phase 3
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 9
-  completed_plans: 9
+  total_phases: 3
+  completed_phases: 3
+  total_plans: 14
+  completed_plans: 14
+last_activity_desc: Phase 03 complete, transitioned to Phase 4
 ---
 
 # Project State
@@ -23,14 +23,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-24)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Phase 3 — IP Subnet Calculator
+**Current focus:** Phase 4 — DNS Lookup
 
 ## Current Position
 
-Phase: 3 — IP Subnet Calculator
+Phase: 4 — DNS Lookup
 Plan: Not started
-Status: Ready to plan
-Last activity: 2026-07-24 — Phase 02 complete, transitioned to Phase 3
+Status: Phase 03 shipped — PR #11
+Last activity: 2026-07-24
 
 Progress: [██████████] 100%
 
@@ -38,7 +38,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 9
+- Total plans completed: 14
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -48,6 +48,7 @@ Progress: [██████████] 100%
 |-------|-------|-------|----------|
 | 01 | 5 | - | - |
 | 02 | 4 | - | - |
+| 03 | 5 | - | - |
 
 **Recent Trend:**
 
@@ -68,6 +69,11 @@ Progress: [██████████] 100%
 | Phase 02 P02 | 7min | 3 tasks | 9 files |
 | Phase 02 P03 | 12min | 3 tasks | 3 files |
 | Phase 02 P04 | 3min | 3 tasks | 4 files |
+| Phase 03 P01 | 20min | 3 tasks | 15 files |
+| Phase 03 P02 | 7min | 3 tasks | 6 files |
+| Phase 03 P05 | 20min | 3 tasks | 3 files |
+| Phase 03 P03 | 15min | 3 tasks | 5 files |
+| Phase 03 P04 | 10min | 3 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -107,6 +113,22 @@ Recent decisions affecting current work:
 - [Phase 02]: Code review (standard depth, re-run before --fix) found 1 Critical + 5 Warnings across the phase; all fixed and verified (70/70 unit, 27/27 e2e) before UAT: global Enter-shortcut guarded against firing on focused native buttons/toggles (was desyncing copied/downloaded content from the displayed value), generateBatch NaN-input totality bug, stale copy confirmation not cleared on regenerate/reformat, batch-view Ctrl+C disabled (no visible confirmation existed), download anchor now attached to DOM before .click(), accessible names added to Version/Export-format toggle groups.
 - [Phase 02]: Security review (gsd-secure-phase) verified 8/8 threats closed against actual implementation (CSPRNG usage, batch clamping, JSON-LD escaping, revokeObjectURL cleanup, pinned dependency version) plus 2 accepted risks with documented rationale; ASVS L1 short-circuit applied (threats_open:0, plan-time register). SECURITY.md sign-off recorded 2026-07-24.
 - [Phase 02]: UAT (3 judgment-tier copy/privacy checks: uniqueness hedge wording, v7 monotonicity wording, no analytics transmission) passed with zero issues 2026-07-24 — phase fully verified and transitioned to Phase 3.
+- [Phase ?]: [Phase 03] Plan 01: Bumped tsconfig.json target ES2017 -> ES2020 to allow BigInt literal syntax (D-03 requires BigInt end-to-end); tsc is type-check-only (noEmit), no runtime/bundle-target effect
+- [Phase ?]: [Phase 03] Plan 01: A syntactically valid IPv6 CIDR typed into SubnetTool shows an explanatory inline note and keeps the last valid IPv4 grid rather than crashing — IPv6 math/rendering ship in plans 03-03/03-04
+- [Phase ?]: [Phase 03] Plan 01: Client-only URL-state boundary (window.location.search read + window.history.replaceState write, never useSearchParams/router.replace) established as the reusable pattern for bookmarkable tool state; verified /tools/subnet stays statically prerendered in next build output
+- [Phase ?]: [Phase 03] Plan 02: The plan's illustrative /52 IPv6 reverse-DNS example was internally inconsistent with its own aligned formula (52 % 4 === 0, so /52 IS aligned) — used /54 instead in reverse-dns.test.ts (same floor(prefix/4)=13 depth, genuinely non-aligned)
+- [Phase ?]: [Phase 03] Plan 02: ipv4ReverseZone/ipv6ReverseZone assume an already-network-masked address (no masking inside reverse-dns.ts); SubnetTool.tsx reparses computeIpv4's dotted-decimal network string via the existing parseCidr rather than duplicating ipv4.ts's mask math
+- [Phase ?]: [Phase 03] Plan 02: doc-comments reworded from 'No React/Next import' to 'Imports no UI framework code' to avoid tripping the plan's own literal grep -Eqc "React|next/" acceptance-criteria gate — same class of issue as 03-01
+- [Phase ?]: [Phase 03] Plan 05: IPv6 worked-example field values in faq-data.ts are literal hand-verified constants (not a live lib/subnet/ipv6.ts import, which ships later in 03-03) — verified live via npx tsx against existing format.ts/reverse-dns.ts functions plus direct BigInt math.
+- [Phase ?]: [Phase 03] Plan 05: IPv4 worked-example field values ARE the real output of already-shipped lib/subnet/ipv4.ts + reverse-dns.ts, hardcoded as literal constants matching the UUID page's established sample-value pattern rather than computed at render time.
+- [Phase ?]: [Phase 03] Plan 03: computeIpv6's boundaryNote branch only selects which explanatory note to attach for /127 and /128 — the network/last-address mask arithmetic and the 2^(128-prefix) addressCount formula are already exact and uniform at every prefix 0-128, unlike IPv4's usableHostCount which changes formula shape at its boundaries
+- [Phase ?]: [Phase 03] Plan 03: SubnetTool.tsx now accepts both IPv4 and IPv6 as valid input and branches the rendered grid on the parsed family (isIpv6), removing the 03-01 'IPv6 support is coming' fallback message now that computeIpv6 ships
+- [Phase ?]: [Phase 03] Plan 04: subdivision pill's Separator (placeholder from 03-03) gated on subdivideOptions.length > 0, not just isIpv6 — avoids a dangling divider with nothing rendered below it for a /64+ prefix
+- [Phase ?]: [Phase 03] Plan 04: handleSubdivide doc-comment reworded to avoid the literal substring window.history.replaceState after it tripped the plan's own grep -c acceptance-criteria gate (must stay at 1) — same class of issue 03-01/03-02/03-03 each independently hit
+- [Phase 03]: Code review (standard depth) found 2 Warnings, 0 Critical: reverse-DNS zone had a stray leading "." for very short prefixes (IPv4 /0-/7, IPv6 /0-/3), and parseCidr rejected valid IPv4-mapped IPv6 literals due to a validator/expander disagreement. Both fixed and verified (136/136 unit tests) before UAT.
+- [Phase 03]: Security review (gsd-secure-phase) verified 17/17 threats closed against actual implementation (XSS via JSX-only rendering, ReDoS-free bounded validation, D-01 analytics exclusion, BigInt precision, bounded subdivision list) plus 3 accepted no-new-dependency risks; ASVS L1 short-circuit applied (threats_open:0, plan-time register). SECURITY.md sign-off recorded 2026-07-24.
+- [Phase 03]: api-coverage gate (ai-integration capability) false-fired on "History API"/"searchParams" keyword matches — no external API integration exists in this phase. Resolved with 03-COVERAGE.md documenting the two OPT-OUTs (searchParams prop, third-party services) and one INTEGRATE (browser History API, not a service).
+- [Phase 03]: UAT (320px field-value wrapping, reverse-DNS non-aligned-prefix display convention) passed with zero issues 2026-07-24 — phase fully verified and transitioned to Phase 4.
 
 ### Pending Todos
 
@@ -127,6 +149,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-24T09:18:36.000Z
-Stopped at: Phase 2 complete (code review fixed, security verified, UAT passed), ready to plan Phase 3
+Last session: 2026-07-24T16:52:00.000Z
+Stopped at: Phase 3 shipped as PR #11, CI verified on merge-ready commit
 Resume file: None

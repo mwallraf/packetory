@@ -1,0 +1,246 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { SubnetTool } from "./SubnetTool";
+
+const DEFAULT_NETWORK = "192.168.1.0";
+
+const IPV4_FIELD_KEYS = [
+  "network",
+  "broadcast",
+  "first-host",
+  "last-host",
+  "host-count",
+  "mask",
+  "wildcard",
+  "binary",
+  "reverse-dns",
+];
+
+/** Resets the URL to a bare path (no ?cidr= override) before each test so
+ * SubnetTool always mounts against the D-02 default unless a test opts in
+ * to a specific ?cidr= value first. */
+function setUrl(search = "") {
+  window.history.replaceState(null, "", `/tools/subnet${search}`);
+}
+
+describe("SubnetTool", () => {
+  beforeEach(() => {
+    setUrl();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("computes and renders the D-02 default on mount with zero required input (SUBNET-02)", () => {
+    render(<SubnetTool />);
+    const networkValue = screen.getByTestId("subnet-field-network-value");
+    expect(networkValue.textContent).toBe(DEFAULT_NETWORK);
+  });
+
+  it("shows the inline validation message and keeps the last valid grid visible on invalid typed input (SUBNET-03)", () => {
+    render(<SubnetTool />);
+    const input = screen.getByTestId("subnet-cidr-input") as HTMLInputElement;
+    const lastValidNetwork = screen.getByTestId(
+      "subnet-field-network-value"
+    ).textContent;
+
+    fireEvent.change(input, { target: { value: "not-a-cidr" } });
+
+    expect(screen.getByTestId("subnet-validation-note")).toBeTruthy();
+    expect(screen.getByTestId("subnet-field-network-value").textContent).toBe(
+      lastValidNetwork
+    );
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("exposes an independent copy button and status region for every IPv4 field (SUBNET-06)", () => {
+    render(<SubnetTool />);
+    for (const key of IPV4_FIELD_KEYS) {
+      expect(screen.getByTestId(`subnet-field-${key}`)).toBeTruthy();
+      expect(screen.getByTestId(`subnet-field-${key}-value`)).toBeTruthy();
+      expect(screen.getByTestId(`subnet-copy-${key}`)).toBeTruthy();
+      expect(screen.getByTestId(`subnet-copy-${key}-status`)).toBeTruthy();
+    }
+  });
+
+  it("calls window.history.replaceState with an encoded ?cidr= URL on a valid edit (SUBNET-07 write)", () => {
+    render(<SubnetTool />);
+    const replaceStateSpy = vi.spyOn(window.history, "replaceState");
+    const input = screen.getByTestId("subnet-cidr-input") as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: "10.20.0.0/20" } });
+
+    expect(replaceStateSpy).toHaveBeenCalled();
+    const lastCall = replaceStateSpy.mock.calls.at(-1);
+    expect(String(lastCall?.[2])).toContain("cidr=10.20.0.0%2F20");
+
+    replaceStateSpy.mockRestore();
+  });
+
+  it("reads a valid ?cidr= URL param on mount and computes from it (SUBNET-07 read)", () => {
+    setUrl("?cidr=10.20.0.0%2F20");
+    render(<SubnetTool />);
+    expect(screen.getByTestId("subnet-field-network-value").textContent).toBe(
+      "10.20.0.0"
+    );
+  });
+
+  it("falls back to the D-02 default and shows the shared-link-invalid note for a malformed ?cidr= URL param (SUBNET-07 malformed edge)", () => {
+    setUrl("?cidr=not-a-cidr");
+    render(<SubnetTool />);
+    expect(screen.getByTestId("subnet-field-network-value").textContent).toBe(
+      DEFAULT_NETWORK
+    );
+    expect(screen.getByTestId("subnet-validation-note")).toBeTruthy();
+  });
+
+  it("takes the first cidr occurrence when the URL param appears more than once (SUBNET-07 malformed edge)", () => {
+    setUrl("?cidr=10.20.0.0%2F20&cidr=172.16.0.0%2F16");
+    render(<SubnetTool />);
+    expect(screen.getByTestId("subnet-field-network-value").textContent).toBe(
+      "10.20.0.0"
+    );
+  });
+
+  it("shows the reverse-DNS zone with no note for an octet-aligned prefix (SUBNET-04, D-04 shape)", () => {
+    render(<SubnetTool />);
+    expect(
+      screen.getByTestId("subnet-field-reverse-dns-value").textContent
+    ).toBe("1.168.192.in-addr.arpa.");
+    expect(
+      screen.queryByTestId("subnet-field-reverse-dns-note")
+    ).toBeNull();
+    expect(screen.getByTestId("subnet-copy-reverse-dns")).toBeTruthy();
+  });
+
+  it("shows the reverse-DNS zone plus the truncation note for a non-octet-aligned prefix (Pitfall 2 / Assumption A1)", () => {
+    setUrl("?cidr=10.20.0.0%2F20");
+    render(<SubnetTool />);
+    expect(
+      screen.getByTestId("subnet-field-reverse-dns-value").textContent
+    ).toBe("20.10.in-addr.arpa.");
+    expect(
+      screen.getByTestId("subnet-field-reverse-dns-note").textContent
+    ).toContain("doesn't align exactly");
+  });
+
+  const IPV6_FIELD_KEYS = [
+    "normalized-prefix",
+    "compressed",
+    "expanded",
+    "first",
+    "last",
+    "address-count",
+    "reverse-dns",
+  ];
+
+  it("renders the IPv6 grid and hides the IPv4-only fields for an IPv6 CIDR (SUBNET-01, SUBNET-05)", () => {
+    setUrl("?cidr=2001%3Adb8%3A%3A%2F32");
+    render(<SubnetTool />);
+
+    expect(screen.getByTestId("subnet-ipv6-grid")).toBeTruthy();
+    expect(screen.queryByTestId("subnet-ipv4-grid")).toBeNull();
+    expect(screen.getByTestId("subnet-family-badge").textContent).toBe("IPv6");
+    expect(
+      screen.getByTestId("subnet-field-compressed-value").textContent
+    ).toBe("2001:db8::");
+    expect(
+      screen.getByTestId("subnet-field-expanded-value").textContent
+    ).toBe("2001:db8:0:0:0:0:0:0");
+    expect(screen.getByTestId("subnet-field-first-value").textContent).toBe(
+      "2001:db8::"
+    );
+    expect(screen.getByTestId("subnet-field-last-value").textContent).toBe(
+      "2001:db8:ffff:ffff:ffff:ffff:ffff:ffff"
+    );
+    expect(
+      screen.getByTestId("subnet-field-address-count-value").textContent
+    ).toBe("79228162514264337593543950336");
+    expect(
+      screen.getByTestId("subnet-field-normalized-prefix-value").textContent
+    ).toBe("2001:db8::/32");
+    expect(screen.queryByTestId("subnet-boundary-note")).toBeNull();
+  });
+
+  it("exposes an independent copy button and status region for every IPv6 field (SUBNET-06)", () => {
+    setUrl("?cidr=2001%3Adb8%3A%3A%2F32");
+    render(<SubnetTool />);
+    for (const key of IPV6_FIELD_KEYS) {
+      expect(screen.getByTestId(`subnet-field-${key}`)).toBeTruthy();
+      expect(screen.getByTestId(`subnet-field-${key}-value`)).toBeTruthy();
+      expect(screen.getByTestId(`subnet-copy-${key}`)).toBeTruthy();
+      expect(screen.getByTestId(`subnet-copy-${key}-status`)).toBeTruthy();
+    }
+  });
+
+  it("renders the single-address boundary note for a /128 with first==last (D-04)", () => {
+    setUrl("?cidr=2001%3Adb8%3A%3A5%2F128");
+    render(<SubnetTool />);
+
+    expect(
+      screen.getByTestId("subnet-field-first-value").textContent
+    ).toBe(screen.getByTestId("subnet-field-last-value").textContent);
+    expect(
+      screen.getByTestId("subnet-field-address-count-value").textContent
+    ).toBe("1");
+    expect(screen.getByTestId("subnet-boundary-note")).toBeTruthy();
+  });
+
+  it("shows the reverse-DNS zone plus the truncation note for a non-nibble-aligned IPv6 prefix", () => {
+    setUrl("?cidr=2001%3Adb8%3A%3A%2F54");
+    render(<SubnetTool />);
+    expect(
+      screen.getByTestId("subnet-field-reverse-dns-value").textContent
+    ).toBe("0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa.");
+    expect(
+      screen.getByTestId("subnet-field-reverse-dns-note").textContent
+    ).toContain("doesn't align exactly");
+  });
+
+  it("shows the three standard subdivision pills for a /32 IPv6 CIDR (SUBNET-05)", () => {
+    setUrl("?cidr=2001%3Adb8%3A%3A%2F32");
+    render(<SubnetTool />);
+
+    expect(screen.getByTestId("subnet-subdivision-section")).toBeTruthy();
+    const pill48 = screen.getByTestId("subnet-subdivision-48");
+    const pill56 = screen.getByTestId("subnet-subdivision-56");
+    const pill64 = screen.getByTestId("subnet-subdivision-64");
+    expect(pill48.textContent).toBe("/48");
+    expect(pill56.textContent).toBe("/56");
+    expect(pill64.textContent).toBe("/64");
+    expect(pill48.getAttribute("aria-label")).toBe("Split into /48");
+  });
+
+  it("clicking a subdivision pill replaces the CIDR and calls the URL-write path with the first sub-block (D-06)", () => {
+    setUrl("?cidr=2001%3Adb8%3A%3A%2F32");
+    render(<SubnetTool />);
+    const replaceStateSpy = vi.spyOn(window.history, "replaceState");
+
+    fireEvent.click(screen.getByTestId("subnet-subdivision-64"));
+
+    const input = screen.getByTestId("subnet-cidr-input") as HTMLInputElement;
+    expect(input.value).toBe("2001:db8::/64");
+    expect(
+      screen.getByTestId("subnet-field-normalized-prefix-value").textContent
+    ).toBe("2001:db8::/64");
+    expect(replaceStateSpy).toHaveBeenCalled();
+    const lastCall = replaceStateSpy.mock.calls.at(-1);
+    expect(String(lastCall?.[2])).toContain(
+      "cidr=2001%3Adb8%3A%3A%2F64"
+    );
+
+    replaceStateSpy.mockRestore();
+  });
+
+  it("shows no subdivision section for a /64 IPv6 CIDR (already the universal building block)", () => {
+    setUrl("?cidr=2001%3Adb8%3A%3A%2F64");
+    render(<SubnetTool />);
+    expect(screen.queryByTestId("subnet-subdivision-section")).toBeNull();
+  });
+
+  it("shows no subdivision section for an IPv4 CIDR (IPv6-only feature)", () => {
+    render(<SubnetTool />);
+    expect(screen.queryByTestId("subnet-subdivision-section")).toBeNull();
+  });
+});
