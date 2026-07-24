@@ -1,6 +1,6 @@
 ---
 phase: 02-uuid-generator
-reviewed: 2026-07-24T00:00:00Z
+reviewed: 2026-07-24T07:24:03Z
 depth: standard
 files_reviewed: 22
 files_reviewed_list:
@@ -29,34 +29,34 @@ files_reviewed_list:
   - tools/registry.ts
 findings:
   critical: 1
-  warning: 2
-  info: 3
-  total: 6
+  warning: 5
+  info: 6
+  total: 12
 status: issues_found
 ---
 
 # Phase 02: Code Review Report
 
-**Reviewed:** 2026-07-24T00:00:00Z
+**Reviewed:** 2026-07-24T07:24:03Z
 **Depth:** standard
 **Files Reviewed:** 22
 **Status:** issues_found
 
 ## Summary
 
-Reviewed the UUID Generator feature: the pure `lib/uuid/*` modules (generation, formatting, export serialization), the interactive `UuidTool` client island and its dynamic loader, the `/tools/uuid` page shell (metadata, FAQ, worked example, JSON-LD), the registry/sitemap wiring, the shadcn `components/ui/*` primitives it depends on, and the accompanying unit/e2e tests.
+Reviewed the UUID generator tool: the framework-agnostic `lib/uuid/*` modules (generation, formatting, export serialization), the interactive `UuidTool` client island and its `next/dynamic(ssr:false)` loader, the `/tools/uuid` page shell (metadata, JSON-LD FAQ, worked example), `tools/registry.ts`, the six newly-added shadcn UI primitives it depends on, and the unit/e2e test suites.
 
-`lib/uuid/generate.ts`, `format.ts`, and `export.ts` are well-designed: pure, framework-agnostic, thoroughly property-tested, and the documented invariants mostly hold up under inspection (one exception noted below). The `components/ui/*` files are standard shadcn boilerplate; I verified against the installed `@radix-ui/react-switch`/`@radix-ui/react-toggle` runtime output and the compiled Tailwind CSS that the `data-checked`/`data-unchecked`/`data-[state=on]` styling actually resolves correctly at build time (Tailwind v4's `data-*` boolean-state variants compile to match Radix's `data-state="…"` attribute as a fallback selector) — no visual-state bug there.
+`lib/uuid/generate.ts`, `format.ts`, and `export.ts` are well-specified, pure, and backed by strong unit + property-based tests; their documented invariants mostly hold (one `NaN`-input gap noted below). No hardcoded secrets, injection vectors, or unsafe `eval`/`innerHTML` usage were found; the sole `dangerouslySetInnerHTML` (FAQPage JSON-LD in `page.tsx`) correctly escapes `<` per the official Next.js mitigation.
 
-The most significant finding is a real, reachable interaction bug: the global `Enter` keyboard shortcut (wired in `UuidTool.tsx` via `useKeyboardShortcut`) is not guarded against firing when focus is already on an interactive control (a `<button>`, a Radix `ToggleGroupItem`). Because native `Enter`-triggered button activation is not prevented, pressing `Enter` while focused on the Copy All, Download, Copy, or version/format toggle buttons fires both the button's own click handler *and* the global `regenerate()` side effect, which can desynchronize what's copied/downloaded from what's subsequently shown on screen. This directly undermines the project's "one-click copy with visible confirmation" trust guarantee and the "keyboard-first operation" requirement.
+One reachable Critical defect was confirmed by inspecting the actual Radix DOM output in `node_modules`: the global `Enter` keyboard shortcut has no guard against firing while focus is on a native interactive control, so `Enter` on a focused button/toggle both activates that control's own `onClick` *and* the global `regenerate()` handler for the same keypress — desynchronizing what gets copied/downloaded from what's subsequently shown, directly undermining the "one-click copy with visible confirmation" guarantee and "keyboard-first operation" requirement (`.claude/CLAUDE.md`). Several Warning-level robustness/accessibility gaps and Info-level maintainability items round out the findings.
 
 ## Critical Issues
 
-### CR-01: Global Enter shortcut double-fires with native button activation, desyncing copied/downloaded content from the displayed value
+### CR-01: Global `Enter` shortcut double-fires with native button/toggle activation, desyncing copied/downloaded content from the displayed value
 
-**File:** `app/tools/uuid/UuidTool.tsx:90-94`
+**File:** `app/tools/uuid/UuidTool.tsx:90-94` (consumer) / `lib/hooks/useKeyboardShortcut.ts:78-81` (root cause)
 **Issue:**
-`UuidTool` registers a global `Enter` handler:
+`UuidTool` registers:
 ```tsx
 useKeyboardShortcut({
   slash: () => countInputRef.current?.focus(),
@@ -64,24 +64,25 @@ useKeyboardShortcut({
   copy: () => copy(primaryValue),
 });
 ```
-The shared hook (`lib/hooks/useKeyboardShortcut.ts`) guards the `slash` and `copy` branches with `isEditableTarget(event.target)` (skipping INPUT/TEXTAREA/contentEditable), but the `Enter` branch has no such guard and never calls `event.preventDefault()`:
+`useKeyboardShortcut`'s `Enter` branch has no `isEditableTarget`-style guard and never calls `event.preventDefault()`, unlike the `slash` and `copy` branches immediately above/below it:
 ```ts
 if (event.key === "Enter") {
   current.enter?.();
   return;
 }
 ```
-`isEditableTarget` also only excludes text-input-like elements — it does not exclude `<button>` elements or Radix `ToggleGroupItem`s (which render as native `<button>`, confirmed against `node_modules/@radix-ui/react-toggle/dist/index.mjs`, `Primitive.button`). Per standard browser behavior, focused `<button>` elements also self-activate (dispatch their own `click`) on `Enter`, and since our window-level `keydown` listener never calls `preventDefault()`, both actions fire for the same keypress.
+`isEditableTarget` only excludes `INPUT`/`TEXTAREA`/content-editable elements — it does not exclude `<button>` elements. I verified against `node_modules/@radix-ui/react-toggle/dist/index.mjs` (`Primitive.button`, `type: "button"`) and `node_modules/@radix-ui/react-toggle-group/dist/index.mjs` (`role: "radiogroup"` for `type="single"`, items get `role: "radio"`) that every interactive control on this page — the plain `<button>`s (Regenerate, Copy, Copy all, Download) and the `ToggleGroupItem`s (version, export format) — renders as a real, focusable, natively-activatable `<button>`.
 
-Concretely, with keyboard-only navigation (Tab to a control, then `Enter` instead of clicking):
-- **Copy All** (`data-testid="uuid-copy-all"`): the global handler calls `regenerate()` (produces a fresh batch), then the button's own `onClick={handleCopyAll}` fires, copying the batch that was on screen *before* the regenerate takes effect. Immediately after, the re-render from `regenerate()` replaces the visible batch — so the "Copied!" confirmation is shown next to values that no longer match the clipboard contents.
-- **Copy** (hero button, count=1): identical issue — `primaryValue` copied is the pre-regenerate value; the hero UUID visually changes right after the "Copied!" confirmation appears.
-- **Download**: the downloaded file content is captured correctly (same-render snapshot), but the visible batch changes immediately after the download completes, for no reason the user asked for.
-- **Version/Format `ToggleGroupItem`s** (`uuid-version-v7`, `uuid-format-csv`, etc.): pressing `Enter` on a focused toggle item both activates the toggle (which itself regenerates) and fires the redundant global `regenerate()`, producing a wasted intermediate batch and, depending on timing, potential flicker.
+Per standard browser behavior, a focused `<button>` self-activates (synthesizes its own `click`) as the default action of an unprevented `Enter` keydown. Because the window-level listener never calls `preventDefault()`, both actions fire for the same keypress, and — since React's automatic batching defers the `regenerate()` re-render past the end of the current synchronous callback — the button's own `onClick` still runs against the **pre-regenerate** closure:
 
-This is reachable through ordinary keyboard-first use of the page (the exact interaction pattern the project brief calls out as a non-negotiable: "keyboard-first operation"), and it breaks the tool's core promise that the copied/downloaded value matches what's visibly confirmed on screen.
+- **Copy All** (`data-testid="uuid-copy-all"`): tabbing to this button and pressing `Enter` fires the global `regenerate()` (schedules a new batch) *and* `handleCopyAll` (closes over the pre-regenerate `displayValues`). The clipboard ends up holding the old batch while the screen immediately re-renders to a new one — the "Copied!" confirmation now points at values no longer in the clipboard.
+- **Copy** (hero button, count=1): identical issue — the copied `primaryValue` is stale by the time the "Copied!" state renders next to the new hero value.
+- **Download**: the downloaded file content is correct (captured synchronously pre-regenerate), but the visible batch changes immediately after, for no action the user asked for.
+- **Version/Format `ToggleGroupItem`s**: pressing `Enter` on a focused item both activates the toggle (itself triggers a regenerate via `handleVersionChange`) and fires the redundant global `regenerate()`, producing a wasted intermediate batch.
 
-**Fix:** Guard the `Enter` (and ideally `Escape`) branch in `useKeyboardShortcut` the same way `slash`/`copy` are guarded, and additionally exclude interactive controls (buttons, `[role="radio"]`, `[role="button"]`) so the global shortcut only fires when the user isn't already using a native control's own activation:
+This is reachable through ordinary keyboard-first use (Tab, then `Enter` instead of clicking) — the exact interaction pattern the project brief requires ("keyboard-first operation") — and it breaks the tool's core trust guarantee that a copied/downloaded value matches what's confirmed on screen.
+
+**Fix:** Guard the `Enter` branch the same way `slash`/`copy` are guarded, and additionally exclude interactive controls so the global shortcut only fires when the user isn't already using a native control's own activation:
 ```ts
 function isInteractiveTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -96,78 +97,110 @@ if (event.key === "Enter") {
   return;
 }
 ```
-Alternatively (simpler, narrower fix scoped to this consumer): only wire `enter: () => regenerate()` when the batch-count input specifically has focus, or call `event.preventDefault()` plus check `event.target === countInputRef.current` before invoking `regenerate()` from within `UuidTool.tsx`.
+A narrower, consumer-scoped alternative: only invoke `regenerate()` from the global `Enter` handler when `event.target === countInputRef.current`.
 
 ## Warnings
 
-### WR-01: `generateBatch` violates its own documented "always non-empty" invariant for `NaN` input
+### WR-01: `generateBatch` breaks its own "always non-empty" totality contract for `NaN`
 
-**File:** `lib/uuid/generate.ts:30-32`
-**Issue:** The docstring states: *"`count` is defensively clamped to the integer range [1, 100] via flooring + min/max, so this function is total: it never throws and always returns a non-empty array, even for non-integer, negative, zero, or out-of-range input... this module must not trust its caller."*
-
-```ts
-const clampedCount = Math.min(100, Math.max(1, Math.trunc(count)));
-```
-If `count` is `NaN` (e.g. a future caller — the docstring explicitly anticipates "any future API route" — passes `Number("not-a-number")` or a bad computed value), `Math.trunc(NaN)`, `Math.max(1, NaN)`, and `Math.min(100, NaN)` all propagate to `NaN`. `Array.from({ length: NaN }, …)` then produces a **0-length array** (per `ToLength`, `NaN` coerces to `0`), directly contradicting the documented "always returns a non-empty array" guarantee. This path is currently unreachable from the UI (`parseCountInput` rejects non-digit strings before they reach `generateBatch`), but it's untested and violates the module's own stated contract for a function explicitly designed to be trusted by callers other than this UI.
-
+**File:** `lib/uuid/generate.ts:26-33`
+**Issue:** The docstring states the function "is total: it never throws and always returns a non-empty array, even for non-integer, negative, zero, or out-of-range input" and that "this module must not trust its caller." `NaN` isn't covered: `Math.trunc(NaN)`, `Math.max(1, NaN)`, and `Math.min(100, NaN)` all propagate `NaN`, and `Array.from({ length: NaN }, …)` coerces the length to `0` (`ToLength(NaN) === 0`), silently returning `[]`. `generateOne` would then do `generateBatch(...)[0]!` → `undefined!`, a false non-null assertion that surfaces as a downstream crash. Unreachable from today's UI (`parseCountInput` filters non-digit strings first), but the module is explicitly documented as reusable "from both the client component and any future API route."
 **Fix:**
 ```ts
 const safeCount = Number.isFinite(count) ? count : 1;
 const clampedCount = Math.min(100, Math.max(1, Math.trunc(safeCount)));
 ```
-Add a test case: `generateBatch({ version: "v4", count: NaN })` should return length 1.
 
-### WR-02: Download anchor is never attached to the DOM before `.click()`
+### WR-02: Stale "Copied!" confirmation isn't cleared when the underlying value changes
 
-**File:** `app/tools/uuid/UuidTool.tsx:158-162`
+**File:** `app/tools/uuid/UuidTool.tsx:96-101` (`regenerate`), `103-112` (`handleVersionChange`), `114-127` (`handleCountInputChange`), `129-135` (`handleCaseChange`/`handleHyphensChange`)
+**Issue:** `copied`/`copiedAll` come from two independent `useCopyToClipboard()` instances that are entirely decoupled from `state`. None of the state-mutating handlers (`regenerate`, `handleVersionChange`, `handleCountInputChange`, `handleCaseChange`, `handleHyphensChange`) reset the pending "Copied!" state. If a user copies a value and then, within the ~2s revert window, regenerates, switches version, changes the batch count, or toggles case/hyphens, the "Copied!" label (and its `aria-live` announcement) stays visible next to a value that is no longer what's actually in the clipboard — a genuine accuracy gap in the exact confirmation mechanism the project treats as a core trust guarantee.
+**Fix:** Reset the copy-confirmation state whenever the displayed value changes, e.g. expose a `reset()` from `useCopyToClipboard` and call it from a `useEffect` keyed on `state.rawUuids`/`state.case`/`state.hyphens`, or derive "copied" from whether the last-copied string still equals the current `primaryValue`/serialized batch rather than from a bare boolean.
+
+### WR-03: Ctrl/Cmd+C keyboard shortcut gives no visible confirmation in batch view
+
+**File:** `app/tools/uuid/UuidTool.tsx:90-94, 317-361, 379-425`
+**Issue:** The `copy` shortcut handler (`() => copy(primaryValue)`) is wired unconditionally and always targets `displayValues[0]`. The `copied`/`error` state it drives is only rendered (the `uuid-hero` block and its `aria-live` `uuid-copy-status` span) when `state.count === 1`. In batch view (`state.count > 1`), pressing Ctrl/Cmd+C silently overwrites the clipboard with the first UUID and produces **zero** visual or screen-reader feedback, conflicting with "one-click copy with visible confirmation everywhere" (`.claude/CLAUDE.md`).
+**Fix:**
+```tsx
+useKeyboardShortcut({
+  slash: () => countInputRef.current?.focus(),
+  enter: () => regenerate(),
+  copy: state.count === 1 ? () => copy(primaryValue) : undefined,
+});
+```
+
+### WR-04: Download anchor is never attached to the DOM before `.click()`
+
+**File:** `app/tools/uuid/UuidTool.tsx:151-163`
 **Issue:**
 ```tsx
 const a = document.createElement("a");
 a.href = url;
 a.download = meta.filename;
 a.click();
-setTimeout(() => URL.revokeObjectURL(url), 0); // Pitfall 3 cleanup
+setTimeout(() => URL.revokeObjectURL(url), 0);
 ```
-The anchor element is never appended to `document.body` before `.click()` is invoked. While current evergreen Chrome/Firefox tolerate synthetic clicks on detached elements, this is a well-known cross-browser fragility point for the download-via-anchor pattern (historically unreliable in Firefox and in embedded/sandboxed contexts), and it's cheap to make robust.
-
+The anchor is never appended to `document.body` before `.click()`. Evergreen Chromium tolerates this, but it's a well-known cross-browser fragility point for the download-via-anchor pattern (notably WebKit/Safari), and `playwright.config.ts` only defines a `chromium` project — the existing e2e "download triggers a file..." test can never catch a regression or an existing gap on Safari/iOS, a real segment of this tool's audience.
 **Fix:**
-```tsx
-const a = document.createElement("a");
-a.href = url;
-a.download = meta.filename;
+```ts
 document.body.appendChild(a);
 a.click();
-document.body.removeChild(a);
+a.remove();
 setTimeout(() => URL.revokeObjectURL(url), 0);
 ```
 
-## Info
-
-### IN-01: Stale "Copied!" confirmation isn't cleared when the underlying value changes
-
-**File:** `app/tools/uuid/UuidTool.tsx:96-101, 129-135`
-**Issue:** `regenerate()`, `handleVersionChange`, `handleCountInputChange`, `handleCaseChange`, and `handleHyphensChange` all mutate `state.rawUuids`/displayed values but never reset `copied`/`copiedAll` (from `useCopyToClipboard`). If a user copies a value and then, within the ~2s revert window, regenerates or reformats, the "Copied!" confirmation (and its `aria-live` announcement) remains visible/true even though it no longer corresponds to the currently-displayed value — a minor but genuine trust/accuracy gap given how much emphasis the codebase places on accurate copy confirmation.
-**Fix:** Reset `copied`/`copiedAll` (or ignore/cancel the pending revert timeout) whenever `rawUuids`, `case`, or `hyphens` changes — e.g. via a `useEffect` keyed on `state.rawUuids` that calls a `reset()` exposed from `useCopyToClipboard`, or by deriving the "copied" UI state from whether the copied string still equals the current `primaryValue`/serialized batch.
-
-### IN-02: Repeated inline typography utility strings duplicated across ~20+ elements
-
-**File:** `app/tools/uuid/UuidTool.tsx` (throughout, e.g. lines 169, 199, 220, 237, 245, 255, 263, 273, 281, 298), `app/tools/uuid/page.tsx` (lines 57, 65, 70, 81, 91, 98, 104, 107)
-**Issue:** The same arbitrary-value class fragments (`text-[14px] leading-[1.4] font-semibold`, `text-[16px] leading-[1.5] font-normal`, etc.) are duplicated verbatim across many elements in both files instead of being centralized as a shared typography utility/class (Tailwind `@apply`, a small `cn()`-wrapped helper, or theme tokens). Not a functional bug, but it increases the chance of an inconsistent one-off edit later and makes a future type-scale change require a multi-file find/replace.
-**Fix:** Extract shared fragments into named constants or Tailwind component classes, e.g. `const LABEL_TEXT = "text-[14px] leading-[1.4] font-semibold"`, reused via `cn(LABEL_TEXT, ...)`.
-
-### IN-03: `ToggleGroup` controls lack an accessible name
+### WR-05: "Version" and "Export format" `ToggleGroup`s have no accessible name
 
 **File:** `app/tools/uuid/UuidTool.tsx:168-193, 280-315`
-**Issue:** The "Version" and "Export format" `ToggleGroup`s are visually labeled by an adjacent `<Label>`, but unlike the batch-count `Input` (`htmlFor="uuid-batch-count"`) and the Case/Hyphens `Switch`es (`htmlFor="uuid-case-switch"`/`"uuid-hyphens-switch"`), there is no `id`/`aria-labelledby` (or `aria-label`) wiring the visible label text to the Radix `role="radiogroup"` root. Screen reader users tabbing into the toggle group will hear "radio button, v4" etc. without the group context ("Version").
+**Issue:** These `ToggleGroup`s render as `role="radiogroup"` (verified in `node_modules/@radix-ui/react-toggle-group/dist/index.mjs`, `type="single"` → `role: "radiogroup"`, items → `role: "radio"`), but unlike the batch-count `Input` (`htmlFor="uuid-batch-count"`) and the Case/Hyphens `Switch`es (`htmlFor="uuid-case-switch"`/`"uuid-hyphens-switch"`), the adjacent `<Label>` for "Version" and "Export format" has neither `htmlFor`/`id` pairing nor is the group given `aria-label`/`aria-labelledby`. Screen-reader users tabbing through get "radio button, v4" / "radio button, Text" with no announced group context.
 **Fix:**
 ```tsx
 <Label id="uuid-version-label" className="...">Version</Label>
 <ToggleGroup aria-labelledby="uuid-version-label" ...>
 ```
-(same pattern for the "Export format" group).
+(same pattern for "Export format").
+
+## Info
+
+### IN-01: `generateOne` is unused dead code
+
+**File:** `lib/uuid/generate.ts:36-38`
+**Issue:** Exported but never imported anywhere outside its own unit test. Adds public-API surface with no current consumer.
+**Fix:** Remove until a real caller exists, or leave a comment noting the planned consumer.
+
+### IN-02: `parseCountInput` has no dedicated unit test
+
+**File:** `app/tools/uuid/UuidTool.tsx:41-47`
+**Issue:** Every other pure function touched in this phase (`generateBatch`, `formatUuids`, `toPlainText`/`toCsv`/`toJson`/`serializeUuids`) has a full unit + property-based test file. `parseCountInput` — the batch-count boundary-validation logic (integer-only, [1,100]) — is inline and unexported in the client component, so its boundary cases (`"0"`, `"100"`, `"101"`, `"1.5"`, `" 5 "`, `""`, `"-1"`) are only exercised indirectly via Playwright, not fast isolated unit tests.
+**Fix:** Export it (or move it to `lib/uuid/`) and add a `describe("parseCountInput")` unit test block mirroring the style already used in `generate.test.ts`.
+
+### IN-03: Duplicated Tailwind class strings across many elements
+
+**File:** `app/tools/uuid/UuidTool.tsx` (typography fragments e.g. lines 169, 199, 220, 237, 245, 255, 263, 273, 281, 298; accent-button fragment repeated at 227-240, 319-343, 390-409), `app/tools/uuid/page.tsx` (lines 57, 65, 70, 81, 91, 98, 104, 107)
+**Issue:** The same arbitrary-value class fragments (`text-[14px] leading-[1.4] font-semibold`, `text-[16px] leading-[1.5] font-normal`, and the ~230-character "44×44 accent-tinted pill button" pattern) are duplicated verbatim many times across both files rather than centralized. Not a functional bug, but any future type-scale or shared-button-style change requires a multi-file, multi-occurrence hand edit, with real risk of the copies drifting out of sync.
+**Fix:** Extract shared fragments into named constants (e.g. `const LABEL_TEXT = "text-[14px] leading-[1.4] font-semibold"`) or a small `<AccentIconButton>` wrapper, reused via `cn(...)`.
+
+### IN-04: Skeleton height is a duplicated magic number, not derived from the real hero block
+
+**File:** `app/tools/uuid/UuidToolLoader.tsx:30-38`
+**Issue:** `h-[76px]` is hand-picked to match the real hero row's rendered height per the comment, but nothing ties the two together. A future padding/font-size change to the hero block in `UuidTool.tsx` will silently desync this value and reintroduce the CLS the skeleton exists to prevent.
+**Fix:** Extract a shared constant (e.g. `HERO_ROW_HEIGHT_PX`) referenced by both files, or cross-reference the exact class list it must continue to match.
+
+### IN-05: Non-identity React `key`s for list items
+
+**File:** `app/tools/uuid/UuidTool.tsx:434` (`key={\`${index}-${value}\`}`), `app/tools/uuid/page.tsx:103` (`key={item.question}`)
+**Issue:** Both are safe today (UUIDs are unique within a batch; FAQ questions are currently unique), but neither is a stable identity key. A future dedup/reorder of batch rows, or a copy edit that produces a duplicate FAQ question, would silently reintroduce key-collision rendering bugs.
+**Fix:** `key={value}` alone suffices for batch rows (uniqueness backed by `generateBatch`'s own property tests). For FAQ items, add a stable `id` field to `FaqItem` in `faq-data.ts` and key on that.
+
+### IN-06: `toCsv`/`serializeUuids` has no runtime guard against non-UUID content
+
+**File:** `lib/uuid/export.ts:31-40`
+**Issue:** The comment correctly notes the UUID alphabet can never contain a comma/quote/newline, so no CSV-escaping is needed for current callers — but `toCsv`/`serializeUuids` are typed as generic `string[] -> string` and documented as reusable "from both the client component and any future API route." Nothing in the signature enforces UUID-shaped input, so the documented invariant is caller-discipline-only, not type- or runtime-enforced.
+**Fix:** No change needed for current scope; consider a branded `UuidString` type or a runtime format assertion if this module is ever reused for non-UUID string arrays.
 
 ---
 
-_Reviewed: 2026-07-24T00:00:00Z_
+_Reviewed: 2026-07-24T07:24:03Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
