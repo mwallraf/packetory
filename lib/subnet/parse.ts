@@ -102,9 +102,18 @@ function isValidIpv4Address(candidate: string): boolean {
 /** IPv6 literal syntax check via the WHATWG URL bracket-wrap trick — ported
  * from `lib/network/parseForwardedIp.ts`'s `isValidIpv6` (RESEARCH.md
  * "Don't Hand-Roll"). Validates address syntax only; CIDR-specific
- * prefix-length/network-boundary semantics are this module's own job. */
+ * prefix-length/network-boundary semantics are this module's own job.
+ *
+ * Deliberately rejects any candidate containing a `.` (IPv4-mapped/
+ * IPv4-compatible IPv6 literals like `::ffff:192.168.1.1`, RFC 4291
+ * §2.5.5/§2.5.6). The `URL` bracket trick accepts this notation, but
+ * `expandIpv6Groups`/`ipv6ToBigInt` below only understand pure hextet
+ * groups and would otherwise disagree with this validator (WR-02) —
+ * rejecting here keeps both stages in agreement rather than teaching the
+ * expansion path dotted-quad support, per RESEARCH.md's framing that
+ * IPv4-mapped addresses aren't explicitly in scope for this phase. */
 function isValidIpv6Address(candidate: string): boolean {
-  if (!candidate.includes(":")) return false;
+  if (!candidate.includes(":") || candidate.includes(".")) return false;
   try {
     new URL(`http://[${candidate}]`);
     return true;

@@ -41,6 +41,17 @@ describe("parseCidr", () => {
     expect(isParseError(result)).toBe(true);
   });
 
+  it.each([
+    ["::ffff:192.168.1.1/128", "IPv4-mapped IPv6 literal (RFC 4291 §2.5.5)"],
+    ["::1.2.3.4/128", "IPv4-compatible IPv6 literal (RFC 4291 §2.5.6)"],
+  ])(
+    "returns a ParseError for %s (%s) consistently, not a validator/parser disagreement (WR-02 regression)",
+    (input) => {
+      const result = parseCidr(input);
+      expect(isParseError(result)).toBe(true);
+    }
+  );
+
   it("never throws for malformed or pathological input (total function contract)", () => {
     expect(() => parseCidr("::::::::::::")).not.toThrow();
     expect(() => parseCidr("a".repeat(5000))).not.toThrow();
