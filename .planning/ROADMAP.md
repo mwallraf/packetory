@@ -98,7 +98,7 @@ Plans:
   4. Every output value has its own copy button.
   5. The current CIDR is reflected in the URL, and pasting a shared/bookmarked subnet URL into a fresh browser tab reproduces the exact same result.
 
-**Plans**: 4/5 plans executed
+**Plans**: 5/5 plans executed
 Plans:
 **Wave 1**
 
@@ -115,7 +115,7 @@ Plans:
 
 **Wave 4** *(blocked on Wave 3 completion)*
 
-- [ ] 03-04-PLAN.md — IPv6 subdivisions: bounded /48–/64 option list + clickable replace-CIDR pills (wave 4)
+- [x] 03-04-PLAN.md — IPv6 subdivisions: bounded /48–/64 option list + clickable replace-CIDR pills (wave 4)
 
 **UI hint**: yes
 
@@ -162,6 +162,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 |-------|-----------------|--------|-----------|
 | 1. Shared Shell + Registry | 5/5 | Complete    | 2026-07-23 |
 | 2. UUID Generator | 4/4 | Complete    | 2026-07-24 |
-| 3. IP Subnet Calculator | 4/5 | In Progress|  |
+| 3. IP Subnet Calculator | 5/5 | In Progress|  |
 | 4. DNS Lookup | 0/TBD | Not started | - |
 | 5. MAC Address Inspector | 0/TBD | Not started | - |
