@@ -24,10 +24,6 @@ result: pass
 expected: lib/uuid/*, app/tools/uuid/UuidTool.tsx contain no analytics/telemetry call sites; all generation/formatting/export stays client-local.
 result: pass
 
-### 3. No generated UUID value is ever transmitted to analytics or any third party
-expected: lib/uuid/*, app/tools/uuid/UuidTool.tsx contain no analytics/telemetry call sites; all generation/formatting/export stays client-local.
-result: [pending]
-
 ## Summary
 
 total: 3
