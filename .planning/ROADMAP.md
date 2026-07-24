@@ -14,7 +14,7 @@ Packetory ships as five vertical-slice phases. Phase 1 builds the shared shell, 
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Shared Shell + Registry** - Landing page, registry-driven nav/sitemap, visitor-IP widget, theming, accessibility/keyboard framework, analytics allow-list, privacy notice, and CI gate (completed 2026-07-23)
-- [ ] **Phase 2: UUID Generator** - Instant v4/v7 UUID generation with batch, formatting, export, and copy — proves the tool-page pattern
+- [x] **Phase 2: UUID Generator** - Instant v4/v7 UUID generation with batch, formatting, export, and copy — proves the tool-page pattern (completed 2026-07-24)
 - [ ] **Phase 3: IP Subnet Calculator** - Instant IPv4/IPv6 CIDR breakdown with full field output and bookmarkable URL state
 - [ ] **Phase 4: DNS Lookup** - Debounced, race-safe DNS-over-HTTPS lookups across common record types with transparent resolver attribution
 - [ ] **Phase 5: MAC Address Inspector** - As-you-type MAC normalization, vendor lookup, and hedged bit-level classification
@@ -143,7 +143,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | Phase | Plans Complete | Status | Completed |
 |-------|-----------------|--------|-----------|
 | 1. Shared Shell + Registry | 5/5 | Complete    | 2026-07-23 |
-| 2. UUID Generator | 4/4 | In Progress|  |
+| 2. UUID Generator | 4/4 | Complete    | 2026-07-24 |
 | 3. IP Subnet Calculator | 0/TBD | Not started | - |
 | 4. DNS Lookup | 0/TBD | Not started | - |
 | 5. MAC Address Inspector | 0/TBD | Not started | - |
