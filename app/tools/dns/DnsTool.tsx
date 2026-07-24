@@ -522,6 +522,25 @@ export function DnsTool() {
     }, DEBOUNCE_MS);
   }
 
+  /**
+   * CR-01 fix: abort any in-flight request and bump the sequence token so
+   * its (eventually-arriving) response can never win a race against a state
+   * transition that supersedes it — e.g. the input becoming invalid while a
+   * prior lookup is still in flight. Without this, `runLookup`'s
+   * `seq !== requestSeqRef.current` / `controller.signal.aborted` guards
+   * never fire for transitions that don't themselves call `runLookup`, so a
+   * stale success/error response can silently overwrite a newer
+   * `invalid-input` state.
+   */
+  function cancelInFlightLookup() {
+    abortControllerRef.current?.abort();
+    requestSeqRef.current++; // orphan any in-flight runLookup's seq check
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+  }
+
   // Mount-only: run the initial (URL-derived or default demo-domain) lookup
   // once. Cleanup aborts the in-flight controller, which is what makes
   // React Strict Mode's dev-only double-invoke safe (Pitfall 3) — the first
@@ -560,10 +579,7 @@ export function DnsTool() {
     const valid = isValidDomainInput(value);
 
     if (!valid) {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-        debounceTimerRef.current = null;
-      }
+      cancelInFlightLookup();
       setState((prev) => ({
         ...prev,
         rawDomain: value,
@@ -598,10 +614,7 @@ export function DnsTool() {
         setState((prev) => ({ ...prev, rawDomain: value }));
         runLookupImmediate(value, state.recordType);
       } else {
-        if (debounceTimerRef.current) {
-          clearTimeout(debounceTimerRef.current);
-          debounceTimerRef.current = null;
-        }
+        cancelInFlightLookup();
         setState((prev) => ({
           ...prev,
           rawDomain: value,
