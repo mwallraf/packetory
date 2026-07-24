@@ -1,7 +1,17 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check, Copy, Loader2, RefreshCw } from "lucide-react";
+import {
+  Check,
+  Clock,
+  Copy,
+  Inbox,
+  Loader2,
+  RefreshCw,
+  SearchX,
+  TriangleAlert,
+  WifiOff,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
 import { useKeyboardShortcut } from "@/lib/hooks/useKeyboardShortcut";
@@ -9,6 +19,7 @@ import { isValidDomainInput } from "@/lib/dns/validate";
 import { resolveWithFallback } from "@/lib/dns/resolve";
 import { normalizeRecords } from "@/lib/dns/parse";
 import {
+  RateLimitError,
   RECORD_TYPES,
   type DnsLookupState,
   type DnsSuccessResult,
@@ -36,6 +47,16 @@ const DEBOUNCE_MS = 700;
 
 const INVALID_DOMAIN_MESSAGE =
   "Enter a valid domain name, like cloudflare.com or example.co.uk.";
+
+/** Exact D-05/D-06 Copywriting Contract strings (04-UI-SPEC.md) — verbatim,
+ * never paraphrased, so the NXDOMAIN-vs-empty-NOERROR and
+ * rate-limited-vs-resolver-unavailable distinctions read exactly as the
+ * design contract specifies (Pitfall 6). */
+const RATE_LIMITED_LABEL = "Too many lookups.";
+const RATE_LIMITED_EXPLANATION = "Please wait a moment and try again.";
+const RESOLVER_UNAVAILABLE_LABEL = "Resolvers unreachable.";
+const RESOLVER_UNAVAILABLE_EXPLANATION =
+  "DNS resolvers are unreachable right now — check your connection and try again.";
 
 /** Type guard narrowing an arbitrary URL param string to a `RecordType`,
  * mirroring `lib/subnet/parse.ts`'s `isParseError` type-guard convention. */
@@ -90,6 +111,24 @@ function lastValidResultFrom(lookup: DnsLookupState): DnsSuccessResult | null {
   return lookup.lastValidResult;
 }
 
+/**
+ * Classifies a thrown error from `resolveWithFallback` into its own distinct
+ * QUAL-08 state (D-04/D-06, Pitfall 6) — `RateLimitError` (an HTTP 429 from
+ * either resolver) and every other genuine failure (`ResolverFailureError`,
+ * a raw network error, or a timeout) MUST NOT collapse into one generic
+ * "something went wrong" branch; each carries independently worded copy and
+ * its own inline Try-again affordance (T-04-06).
+ */
+function classifyError(
+  err: unknown,
+  lastValidResult: DnsSuccessResult | null
+): DnsLookupState {
+  if (err instanceof RateLimitError) {
+    return { status: "rate-limited", lastValidResult };
+  }
+  return { status: "resolver-unavailable", lastValidResult };
+}
+
 type DnsToolState = {
   /** Always reflects exactly what's typed in the domain input — single
    * source of truth for the controlled field. */
@@ -121,9 +160,11 @@ function DnsResultSkeleton() {
 function DnsRecordRow({
   index,
   record,
+  recordType,
 }: {
   index: number;
   record: NormalizedRecord;
+  recordType: RecordType;
 }) {
   const { copy, copied, error, reset } = useCopyToClipboard();
 
@@ -132,6 +173,15 @@ function DnsRecordRow({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset is a stable useCallback identity; omitted to avoid re-running on hook-identity changes.
   }, [record.value]);
 
+  // MX display completeness (DNS-06): `record.value` is the untouched
+  // "priority exchange" string from `normalizeValue` (lib/dns/parse.ts never
+  // splits it) — split on the FIRST space only, so an exchange hostname can
+  // never itself be mistaken for containing the priority.
+  const isMx = recordType === "MX";
+  const firstSpace = isMx ? record.value.indexOf(" ") : -1;
+  const mxPriority = isMx && firstSpace !== -1 ? record.value.slice(0, firstSpace) : record.value;
+  const mxExchange = isMx && firstSpace !== -1 ? record.value.slice(firstSpace + 1) : "";
+
   return (
     <div
       data-testid={`dns-record-row-${index}`}
@@ -139,14 +189,34 @@ function DnsRecordRow({
     >
       <div className="flex flex-wrap items-center gap-2">
         {/* Every record value renders as a JSX text node only — never
-            dangerouslySetInnerHTML — so attacker-controlled TXT content is
-            escaped by React's default rendering (T-04-01). */}
-        <span
-          data-testid="dns-record-value"
-          className="font-mono text-[16px] leading-[1.5] font-normal break-all text-foreground"
-        >
-          {record.value}
-        </span>
+            dangerouslySetInnerHTML — so attacker-controlled TXT/MX/NS/CNAME
+            content is escaped by React's default rendering (T-04-01). */}
+        {isMx ? (
+          <span
+            data-testid="dns-record-value"
+            className="flex flex-wrap items-center gap-3 font-mono text-[16px] leading-[1.5] font-normal break-all text-foreground"
+          >
+            <span data-testid="dns-mx-priority">
+              <span className="font-sans text-[14px] font-semibold text-foreground">
+                Priority:{" "}
+              </span>
+              {mxPriority}
+            </span>
+            <span data-testid="dns-mx-exchange" className="break-all">
+              <span className="font-sans text-[14px] font-semibold text-foreground">
+                Exchange:{" "}
+              </span>
+              {mxExchange}
+            </span>
+          </span>
+        ) : (
+          <span
+            data-testid="dns-record-value"
+            className="font-mono text-[16px] leading-[1.5] font-normal break-all text-foreground"
+          >
+            {record.value}
+          </span>
+        )}
         <button
           type="button"
           onClick={() => copy(record.value)}
@@ -189,13 +259,135 @@ function DnsRecordRow({
 }
 
 /**
- * The DNS Lookup client island (DNS-01..07, DNS-09, DNS-10). Extends the
- * Server-shell/Client-island + URL-state + keyboard-shortcut patterns
- * established by `SubnetTool.tsx`/`UuidTool.tsx` with this codebase's first
- * debounce + `AbortController` + primary/fallback-resolver orchestration
- * (RESEARCH.md Patterns 1-3). This plan (04-01) renders success + loading +
- * a minimal generic invalid-input/failure fallback — the full 5-state
- * QUAL-08 error matrix ships in 04-02.
+ * NXDOMAIN card (D-05, neutral — a legitimate DNS answer, not a failure).
+ * Replaces the whole result panel (page structure step 4); never shown
+ * alongside the last valid record grid.
+ */
+function NxdomainCard({ domain }: { domain: string }) {
+  return (
+    <div
+      data-testid="dns-state-nxdomain"
+      className="flex flex-col gap-2 rounded-md border border-border bg-secondary px-4 py-4"
+    >
+      <div className="flex items-center gap-2">
+        <SearchX aria-hidden="true" className="size-5 text-muted-foreground" />
+        <span className="text-[20px] leading-[1.2] font-semibold text-foreground">
+          No such domain.
+        </span>
+      </div>
+      <span className="text-[16px] leading-[1.5] font-normal text-muted-foreground">
+        <span className="font-mono">{domain}</span> doesn&apos;t exist.
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Empty-NOERROR card (D-05, neutral — equally a legitimate DNS answer:
+ * "this domain exists, no records of this type"). Explicitly never
+ * conflated with NXDOMAIN (DNS-08).
+ */
+function EmptyNoErrorCard({
+  domain,
+  recordType,
+}: {
+  domain: string;
+  recordType: RecordType;
+}) {
+  return (
+    <div
+      data-testid="dns-state-empty-noerror"
+      className="flex flex-col gap-2 rounded-md border border-border bg-secondary px-4 py-4"
+    >
+      <div className="flex items-center gap-2">
+        <Inbox aria-hidden="true" className="size-5 text-muted-foreground" />
+        <span className="text-[20px] leading-[1.2] font-semibold text-foreground">
+          No {recordType} records.
+        </span>
+      </div>
+      <span className="text-[16px] leading-[1.5] font-normal text-muted-foreground">
+        <span className="font-mono">{domain}</span> exists but has none of
+        this type.
+      </span>
+    </div>
+  );
+}
+
+/**
+ * Rate-limited card (D-06, destructive — a genuine service-side failure
+ * condition per UI-SPEC's Color reserved list). Carries its own inline
+ * Try-again button in addition to the page's general Refresh control.
+ */
+function RateLimitedCard({ onTryAgain }: { onTryAgain: () => void }) {
+  return (
+    <div
+      data-testid="dns-state-rate-limited"
+      className="flex flex-col gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-4"
+    >
+      <div className="flex items-center gap-2">
+        <Clock aria-hidden="true" className="size-5 text-destructive" />
+        <span className="text-[20px] leading-[1.2] font-semibold text-foreground">
+          {RATE_LIMITED_LABEL}
+        </span>
+      </div>
+      <span className="text-[16px] leading-[1.5] font-normal text-muted-foreground">
+        {RATE_LIMITED_EXPLANATION}
+      </span>
+      <button
+        type="button"
+        onClick={onTryAgain}
+        data-testid="dns-try-again"
+        // 44x44 minimum hit area via padding; destructive-tinted to match
+        // the card (D-06's own retry affordance, distinct from the page's
+        // general Refresh control).
+        className="inline-flex h-11 w-fit shrink-0 items-center justify-center gap-1.5 rounded-full border border-destructive/30 px-3 text-[14px] leading-[1.4] font-semibold text-destructive outline-none transition-colors hover:bg-destructive/10 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      >
+        Try again
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Resolver-unavailable card (D-06, destructive — a genuine service-side
+ * failure condition). Carries its own inline Try-again button, independently
+ * worded from rate-limited per Pitfall 6 (never a shared generic component).
+ */
+function ResolverUnavailableCard({ onTryAgain }: { onTryAgain: () => void }) {
+  return (
+    <div
+      data-testid="dns-state-resolver-unavailable"
+      className="flex flex-col gap-2 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-4"
+    >
+      <div className="flex items-center gap-2">
+        <WifiOff aria-hidden="true" className="size-5 text-destructive" />
+        <span className="text-[20px] leading-[1.2] font-semibold text-foreground">
+          {RESOLVER_UNAVAILABLE_LABEL}
+        </span>
+      </div>
+      <span className="text-[16px] leading-[1.5] font-normal text-muted-foreground">
+        {RESOLVER_UNAVAILABLE_EXPLANATION}
+      </span>
+      <button
+        type="button"
+        onClick={onTryAgain}
+        data-testid="dns-try-again"
+        className="inline-flex h-11 w-fit shrink-0 items-center justify-center gap-1.5 rounded-full border border-destructive/30 px-3 text-[14px] leading-[1.4] font-semibold text-destructive outline-none transition-colors hover:bg-destructive/10 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      >
+        Try again
+      </button>
+    </div>
+  );
+}
+
+/**
+ * The DNS Lookup client island (DNS-01..07, DNS-09, DNS-10, QUAL-08).
+ * Extends the Server-shell/Client-island + URL-state + keyboard-shortcut
+ * patterns established by `SubnetTool.tsx`/`UuidTool.tsx` with this
+ * codebase's first debounce + `AbortController` + primary/fallback-resolver
+ * orchestration (RESEARCH.md Patterns 1-3). Renders the full 5-state
+ * QUAL-08 error matrix (invalid-input, nxdomain, empty-noerror,
+ * rate-limited, resolver-unavailable) plus loading/skeleton/success.
  */
 export function DnsTool() {
   // Lazy initializer (single render, no cascading second render) — this
@@ -248,7 +440,44 @@ export function DnsTool() {
 
       if (seq !== requestSeqRef.current) return; // superseded by a newer request
 
+      // Status-3 (NXDOMAIN) is checked BEFORE rendering success — a genuine,
+      // legitimate negative DNS answer per Pattern 3, never conflated with
+      // empty-NOERROR (DNS-08, D-05). SERVFAIL (Status 2) never reaches this
+      // branch: `resolveWithFallback` already throws `ResolverFailureError`
+      // for it upstream (Assumption A1), so it can never surface as its own
+      // UI state here.
+      if (response.Status === 3) {
+        setState((prev) => ({
+          ...prev,
+          lookup: {
+            status: "nxdomain",
+            domain,
+            lastValidResult: lastValidResultFrom(prev.lookup),
+          },
+        }));
+        syncUrlToLookup(domain, type);
+        return;
+      }
+
       const records = normalizeRecords(response, type);
+
+      // A successful (non-NXDOMAIN) response with zero normalized rows is
+      // the empty-NOERROR state (DNS-08, D-05) — never a blank/placeholder
+      // list.
+      if (records.length === 0) {
+        setState((prev) => ({
+          ...prev,
+          lookup: {
+            status: "empty-noerror",
+            domain,
+            recordType: type,
+            lastValidResult: lastValidResultFrom(prev.lookup),
+          },
+        }));
+        syncUrlToLookup(domain, type);
+        return;
+      }
+
       const result: DnsSuccessResult = {
         domain,
         recordType: type,
@@ -261,16 +490,14 @@ export function DnsTool() {
     } catch (err) {
       if (controller.signal.aborted) return; // cancellation, not a failure (Pitfall 2)
       if (seq !== requestSeqRef.current) return;
-      // Minimal generic failure fallback for this plan — the full 5-state
-      // QUAL-08 classification (rate-limited vs. resolver-unavailable vs.
-      // nxdomain vs. empty-noerror) ships in 04-02.
-      void err;
+      // Full 5-state QUAL-08 classification (D-04/D-06, Pitfall 6):
+      // RateLimitError -> rate-limited; every other genuine failure
+      // (ResolverFailureError, raw network error, timeout) ->
+      // resolver-unavailable. The two are never collapsed into one generic
+      // branch (T-04-06).
       setState((prev) => ({
         ...prev,
-        lookup: {
-          status: "resolver-unavailable",
-          lastValidResult: lastValidResultFrom(prev.lookup),
-        },
+        lookup: classifyError(err, lastValidResultFrom(prev.lookup)),
       }));
     }
   }
@@ -400,6 +627,14 @@ export function DnsTool() {
     runLookupImmediate(state.rawDomain, state.recordType);
   }
 
+  /** The rate-limited/resolver-unavailable cards' own inline "Try again"
+   * button (D-06) — re-runs the current domain+type lookup immediately,
+   * same as Refresh, but reachable directly inside the error card itself
+   * with no need to hunt for the general Refresh control. */
+  function handleTryAgain() {
+    runLookupImmediate(state.rawDomain, state.recordType);
+  }
+
   const activeResult = lastValidResultFrom(state.lookup);
   const isLoading = state.lookup.status === "loading";
   const invalidMessage =
@@ -430,13 +665,17 @@ export function DnsTool() {
             aria-describedby={invalidMessage ? "dns-validation-note" : undefined}
           />
           {invalidMessage && (
-            <span
+            <div
               id="dns-validation-note"
-              data-testid="dns-validation-note"
-              className="text-[14px] leading-[1.4] font-normal text-muted-foreground"
+              data-testid="dns-state-invalid"
+              className="flex items-center gap-2 text-[14px] leading-[1.4] font-normal text-muted-foreground"
             >
-              {invalidMessage}
-            </span>
+              <TriangleAlert
+                aria-hidden="true"
+                className="size-4 shrink-0 text-muted-foreground"
+              />
+              <span>{invalidMessage}</span>
+            </div>
           )}
         </div>
 
@@ -485,11 +724,25 @@ export function DnsTool() {
         </button>
       </div>
 
-      {!activeResult && isLoading ? (
+      {state.lookup.status === "nxdomain" ? (
+        <NxdomainCard domain={state.lookup.domain} />
+      ) : state.lookup.status === "empty-noerror" ? (
+        <EmptyNoErrorCard
+          domain={state.lookup.domain}
+          recordType={state.lookup.recordType}
+        />
+      ) : state.lookup.status === "rate-limited" ? (
+        <RateLimitedCard onTryAgain={handleTryAgain} />
+      ) : state.lookup.status === "resolver-unavailable" ? (
+        <ResolverUnavailableCard onTryAgain={handleTryAgain} />
+      ) : !activeResult && isLoading ? (
         <DnsResultSkeleton />
       ) : !activeResult ? (
-        // Minimal generic failure fallback (full 5-state matrix in 04-02):
-        // only reachable if the very first lookup itself fails.
+        // Defensive-only fallback: no last-valid result exists and the
+        // current state isn't one of the 5 named QUAL-08 states or loading
+        // — unreachable in practice post-D-10 (the demo domain always
+        // resolves to one of the classified states above), kept only as a
+        // safety net so the panel is never silently blank.
         <div
           data-testid="dns-generic-error"
           className="flex flex-col gap-2 rounded-md border border-border bg-secondary px-4 py-4"
@@ -533,6 +786,7 @@ export function DnsTool() {
                 key={`${index}-${record.name}-${record.value}`}
                 index={index}
                 record={record}
+                recordType={activeResult.recordType}
               />
             ))}
           </div>
