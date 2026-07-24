@@ -50,7 +50,17 @@ async function queryAndClassify(
   if (response.status === 429) throw new RateLimitError();
   if (!response.ok) throw new ResolverFailureError(response.status);
 
-  const body = (await response.json()) as DohResponse;
+  // WR-02: a 2xx response with a malformed/non-JSON body (e.g. an
+  // intermittent CDN error page or truncated response) must also be
+  // classified into `ResolverFailureError` — never a raw `SyntaxError` —
+  // so every caller can keep relying on the two-typed-error contract this
+  // module documents above.
+  let body: DohResponse;
+  try {
+    body = (await response.json()) as DohResponse;
+  } catch {
+    throw new ResolverFailureError(response.status);
+  }
   // Assumption A1: SERVFAIL is a genuine resolver failure, not a legitimate
   // negative answer — trigger fallback rather than rendering it directly.
   if (body.Status === 2) throw new ResolverFailureError(response.status);

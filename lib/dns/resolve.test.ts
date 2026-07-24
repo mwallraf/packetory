@@ -135,6 +135,44 @@ describe("resolveWithFallback", () => {
     ).rejects.toBeInstanceOf(ResolverFailureError);
   });
 
+  it("falls back to Google when Cloudflare returns a 2xx response with a malformed JSON body (WR-02)", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response("<html>not json</html>", {
+          status: 200,
+          headers: { "content-type": "text/html" },
+        })
+      )
+      .mockResolvedValueOnce(jsonResponse(200, { Status: 0, Answer: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const controller = new AbortController();
+    const result = await resolveWithFallback(
+      "cloudflare.com",
+      "A",
+      controller.signal
+    );
+
+    expect(result.resolverUsed).toBe("fallback");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws ResolverFailureError when both resolvers return a 2xx response with a malformed JSON body (WR-02)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("<html>not json</html>", {
+        status: 200,
+        headers: { "content-type": "text/html" },
+      })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const controller = new AbortController();
+    await expect(
+      resolveWithFallback("cloudflare.com", "A", controller.signal)
+    ).rejects.toBeInstanceOf(ResolverFailureError);
+  });
+
   it("re-throws without attempting a fallback when the signal is already aborted", async () => {
     const fetchMock = vi.fn().mockRejectedValue(
       new DOMException("Aborted", "AbortError")
