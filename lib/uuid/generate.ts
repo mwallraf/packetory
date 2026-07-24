@@ -27,7 +27,13 @@ export function generateBatch({
   version,
   count,
 }: GenerateBatchOptions): string[] {
-  const clampedCount = Math.min(100, Math.max(1, Math.trunc(count)));
+  // `NaN` must be normalized before clamping: `Math.trunc(NaN)`,
+  // `Math.max`/`Math.min` all propagate `NaN`, and `Array.from({ length:
+  // NaN }, ...)` coerces the length to 0 (`ToLength(NaN) === 0`), silently
+  // returning `[]` and breaking this function's "always non-empty" total
+  // contract (WR-01).
+  const safeCount = Number.isFinite(count) ? count : 1;
+  const clampedCount = Math.min(100, Math.max(1, Math.trunc(safeCount)));
   const generate = version === "v7" ? uuidv7 : uuidv4;
   return Array.from({ length: clampedCount }, () => generate());
 }
