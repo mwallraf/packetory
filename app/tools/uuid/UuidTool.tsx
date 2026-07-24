@@ -175,7 +175,12 @@ export function UuidTool() {
     const a = document.createElement("a");
     a.href = url;
     a.download = meta.filename;
+    // WR-04: append before clicking — some browsers (notably
+    // WebKit/Safari) don't reliably activate a download anchor that was
+    // never attached to the DOM.
+    document.body.appendChild(a);
     a.click();
+    a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 0); // Pitfall 3 cleanup
   }
 
