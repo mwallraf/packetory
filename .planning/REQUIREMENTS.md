@@ -37,16 +37,16 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### DNS (DNS Lookup)
 
-- [ ] **DNS-01**: Page resolves a preselected demonstration domain on load
-- [ ] **DNS-02**: Pasted domain input resolves immediately
-- [ ] **DNS-03**: Typed input resolves after a ~600–800ms debounce; pressing Enter resolves immediately
-- [ ] **DNS-04**: Outdated in-flight requests are cancelled via `AbortController` so stale results never overwrite newer ones
-- [ ] **DNS-05**: User can trigger an explicit refresh
-- [ ] **DNS-06**: Supports A, AAAA, MX, TXT, NS, and CNAME record types
-- [ ] **DNS-07**: Results display record values, TTL, resolver used, and lookup duration
+- [x] **DNS-01**: Page resolves a preselected demonstration domain on load
+- [x] **DNS-02**: Pasted domain input resolves immediately
+- [x] **DNS-03**: Typed input resolves after a ~600–800ms debounce; pressing Enter resolves immediately
+- [x] **DNS-04**: Outdated in-flight requests are cancelled via `AbortController` so stale results never overwrite newer ones
+- [x] **DNS-05**: User can trigger an explicit refresh
+- [x] **DNS-06**: Supports A, AAAA, MX, TXT, NS, and CNAME record types
+- [x] **DNS-07**: Results display record values, TTL, resolver used, and lookup duration
 - [ ] **DNS-08**: NXDOMAIN and empty-result states are distinguished and shown clearly
-- [ ] **DNS-09**: Lookups use DNS-over-HTTPS with a primary resolver and an explicit fallback, never silently switching when results could differ
-- [ ] **DNS-10**: Current domain + record-type state is reflected in the URL and can be bookmarked/shared (e.g. `/tools/dns?name=&type=`)
+- [x] **DNS-09**: Lookups use DNS-over-HTTPS with a primary resolver and an explicit fallback, never silently switching when results could differ
+- [x] **DNS-10**: Current domain + record-type state is reflected in the URL and can be bookmarked/shared (e.g. `/tools/dns?name=&type=`)
 
 ### MAC (MAC Address Inspector)
 
@@ -153,16 +153,16 @@ Populated during roadmap creation (`/gsd-new-project` → roadmap step).
 | SUBNET-05 | Phase 3 | Complete |
 | SUBNET-06 | Phase 3 | Complete |
 | SUBNET-07 | Phase 3 | Complete |
-| DNS-01 | Phase 4 | Pending |
-| DNS-02 | Phase 4 | Pending |
-| DNS-03 | Phase 4 | Pending |
-| DNS-04 | Phase 4 | Pending |
-| DNS-05 | Phase 4 | Pending |
-| DNS-06 | Phase 4 | Pending |
-| DNS-07 | Phase 4 | Pending |
+| DNS-01 | Phase 4 | Complete |
+| DNS-02 | Phase 4 | Complete |
+| DNS-03 | Phase 4 | Complete |
+| DNS-04 | Phase 4 | Complete |
+| DNS-05 | Phase 4 | Complete |
+| DNS-06 | Phase 4 | Complete |
+| DNS-07 | Phase 4 | Complete |
 | DNS-08 | Phase 4 | Pending |
-| DNS-09 | Phase 4 | Pending |
-| DNS-10 | Phase 4 | Pending |
+| DNS-09 | Phase 4 | Complete |
+| DNS-10 | Phase 4 | Complete |
 | QUAL-08 | Phase 4 | Pending |
 | MAC-01 | Phase 5 | Pending |
 | MAC-02 | Phase 5 | Pending |

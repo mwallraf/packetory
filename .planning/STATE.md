@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 4
-current_phase_name: DNS Lookup
-status: "Phase 03 shipped — PR #11"
-stopped_at: Phase 4 UI-SPEC approved
-last_updated: "2026-07-24T15:58:28.703Z"
+current_phase: 04
+current_phase_name: dns-lookup
+status: executing
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-07-24T16:18:43.954Z"
 last_activity: 2026-07-24
-last_activity_desc: Phase 04 planning complete
+last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 4
   completed_phases: 3
-  total_plans: 14
-  completed_plans: 14
+  total_plans: 17
+  completed_plans: 15
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-24)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Phase 4 — DNS Lookup
+**Current focus:** Phase 04 — dns-lookup
 
 ## Current Position
 
-Phase: 4 — DNS Lookup
-Plan: Not started
-Status: Phase 03 shipped — PR #11
-Last activity: 2026-07-24 — Phase 04 planning complete
+Phase: 04 (dns-lookup) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-07-24 — Phase 04 execution started
 
-Progress: [██████████] 100%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -74,6 +74,7 @@ Progress: [██████████] 100%
 | Phase 03 P05 | 20min | 3 tasks | 3 files |
 | Phase 03 P03 | 15min | 3 tasks | 5 files |
 | Phase 03 P04 | 10min | 3 tasks | 5 files |
+| Phase 04 P01 | 17min | 3 tasks | 18 files |
 
 ## Accumulated Context
 
@@ -129,6 +130,9 @@ Recent decisions affecting current work:
 - [Phase 03]: Security review (gsd-secure-phase) verified 17/17 threats closed against actual implementation (XSS via JSX-only rendering, ReDoS-free bounded validation, D-01 analytics exclusion, BigInt precision, bounded subdivision list) plus 3 accepted no-new-dependency risks; ASVS L1 short-circuit applied (threats_open:0, plan-time register). SECURITY.md sign-off recorded 2026-07-24.
 - [Phase 03]: api-coverage gate (ai-integration capability) false-fired on "History API"/"searchParams" keyword matches — no external API integration exists in this phase. Resolved with 03-COVERAGE.md documenting the two OPT-OUTs (searchParams prop, third-party services) and one INTEGRATE (browser History API, not a service).
 - [Phase 03]: UAT (320px field-value wrapping, reverse-DNS non-aligned-prefix display convention) passed with zero issues 2026-07-24 — phase fully verified and transitioned to Phase 4.
+- [Phase ?]: [Phase 04] Plan 01: lib/dns/resolve.ts's resolveWithFallback falls back to Google only on genuine failure (network error, non-2xx, 429, timeout, or Status-2 SERVFAIL per Assumption A1) -- never on a legitimate NXDOMAIN/empty-NOERROR answer
+- [Phase ?]: [Phase 04] Plan 01: ?name=&type= URL state syncs only on a committed lookup (debounce fires or an immediate trigger runs), never on every keystroke (Assumption A2) -- differs from Subnet's per-keystroke sync since DNS lookups are async
+- [Phase ?]: [Phase 04] Plan 01: flipping tools/registry.ts dns to status:active broke 4 pre-existing tests hard-coding dns:'planned' (registry.test.ts, sitemap.test.ts, home.spec.ts, navigation.spec.ts); fixed in place, same class of break as Phase 2's uuid flip
 
 ### Pending Todos
 
@@ -149,6 +153,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-24T15:37:24.954Z
-Stopped at: Phase 4 UI-SPEC approved
-Resume file: .planning/phases/04-dns-lookup/04-UI-SPEC.md
+Last session: 2026-07-24T16:18:43.945Z
+Stopped at: Completed 04-01-PLAN.md
+Resume file: None

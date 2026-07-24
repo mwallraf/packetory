@@ -133,11 +133,11 @@ Plans:
   4. NXDOMAIN, empty-NOERROR, invalid-input, rate-limited, and resolver-unavailable states each render a distinct, clearly worded message, and a slower earlier response can never overwrite a newer result on screen (verified under simulated out-of-order resolution).
   5. The current domain and record-type state is reflected in the URL and can be bookmarked/shared.
 
-**Plans**: 3 plans
+**Plans**: 1/3 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 04-01-PLAN.md — Walking skeleton: demo domain (cloudflare.com/A) auto-resolves end-to-end over DoH with primary→fallback, all 6 record types, debounce/paste/Enter/refresh, AbortController race-safety, resolver badge + duration, per-record copy, `?name=&type=` URL state, registry flip (wave 1)
+- [x] 04-01-PLAN.md — Walking skeleton: demo domain (cloudflare.com/A) auto-resolves end-to-end over DoH with primary→fallback, all 6 record types, debounce/paste/Enter/refresh, AbortController race-safety, resolver badge + duration, per-record copy, `?name=&type=` URL state, registry flip (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -173,5 +173,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Shared Shell + Registry | 5/5 | Complete    | 2026-07-23 |
 | 2. UUID Generator | 4/4 | Complete    | 2026-07-24 |
 | 3. IP Subnet Calculator | 5/5 | Complete    | 2026-07-24 |
-| 4. DNS Lookup | 0/3 | Not started | - |
+| 4. DNS Lookup | 1/3 | In Progress|  |
 | 5. MAC Address Inspector | 0/TBD | Not started | - |
