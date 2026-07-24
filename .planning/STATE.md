@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 03
 current_phase_name: ip-subnet-calculator
 status: executing
-stopped_at: Completed 03-02-PLAN.md
-last_updated: "2026-07-24T13:08:58.384Z"
+stopped_at: Completed 03-05-PLAN.md
+last_updated: "2026-07-24T13:17:09.593Z"
 last_activity: 2026-07-24
 last_activity_desc: Phase 03 execution started
 progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 14
-  completed_plans: 11
+  completed_plans: 12
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-24)
 ## Current Position
 
 Phase: 03 (ip-subnet-calculator) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-07-24 — Phase 03 execution started
 
-Progress: [████████░░] 79%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [████████░░] 79%
 | Phase 02 P04 | 3min | 3 tasks | 4 files |
 | Phase 03 P01 | 20min | 3 tasks | 15 files |
 | Phase 03 P02 | 7min | 3 tasks | 6 files |
+| Phase 03 P05 | 20min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -115,6 +116,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 03] Plan 02: The plan's illustrative /52 IPv6 reverse-DNS example was internally inconsistent with its own aligned formula (52 % 4 === 0, so /52 IS aligned) — used /54 instead in reverse-dns.test.ts (same floor(prefix/4)=13 depth, genuinely non-aligned)
 - [Phase ?]: [Phase 03] Plan 02: ipv4ReverseZone/ipv6ReverseZone assume an already-network-masked address (no masking inside reverse-dns.ts); SubnetTool.tsx reparses computeIpv4's dotted-decimal network string via the existing parseCidr rather than duplicating ipv4.ts's mask math
 - [Phase ?]: [Phase 03] Plan 02: doc-comments reworded from 'No React/Next import' to 'Imports no UI framework code' to avoid tripping the plan's own literal grep -Eqc "React|next/" acceptance-criteria gate — same class of issue as 03-01
+- [Phase ?]: [Phase 03] Plan 05: IPv6 worked-example field values in faq-data.ts are literal hand-verified constants (not a live lib/subnet/ipv6.ts import, which ships later in 03-03) — verified live via npx tsx against existing format.ts/reverse-dns.ts functions plus direct BigInt math.
+- [Phase ?]: [Phase 03] Plan 05: IPv4 worked-example field values ARE the real output of already-shipped lib/subnet/ipv4.ts + reverse-dns.ts, hardcoded as literal constants matching the UUID page's established sample-value pattern rather than computed at render time.
 
 ### Pending Todos
 
@@ -135,6 +138,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-24T13:08:58.375Z
-Stopped at: Completed 03-02-PLAN.md
+Last session: 2026-07-24T13:17:09.585Z
+Stopped at: Completed 03-05-PLAN.md
 Resume file: None
