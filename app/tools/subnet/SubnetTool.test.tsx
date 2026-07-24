@@ -197,4 +197,50 @@ describe("SubnetTool", () => {
       screen.getByTestId("subnet-field-reverse-dns-note").textContent
     ).toContain("doesn't align exactly");
   });
+
+  it("shows the three standard subdivision pills for a /32 IPv6 CIDR (SUBNET-05)", () => {
+    setUrl("?cidr=2001%3Adb8%3A%3A%2F32");
+    render(<SubnetTool />);
+
+    expect(screen.getByTestId("subnet-subdivision-section")).toBeTruthy();
+    const pill48 = screen.getByTestId("subnet-subdivision-48");
+    const pill56 = screen.getByTestId("subnet-subdivision-56");
+    const pill64 = screen.getByTestId("subnet-subdivision-64");
+    expect(pill48.textContent).toBe("/48");
+    expect(pill56.textContent).toBe("/56");
+    expect(pill64.textContent).toBe("/64");
+    expect(pill48.getAttribute("aria-label")).toBe("Split into /48");
+  });
+
+  it("clicking a subdivision pill replaces the CIDR and calls the URL-write path with the first sub-block (D-06)", () => {
+    setUrl("?cidr=2001%3Adb8%3A%3A%2F32");
+    render(<SubnetTool />);
+    const replaceStateSpy = vi.spyOn(window.history, "replaceState");
+
+    fireEvent.click(screen.getByTestId("subnet-subdivision-64"));
+
+    const input = screen.getByTestId("subnet-cidr-input") as HTMLInputElement;
+    expect(input.value).toBe("2001:db8::/64");
+    expect(
+      screen.getByTestId("subnet-field-normalized-prefix-value").textContent
+    ).toBe("2001:db8::/64");
+    expect(replaceStateSpy).toHaveBeenCalled();
+    const lastCall = replaceStateSpy.mock.calls.at(-1);
+    expect(String(lastCall?.[2])).toContain(
+      "cidr=2001%3Adb8%3A%3A%2F64"
+    );
+
+    replaceStateSpy.mockRestore();
+  });
+
+  it("shows no subdivision section for a /64 IPv6 CIDR (already the universal building block)", () => {
+    setUrl("?cidr=2001%3Adb8%3A%3A%2F64");
+    render(<SubnetTool />);
+    expect(screen.queryByTestId("subnet-subdivision-section")).toBeNull();
+  });
+
+  it("shows no subdivision section for an IPv4 CIDR (IPv6-only feature)", () => {
+    render(<SubnetTool />);
+    expect(screen.queryByTestId("subnet-subdivision-section")).toBeNull();
+  });
 });

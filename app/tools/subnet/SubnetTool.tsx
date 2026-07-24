@@ -8,6 +8,7 @@ import { isParseError, parseCidr, type ParsedCidr } from "@/lib/subnet/parse";
 import { computeIpv4, type Ipv4Result } from "@/lib/subnet/ipv4";
 import { computeIpv6, type Ipv6Result } from "@/lib/subnet/ipv6";
 import { ipv4ReverseZone, ipv6ReverseZone } from "@/lib/subnet/reverse-dns";
+import { subdivisionOptions } from "@/lib/subnet/subdivide";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -268,6 +269,12 @@ export function SubnetTool() {
     ? ipv6ReverseZone(networkAddress, ipv6Result!.prefixLength)
     : ipv4ReverseZone(networkAddress, ipv4Result!.prefixLength);
 
+  // SUBNET-05 subdivision suggestions (D-05) — IPv6-only, always a bounded
+  // list ([] for IPv4 or a prefix already >= /64, enforced by
+  // subdivisionOptions itself). Computed from `displayParsed` (the source
+  // `ParsedCidr`), not `ipv6Result`, since it only needs family + prefix.
+  const subdivideOptions = isIpv6 ? subdivisionOptions(displayParsed) : [];
+
   const inputHasError = !isCurrentValid;
   const validationMessage = inputHasError
     ? INVALID_CIDR_MESSAGE
@@ -304,6 +311,20 @@ export function SubnetTool() {
       urlFallbackNote: null,
     }));
     if (valid) syncCidrToUrl(value);
+  }
+
+  /**
+   * A subdivision pill click (SUBNET-05, D-05/D-06): builds the first
+   * sub-block CIDR at `prefix` from the parent's already-masked network
+   * address (unchanged) plus the new, longer prefix, then routes it through
+   * the SAME `handleCidrChange` a typed edit uses — reusing `setCidr` +
+   * `syncCidrToUrl` (the sole raw History-API write site in this module)
+   * with no second URL/history mechanism and no breadcrumb/parent-history
+   * state (D-06).
+   */
+  function handleSubdivide(prefix: number) {
+    if (!ipv6Result) return;
+    handleCidrChange(`${ipv6Result.compressed}/${prefix}`);
   }
 
   return (
@@ -448,12 +469,44 @@ export function SubnetTool() {
             {boundaryNote}
           </p>
         )}
-        {/* Placeholder Separator ahead of the IPv6 "Subdivide this block"
-            section (D-05/D-06, UI-SPEC page structure step 5), which ships
-            in 03-04 — reserved here so that plan doesn't need to touch this
-            grid's structural boundary again. IPv4 has no subdivision
-            section (SUBNET-05 is IPv6-only), so nothing renders for it. */}
-        {isIpv6 && <Separator data-testid="subnet-subdivision-separator" />}
+        {/* IPv6-only "Subdivide this block" section (D-05/D-06, UI-SPEC page
+            structure step 5). Omitted entirely (not rendered as an empty
+            box) whenever `subdivideOptions` is empty — a prefix already at
+            or narrower than /64, or an IPv4 family. The Separator is part
+            of this same section boundary, so it's gated identically: no
+            dangling divider with nothing below it. */}
+        {isIpv6 && subdivideOptions.length > 0 && (
+          <>
+            <Separator data-testid="subnet-subdivision-separator" />
+            <div
+              data-testid="subnet-subdivision-section"
+              className="flex flex-col gap-2"
+            >
+              <span className="text-[14px] leading-[1.4] font-semibold text-foreground">
+                Subdivide this block
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {subdivideOptions.map((prefix) => (
+                  <button
+                    key={prefix}
+                    type="button"
+                    onClick={() => handleSubdivide(prefix)}
+                    aria-label={`Split into /${prefix}`}
+                    data-testid={`subnet-subdivision-${prefix}`}
+                    // 44x44 minimum hit area via padding; accent-tinted per
+                    // UI-SPEC's reserved list — mirrors UuidTool's
+                    // Regenerate pill styling (raw button, not
+                    // components/ui/button.tsx, per UI-SPEC's stated
+                    // precedent).
+                    className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center rounded-full px-3 font-mono text-[14px] leading-[1.4] font-semibold text-primary outline-none transition-colors hover:bg-muted hover:text-primary focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                  >
+                    /{prefix}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
