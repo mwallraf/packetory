@@ -6,6 +6,7 @@ import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
 import { useKeyboardShortcut } from "@/lib/hooks/useKeyboardShortcut";
 import { isParseError, parseCidr, type ParsedCidr } from "@/lib/subnet/parse";
 import { computeIpv4, type Ipv4Result } from "@/lib/subnet/ipv4";
+import { ipv4ReverseZone } from "@/lib/subnet/reverse-dns";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,14 @@ function ipv6NotYetSupportedMessage(rawCidr: string): string {
 
 function sharedLinkInvalidMessage(rawParam: string): string {
   return `The shared link's CIDR ("${rawParam}") isn't valid — showing the default example instead.`;
+}
+
+/** UI-SPEC Copywriting Contract's reverse-DNS non-aligned-prefix note —
+ * an explicit PLANNER ASSUMPTION (RESEARCH.md Open Question 1 / Assumption
+ * A1, 03-02-PLAN.md's "Surfaced assumption"), not a locked user decision.
+ * Shown only when `ipv4ReverseZone`'s `aligned` flag is false. */
+function ipv4ReverseDnsNote(prefixLength: number): string {
+  return `Zone shown to the nearest fully covered octet boundary — /${prefixLength} doesn't align exactly.`;
 }
 
 /** Fixed, deterministic field order (SUBNET-06 ordering edge) — equal
@@ -97,10 +106,15 @@ function CopyableField({
   fieldKey,
   label,
   value,
+  note,
 }: {
   fieldKey: string;
   label: string;
   value: string;
+  /** Optional short explanatory note (D-04-style — a real value plus a
+   * note, never N/A/hidden). Rendered `text-muted-foreground`, never
+   * accent — informational, not actionable (UI-SPEC Color). */
+  note?: string | null;
 }) {
   const { copy, copied, error, reset } = useCopyToClipboard();
 
@@ -155,6 +169,14 @@ function CopyableField({
           Couldn&apos;t copy — select the text and copy manually.
         </span>
       )}
+      {note && (
+        <span
+          data-testid={`subnet-field-${fieldKey}-note`}
+          className="text-[14px] leading-[1.4] font-normal text-muted-foreground"
+        >
+          {note}
+        </span>
+      )}
     </div>
   );
 }
@@ -203,6 +225,19 @@ export function SubnetTool() {
   const displayParsed = isCurrentIpv4Valid ? currentParsed : lastValidParsed;
   const result = computeIpv4(displayParsed);
   const heroValue = `${result.network}/${result.prefixLength}`;
+
+  // Reverse-DNS zone (SUBNET-04's 8th IPv4 field) is derived from the
+  // NETWORK address, not the raw parsed address — `result.network` is
+  // already the correctly-masked network in dotted-decimal form, so it's
+  // reparsed back to a bigint via the same tested `parseCidr` rather than
+  // duplicating `ipv4.ts`'s masking math here. The `isParseError` branch is
+  // defensive-only (unreachable in practice: `computeIpv4` always produces
+  // a valid dotted-decimal network string).
+  const networkParsed = parseCidr(`${result.network}/32`);
+  const networkAddress = isParseError(networkParsed)
+    ? displayParsed.address
+    : networkParsed.address;
+  const reverseDns = ipv4ReverseZone(networkAddress, result.prefixLength);
 
   const inputHasError = !isCurrentIpv4Valid;
   const validationMessage = inputHasError
@@ -341,6 +376,12 @@ export function SubnetTool() {
               value={field.getValue(result)}
             />
           ))}
+          <CopyableField
+            fieldKey="reverse-dns"
+            label="Reverse DNS zone"
+            value={reverseDns.zone}
+            note={reverseDns.aligned ? null : ipv4ReverseDnsNote(result.prefixLength)}
+          />
         </div>
         {result.boundaryNote && (
           <p

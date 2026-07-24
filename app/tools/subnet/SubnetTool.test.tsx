@@ -13,6 +13,7 @@ const IPV4_FIELD_KEYS = [
   "mask",
   "wildcard",
   "binary",
+  "reverse-dns",
 ];
 
 /** Resets the URL to a bare path (no ?cidr= override) before each test so
@@ -100,5 +101,27 @@ describe("SubnetTool", () => {
     expect(screen.getByTestId("subnet-field-network-value").textContent).toBe(
       "10.20.0.0"
     );
+  });
+
+  it("shows the reverse-DNS zone with no note for an octet-aligned prefix (SUBNET-04, D-04 shape)", () => {
+    render(<SubnetTool />);
+    expect(
+      screen.getByTestId("subnet-field-reverse-dns-value").textContent
+    ).toBe("1.168.192.in-addr.arpa.");
+    expect(
+      screen.queryByTestId("subnet-field-reverse-dns-note")
+    ).toBeNull();
+    expect(screen.getByTestId("subnet-copy-reverse-dns")).toBeTruthy();
+  });
+
+  it("shows the reverse-DNS zone plus the truncation note for a non-octet-aligned prefix (Pitfall 2 / Assumption A1)", () => {
+    setUrl("?cidr=10.20.0.0%2F20");
+    render(<SubnetTool />);
+    expect(
+      screen.getByTestId("subnet-field-reverse-dns-value").textContent
+    ).toBe("20.10.in-addr.arpa.");
+    expect(
+      screen.getByTestId("subnet-field-reverse-dns-note").textContent
+    ).toContain("doesn't align exactly");
   });
 });
