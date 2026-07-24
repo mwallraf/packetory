@@ -102,7 +102,12 @@ export function UuidTool() {
   useKeyboardShortcut({
     slash: () => countInputRef.current?.focus(),
     enter: () => regenerate(),
-    copy: () => copy(primaryValue),
+    // WR-03: the Ctrl/Cmd+C shortcut always targets `displayValues[0]`, but
+    // its "Copied!" confirmation (`uuid-hero`/`uuid-copy-status`) only
+    // renders when `state.count === 1`. In batch view there's no visible or
+    // screen-reader-announced feedback, so disable the shortcut entirely
+    // rather than silently overwriting the clipboard with no confirmation.
+    copy: state.count === 1 ? () => copy(primaryValue) : undefined,
   });
 
   function regenerate() {
