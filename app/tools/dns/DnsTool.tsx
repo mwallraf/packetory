@@ -276,7 +276,11 @@ function NxdomainCard({ domain }: { domain: string }) {
         </span>
       </div>
       <span className="text-[16px] leading-[1.5] font-normal text-muted-foreground">
-        <span className="font-mono">{domain}</span> doesn&apos;t exist.
+        {/* Explicit {" "} — a bare space before a following text line gets
+            trimmed by JSX's per-line whitespace rules otherwise, silently
+            concatenating the domain and "doesn't exist." with no space
+            (found while writing the NXDOMAIN E2E assertion). */}
+        <span className="font-mono">{domain}</span>{" "}doesn&apos;t exist.
       </span>
     </div>
   );
@@ -306,7 +310,7 @@ function EmptyNoErrorCard({
         </span>
       </div>
       <span className="text-[16px] leading-[1.5] font-normal text-muted-foreground">
-        <span className="font-mono">{domain}</span> exists but has none of
+        <span className="font-mono">{domain}</span>{" "}exists but has none of
         this type.
       </span>
     </div>

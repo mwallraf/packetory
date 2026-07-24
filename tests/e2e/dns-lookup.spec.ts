@@ -91,3 +91,264 @@ test.describe("DNS Lookup walking skeleton (DNS-01, DNS-06, DNS-07, DNS-09)", ()
     expect(clipboardText).toBe("104.16.132.229");
   });
 });
+
+/**
+ * QUAL-08's 5-state error matrix (D-04/D-05/D-06) + DNS-04's race-safety
+ * guarantee, end-to-end. Each `test.describe` below overrides the default
+ * `beforeEach` mocks (Playwright's most-recently-registered `page.route`
+ * handler for an overlapping pattern runs first) with the specific scenario
+ * it needs.
+ */
+test.describe("DNS Lookup error states (QUAL-08, DNS-08, D-05, D-06)", () => {
+  test("NXDOMAIN renders its own card and is never conflated with empty-NOERROR", async ({
+    page,
+  }) => {
+    await page.route("**/cloudflare-dns.com/**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/dns-json",
+        body: JSON.stringify({
+          Status: 3,
+          Question: [{ name: "does-not-exist.invalid", type: 1 }],
+        }),
+      })
+    );
+
+    await page.goto("/tools/dns?name=does-not-exist.invalid&type=A");
+
+    await expect(page.getByTestId("dns-state-nxdomain")).toBeVisible();
+    await expect(page.getByTestId("dns-state-nxdomain")).toContainText(
+      "No such domain."
+    );
+    await expect(page.getByTestId("dns-state-nxdomain")).toContainText(
+      "does-not-exist.invalid doesn't exist."
+    );
+    await expect(page.getByTestId("dns-state-empty-noerror")).toHaveCount(0);
+  });
+
+  test("empty-NOERROR renders its own card and is never conflated with NXDOMAIN", async ({
+    page,
+  }) => {
+    await page.route("**/cloudflare-dns.com/**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/dns-json",
+        body: JSON.stringify({
+          Status: 0,
+          Question: [{ name: "cloudflare.com", type: 16 }],
+          Answer: [],
+        }),
+      })
+    );
+
+    await page.goto("/tools/dns?name=cloudflare.com&type=TXT");
+
+    await expect(page.getByTestId("dns-state-empty-noerror")).toBeVisible();
+    await expect(page.getByTestId("dns-state-empty-noerror")).toContainText(
+      "No TXT records."
+    );
+    await expect(page.getByTestId("dns-state-empty-noerror")).toContainText(
+      "cloudflare.com exists but has none of this type."
+    );
+    await expect(page.getByTestId("dns-state-nxdomain")).toHaveCount(0);
+  });
+
+  test("resolver-unavailable renders with a working inline Try-again button (D-06)", async ({
+    page,
+  }) => {
+    await page.route("**/cloudflare-dns.com/**", (route) =>
+      route.fulfill({ status: 503, contentType: "text/plain", body: "down" })
+    );
+    await page.route("**/dns.google/**", (route) =>
+      route.fulfill({ status: 503, contentType: "text/plain", body: "down" })
+    );
+
+    await page.goto("/tools/dns");
+
+    await expect(
+      page.getByTestId("dns-state-resolver-unavailable")
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("dns-state-resolver-unavailable")
+    ).toContainText("Resolvers unreachable.");
+
+    // Reconfigure the primary resolver to succeed, then exercise the card's
+    // own Try-again button (D-06) — not the page's general Refresh control.
+    await page.route("**/cloudflare-dns.com/**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/dns-json",
+        body: JSON.stringify(CLOUDFLARE_A_RESPONSE),
+      })
+    );
+
+    await page.getByTestId("dns-try-again").click();
+
+    await expect(page.getByTestId("dns-record-list")).toBeVisible();
+    await expect(page.getByTestId("dns-record-value").first()).toHaveText(
+      "104.16.132.229"
+    );
+  });
+});
+
+test.describe("DNS Lookup bookmarkable URL state (DNS-10)", () => {
+  test("loading a ?name=&type= URL in a fresh context reproduces the exact lookup (MX)", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+
+    await page.route("**/cloudflare-dns.com/**", (route) => {
+      const url = new URL(route.request().url());
+      expect(url.searchParams.get("name")).toBe("example.com");
+      expect(url.searchParams.get("type")).toBe("MX");
+      return route.fulfill({
+        status: 200,
+        contentType: "application/dns-json",
+        body: JSON.stringify({
+          Status: 0,
+          Question: [{ name: "example.com", type: 15 }],
+          Answer: [
+            {
+              name: "example.com",
+              type: 15,
+              TTL: 300,
+              data: "10 mail.example.com.",
+            },
+          ],
+        }),
+      });
+    });
+
+    await page.goto("/tools/dns?name=example.com&type=MX");
+
+    await expect(page.getByTestId("dns-domain-input")).toHaveValue(
+      "example.com"
+    );
+    await expect(page.getByTestId("dns-record-type-MX")).toHaveAttribute(
+      "data-state",
+      "on"
+    );
+    await expect(page.getByTestId("dns-mx-priority")).toContainText("10");
+    await expect(page.getByTestId("dns-mx-exchange")).toContainText(
+      "mail.example.com"
+    );
+
+    await context.close();
+  });
+});
+
+test.describe("DNS Lookup race safety (DNS-04)", () => {
+  test("the final-typed domain's result always wins, even when an earlier, slower request resolves later", async ({
+    page,
+  }) => {
+    const SLOW_DOMAIN = "slow-lookup-example.com";
+    const FAST_DOMAIN = "fast-lookup-example.net";
+
+    await page.route("**/cloudflare-dns.com/**", async (route) => {
+      const url = new URL(route.request().url());
+      const name = url.searchParams.get("name");
+
+      if (name === SLOW_DOMAIN) {
+        // Artificial delay — this response arrives AFTER the fast one below,
+        // even though it was requested first (the exact out-of-order
+        // scenario DNS-04 must guard against).
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        return route.fulfill({
+          status: 200,
+          contentType: "application/dns-json",
+          body: JSON.stringify({
+            Status: 0,
+            Answer: [{ name: SLOW_DOMAIN, type: 1, TTL: 300, data: "9.9.9.9" }],
+          }),
+        });
+      }
+      if (name === FAST_DOMAIN) {
+        return route.fulfill({
+          status: 200,
+          contentType: "application/dns-json",
+          body: JSON.stringify({
+            Status: 0,
+            Answer: [
+              { name: FAST_DOMAIN, type: 1, TTL: 300, data: "8.8.4.4" },
+            ],
+          }),
+        });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: "application/dns-json",
+        body: JSON.stringify(CLOUDFLARE_A_RESPONSE),
+      });
+    });
+
+    await page.goto("/tools/dns");
+    await expect(page.getByTestId("dns-record-value").first()).toBeVisible();
+
+    const input = page.getByTestId("dns-domain-input");
+
+    // Both triggers are immediate (Enter bypasses the debounce, DNS-03),
+    // fired close together so the slow request is still in flight when the
+    // fast one starts. A tiny settle gap after each keypress lets React
+    // commit the triggered state update before the next input action, so
+    // both requests are provably in flight (not just the second).
+    await input.fill(SLOW_DOMAIN);
+    await input.press("Enter");
+    await page.waitForTimeout(100);
+    await input.fill(FAST_DOMAIN);
+    await input.press("Enter");
+
+    await expect(page.getByTestId("dns-record-value").first()).toHaveText(
+      "8.8.4.4"
+    );
+    await expect(page.getByTestId("dns-record-value")).toHaveCount(1);
+
+    // Give the slow response time to arrive and confirm it never overwrites
+    // the newer, already-rendered result.
+    await page.waitForTimeout(800);
+    await expect(page.getByTestId("dns-record-value").first()).toHaveText(
+      "8.8.4.4"
+    );
+    await expect(page.getByTestId("dns-record-value")).toHaveCount(1);
+  });
+});
+
+test.describe("DNS Lookup long-value overflow at 320px (backstop)", () => {
+  test("a long TXT record wraps without forcing horizontal page scroll", async ({
+    page,
+  }) => {
+    const LONG_TXT =
+      "v=spf1 include:_spf.example.com include:_spf.google.com include:sendgrid.net include:mailgun.org ip4:203.0.113.0/24 ip4:198.51.100.0/24 -all";
+
+    await page.route("**/cloudflare-dns.com/**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/dns-json",
+        body: JSON.stringify({
+          Status: 0,
+          Question: [{ name: "cloudflare.com", type: 16 }],
+          Answer: [
+            {
+              name: "cloudflare.com",
+              type: 16,
+              TTL: 300,
+              data: `"${LONG_TXT}"`,
+            },
+          ],
+        }),
+      })
+    );
+
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto("/tools/dns?name=cloudflare.com&type=TXT");
+
+    await expect(page.getByTestId("dns-record-value")).toHaveText(LONG_TXT);
+
+    const hasHorizontalScroll = await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth
+    );
+    expect(hasHorizontalScroll).toBe(false);
+  });
+});

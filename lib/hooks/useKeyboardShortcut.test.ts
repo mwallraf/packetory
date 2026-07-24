@@ -85,6 +85,34 @@ describe("useKeyboardShortcut", () => {
     expect(enter).toHaveBeenCalledTimes(1);
   });
 
+  it("fires the enter handler while focus is inside a plain text input (04-02 regression: DNS-03/Subnet Enter must work while typing, since no form wraps these inputs)", () => {
+    const enter = vi.fn();
+    renderHook(() => useKeyboardShortcut({ enter }));
+
+    const input = document.createElement("input");
+    document.body.appendChild(input);
+    input.focus();
+
+    dispatchKeydown({ key: "Enter" }, input);
+    expect(enter).toHaveBeenCalledTimes(1);
+
+    input.remove();
+  });
+
+  it("does NOT fire the enter handler while focus is on a native button (CR-01: avoids double-firing alongside the button's own click)", () => {
+    const enter = vi.fn();
+    renderHook(() => useKeyboardShortcut({ enter }));
+
+    const button = document.createElement("button");
+    document.body.appendChild(button);
+    button.focus();
+
+    dispatchKeydown({ key: "Enter" }, button);
+    expect(enter).not.toHaveBeenCalled();
+
+    button.remove();
+  });
+
   it("removes the keydown listener on unmount (no leaked listeners)", () => {
     const slash = vi.fn();
     const { unmount } = renderHook(() => useKeyboardShortcut({ slash }));
