@@ -318,11 +318,23 @@ test.describe("DNS Lookup race safety (DNS-04)", () => {
     const SLOW_DEBOUNCE_DOMAIN = "slow-debounce-example.com";
     const SECOND_DEBOUNCE_DOMAIN = "second-debounce-example.net";
 
+    // Resolved from inside the route handler the instant the mocked request
+    // for SLOW_DEBOUNCE_DOMAIN is actually dispatched (WR-01 fix). Awaiting
+    // this — rather than a blind `waitForTimeout` guessed from DEBOUNCE_MS —
+    // proves the debounce genuinely fired and the fetch is in flight before
+    // the test proceeds, removing the test's dependence on wall-clock
+    // margins to establish that fact under CI event-loop jitter.
+    let resolveSlowDispatched: () => void;
+    const slowDispatched = new Promise<void>((resolve) => {
+      resolveSlowDispatched = resolve;
+    });
+
     await page.route("**/cloudflare-dns.com/**", async (route) => {
       const url = new URL(route.request().url());
       const name = url.searchParams.get("name");
 
       if (name === SLOW_DEBOUNCE_DOMAIN) {
+        resolveSlowDispatched();
         // Artificial delay — this fetch is still in flight when the user
         // types a different valid domain below (the exact CR-01 sub-case
         // that the invalid-branch-only fix left unguarded).
@@ -372,9 +384,10 @@ test.describe("DNS Lookup race safety (DNS-04)", () => {
     // path, not the Enter/immediate path exercised by the test above.
     await input.fill(SLOW_DEBOUNCE_DOMAIN);
 
-    // The debounce has now fired and dispatched the slow fetch, which is
-    // in flight (it will not fulfill for another ~400ms).
-    await page.waitForTimeout(750);
+    // Wait for confirmation (not a guess) that the debounce fired and the
+    // slow fetch actually dispatched — it will not fulfill for another
+    // ~400ms from this point.
+    await slowDispatched;
 
     // A different valid domain typed while the slow fetch is still in
     // flight. With the Task-1 fix this calls cancelInFlightLookup() —
@@ -383,9 +396,14 @@ test.describe("DNS Lookup race safety (DNS-04)", () => {
     await input.fill(SECOND_DEBOUNCE_DOMAIN);
 
     // This window is past the point at which the slow fetch would have
-    // resolved, but BEFORE the second domain's own debounce (700ms from its
-    // fill above) has had a chance to fire and resolve — on the pre-fix code
-    // the stale 9.9.9.9 would already be rendered here.
+    // resolved (~400ms after its dispatch, confirmed above via
+    // `slowDispatched` rather than assumed), but BEFORE the second domain's
+    // own debounce (700ms from its fill above) has had a chance to fire and
+    // resolve — on the pre-fix code the stale 9.9.9.9 would already be
+    // rendered here. Anchoring the prior wait to the confirmed dispatch
+    // event (instead of a guessed DEBOUNCE_MS-derived margin) removes the
+    // dominant source of CI timing jitter (WR-01), so this fixed offset now
+    // has a reliable ~100-200ms margin on each side.
     await page.waitForTimeout(500);
 
     // A non-retrying instantaneous sample is required here, NOT an
