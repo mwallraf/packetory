@@ -15,11 +15,13 @@
  * The cache is a plain module-level `Map<string, VendorState>` keyed by
  * `ouiHex` (6 hex chars) — session-scoped (cleared on a full page reload),
  * satisfying D-03's "re-editing the host portion of an already-looked-up
- * OUI does not re-hit the API" requirement. Every resolved kind (`found`,
- * `not-found`, `unavailable`) is cached, matching 05-RESEARCH.md's own
- * "Client-side session OUI cache + debounce" code example — an `unavailable`
- * result for a given OUI is not retried automatically within the same
- * session; a fresh page load (a new module instance) resets the cache.
+ * OUI does not re-hit the API" requirement. Only the genuinely stable
+ * `found`/`not-found` outcomes are cached — an `unavailable` result (a
+ * transient network blip, or the route's own upstream timeout) is
+ * deliberately NOT cached (WR-03), so re-editing the host portion back to a
+ * previously-unavailable OUI, or simply re-triggering a lookup, gets a fresh
+ * retry against the route instead of being stuck on a stale failure for the
+ * rest of the session.
  *
  * Only the 6-hex-character OUI is ever sent — `ouiHex` is the caller's
  * responsibility to supply from `classification.ouiHex` (MAC-10 by
@@ -105,7 +107,12 @@ export async function lookupVendor(
     result = { kind: "unavailable" };
   }
 
-  vendorCache.set(ouiHex, result);
+  // Only cache the genuinely stable `found`/`not-found` outcomes — an
+  // `unavailable` result is transient (network blip, upstream timeout) and
+  // must not stick for the rest of the session with no retry path (WR-03).
+  if (result.kind !== "unavailable") {
+    vendorCache.set(ouiHex, result);
+  }
   return result;
 }
 

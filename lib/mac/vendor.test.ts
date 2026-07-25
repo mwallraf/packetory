@@ -76,6 +76,28 @@ describe("lookupVendor", () => {
     ).rejects.toBe(abortError);
   });
 
+  it("retries the fetch on a second call after an 'unavailable' result — unavailable is never cached (WR-03)", async () => {
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ status: "unavailable" }), { status: 200 })
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ status: "ok", found: true, company: "Apple, Inc." }),
+          { status: 200 }
+        )
+      );
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const first = await lookupVendor("FFFFFF");
+    const second = await lookupVendor("FFFFFF");
+
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(first).toEqual({ kind: "unavailable" });
+    expect(second).toEqual({ kind: "found", company: "Apple, Inc." });
+  });
+
   it("does not fetch again for a second call with a cached ouiHex (D-03 session cache)", async () => {
     const fetchSpy = vi.fn().mockResolvedValue(
       new Response(
