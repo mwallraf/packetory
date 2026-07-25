@@ -1,281 +1,167 @@
 ---
 phase: 04-dns-lookup
-reviewed: 2026-07-24T16:54:03Z
+reviewed: 2026-07-25T00:00:00Z
 depth: standard
-files_reviewed: 23
+files_reviewed: 2
 files_reviewed_list:
-  - app/privacy/page.tsx
-  - app/sitemap.test.ts
-  - app/tools/dns/DnsTool.test.tsx
   - app/tools/dns/DnsTool.tsx
-  - app/tools/dns/DnsToolLoader.tsx
-  - app/tools/dns/faq-data.ts
-  - app/tools/dns/page.tsx
-  - lib/dns/parse.test.ts
-  - lib/dns/parse.ts
-  - lib/dns/query.test.ts
-  - lib/dns/query.ts
-  - lib/dns/resolve.test.ts
-  - lib/dns/resolve.ts
-  - lib/dns/types.ts
-  - lib/dns/validate.test.ts
-  - lib/dns/validate.ts
-  - lib/hooks/useKeyboardShortcut.test.ts
-  - lib/hooks/useKeyboardShortcut.ts
   - tests/e2e/dns-lookup.spec.ts
-  - tests/e2e/dns-seo.spec.ts
-  - tests/e2e/home.spec.ts
-  - tests/e2e/navigation.spec.ts
-  - tools/registry.test.ts
-  - tools/registry.ts
 findings:
-  critical: 1
-  warning: 3
+  critical: 0
+  warning: 1
   info: 2
-  total: 6
+  total: 3
 status: issues_found
 ---
 
-# Phase 04: Code Review Report
+# Phase 04: Code Review Report (gap-closure follow-up, plan 04-04)
 
-**Reviewed:** 2026-07-24T16:54:03Z
+**Reviewed:** 2026-07-25T00:00:00Z
 **Depth:** standard
-**Files Reviewed:** 23
-**Status:** issues_found
+**Files Reviewed:** 2
+**Status:** issues_found (no blockers — findings are quality/robustness only)
 
 ## Summary
 
-Reviewed the DNS Lookup vertical slice (validate/query/resolve/parse + client
-island), the 5-state error matrix added in 04-02, the `useKeyboardShortcut`
-Enter-key regression fix, and the SEO/FAQ/privacy additions from 04-03.
+This is a narrow, targeted re-review of the plan 04-04 gap-closure diff
+(commits `c245f34` + `c3be14b`) that closes the previously-flagged incomplete
+CR-01 fix. Prior history: the original CR-01 (found in the full-file review,
+superseded by this document) identified that `handleDomainChange`'s and
+`handleDomainPaste`'s **invalid**-input branches didn't abort an in-flight
+lookup before transitioning state; that was fixed in commits
+a63c8aa/0be5424/84ff288. The verifier for that fix then found it incomplete:
+the **valid**-input branch of `handleDomainChange` also needed to call
+`cancelInFlightLookup()` before scheduling a new debounce, since
+`scheduleDebouncedLookup` only arms a *future* `runLookup` call and does
+nothing to the currently in-flight one. Plan 04-04 adds exactly that call
+plus a new E2E regression test. This review verifies the fix is complete and
+correctly placed, that the new test genuinely proves it, and that nothing new
+was broken.
 
-The primary→fallback DoH resolution logic (`lib/dns/resolve.ts`,
-`lib/dns/query.ts`) is well-classified and its unit/E2E tests correctly cover
-the "one in-flight request races another, started-first-but-resolves-later"
-scenario via immediate (Enter-triggered) lookups. However, the
-`requestSeqRef`/`AbortController` race-safety guarantee that the code and
-tests advertise ("the final-typed domain's result always wins") only actually
-engages when a *new* `runLookup` call is made. Two paths that update UI state
-without calling `runLookup` — typing an invalid domain, and pasting/typing a
-second valid domain while an earlier debounced lookup is still in flight —
-never abort the earlier in-flight request or bump the sequence counter, so a
-late-arriving stale response can silently overwrite a genuinely newer
-`invalid-input` state (or an in-progress edit) with stale results. This is a
-real, reproducible correctness bug in the tool's core race-safety contract
-and is not covered by the current test suite (see CR-01).
+**1. Is the fix correctly placed and complete?** Yes. `git show c245f34`
+confirms a 6-line, single-purpose diff: a comment plus
+`cancelInFlightLookup();` inserted at `DnsTool.tsx:595-599`, immediately
+before the pre-existing `setState(...)` / `scheduleDebouncedLookup(value,
+state.recordType)` call (now at line 601-609). Tracing every path in the
+file that can either transition `lookup` state or schedule a lookup:
 
-The `useKeyboardShortcut.ts` narrowing (native button/role=button/role=radio/
-anchor only) is correctly scoped: both other consumers (`UuidTool.tsx`,
-`SubnetTool.tsx`) use plain text inputs for their Enter handler and Radix
-`ToggleGroupItem`/buttons for everything else that self-activates on Enter,
-so the fix does not regress either tool. No security issues (hardcoded
-secrets, injection, unsafe `dangerouslySetInnerHTML`) were found — the one
-`dangerouslySetInnerHTML` use (FAQ JSON-LD) is properly escaped.
+- `handleDomainChange`'s invalid branch (line 582) — already called
+  `cancelInFlightLookup()`, unchanged.
+- `handleDomainChange`'s valid branch (line 599) — **now** calls
+  `cancelInFlightLookup()` before `scheduleDebouncedLookup`. This was the
+  missing branch; it is now covered.
+- `handleDomainPaste`'s invalid branch (line 623) — already called
+  `cancelInFlightLookup()`, unchanged.
+- `handleDomainPaste`'s valid branch, `handleTypeChange`, `handleRefresh`,
+  `handleTryAgain`, the Enter keyboard shortcut, and the mount effect — all
+  call `runLookupImmediate` → `runLookup` directly, and `runLookup`'s own
+  preamble (`abortControllerRef.current?.abort(); … const seq =
+  ++requestSeqRef.current;`) already self-guards these paths; they never
+  needed an external `cancelInFlightLookup()` call.
 
-## Critical Issues
+`scheduleDebouncedLookup` has exactly one call site in the whole file (line
+609, grep-verified), and it is the one now correctly guarded. No other
+branch is missing the fix — this closes the gap completely.
 
-### CR-01: Stale in-flight DNS lookup can silently overwrite a newer `invalid-input`/in-progress state
+**2. Does the new test genuinely exercise the typed/debounce path, and would
+it fail without the fix?** Yes, confirmed by hand-tracing the timeline
+against both pre-fix and post-fix code. The test drives the input via
+`fill()` only — no `press("Enter")` anywhere — so it exercises
+`handleDomainChange`'s valid branch and the real 700ms `DEBOUNCE_MS` timer,
+not the immediate/keyboard path already covered by the sibling test above
+it. On **pre-fix** code: `fill(SLOW_DEBOUNCE_DOMAIN)` at t=0 arms the
+debounce, which fires at t=700 and starts a fetch the mock delays until
+~t=1100; `fill(SECOND_DEBOUNCE_DOMAIN)` at t=750 lands while that fetch is
+still in flight, and since the pre-fix valid branch never touches the
+abort controller or sequence counter, neither of `runLookup`'s guards
+(`controller.signal.aborted`, `seq !== requestSeqRef.current`) fires when
+the stale response arrives at ~t=1100 — it renders `9.9.9.9`, which is still
+on screen at the test's t=1250 checkpoint (the second domain's own debounce
+doesn't fire until t=1450). The test's checkpoint uses a single, non-
+retrying `.count()` sample rather than an auto-retrying `toHaveCount(0)`
+assertion specifically to catch this transient stale render before the
+second domain's later, faster success would silently paper over it — a
+correct and deliberate test-design choice that the in-file comment explains
+accurately. On **post-fix** code, the abort fires synchronously at t=750 and
+the delayed fetch never gets to render. This confirms the test is a
+genuine, correctly-targeted regression test for exactly this sub-case.
 
-**File:** `app/tools/dns/DnsTool.tsx:422-507` (`runLookup`), `559-616` (`handleDomainChange` / `handleDomainPaste`)
+**3. No new issues introduced.** The production change is minimal and
+side-effect-free beyond its intended purpose: aborting a null/already-
+settled controller is a safe no-op, the redundant `clearTimeout` alongside
+`scheduleDebouncedLookup`'s own guard is harmless, and bumping
+`requestSeqRef.current` on every valid keystroke (even when nothing is in
+flight) has no observable effect since only relative comparisons against
+this counter are ever made anywhere in the file. No dead code, no new
+unused imports/exports, no altered public behavior outside the intended
+race-safety guarantee.
 
-**Issue:** The documented race-safety guarantee ("discards the response if a
-newer request has since started" / DNS-04) is implemented entirely inside
-`runLookup`: it aborts the *previous* `AbortController` and bumps
-`requestSeqRef` only when a **new `runLookup` call actually begins**. But
-`handleDomainChange`'s invalid branch (line ~562) and `handleDomainPaste`'s
-invalid branch (line ~601) update `state.lookup` to `"invalid-input"` — and
-merely `clearTimeout` the pending debounce timer — **without** aborting
-`abortControllerRef.current` or incrementing `requestSeqRef.current`. The same
-gap exists for a second *valid* edit made while an earlier debounced lookup's
-network request is already in flight (before the new debounce timer fires):
-`scheduleDebouncedLookup` only schedules a future `runLookup` call, it does
-not cancel the currently-running one.
-
-Concretely:
-1. A lookup for domain A is in flight (e.g. the mount-time default lookup,
-   or a debounce-triggered lookup for a domain the user has since edited).
-2. The user types an invalid string (or a different valid domain) before
-   that lookup resolves. `state.lookup` becomes `"invalid-input"` (or stays
-   `"loading"` for the new value) — but `requestSeqRef.current` is unchanged
-   and the old `AbortController` is never aborted.
-3. The stale response for domain A arrives. In `runLookup`'s continuation,
-   `seq !== requestSeqRef.current` is `false` (no new `runLookup` call ever
-   bumped it), and `controller.signal.aborted` is `false` — so neither guard
-   fires, and `setState` overwrites the `invalid-input` message (or the
-   in-progress edit's loading state) with domain A's stale
-   success/nxdomain/empty-noerror/error card.
-
-End result: the domain input can display text the validator has already
-rejected (`aria-invalid` silently reverts to `false`, the inline validation
-note disappears) while the result panel shows a fully-rendered — but stale
-and mismatched — record set. This directly violates D-04/D-07's "never
-silently show a result that doesn't match the current input" intent and
-QUAL-08's invalid-input contract. It is not covered by
-`DnsTool.test.tsx`'s existing invalid-input test (which never leaves a
-request in flight when the invalid edit happens) or by
-`tests/e2e/dns-lookup.spec.ts`'s race test (which only races two *valid*,
-immediately-triggered lookups against each other — a path where `runLookup`
-IS re-invoked and the guard works correctly).
-
-**Fix:** Abort the in-flight request and bump the sequence token on every
-state transition that supersedes an in-flight lookup, not just when a new
-`runLookup` call is made — e.g. factor a small `cancelInFlightLookup()`
-helper and call it from the invalid branches of `handleDomainChange` and
-`handleDomainPaste` too:
-
-```ts
-function cancelInFlightLookup() {
-  abortControllerRef.current?.abort();
-  requestSeqRef.current++; // orphan any in-flight runLookup's seq check
-  if (debounceTimerRef.current) {
-    clearTimeout(debounceTimerRef.current);
-    debounceTimerRef.current = null;
-  }
-}
-
-function handleDomainChange(value: string) {
-  const valid = isValidDomainInput(value);
-
-  if (!valid) {
-    cancelInFlightLookup();
-    setState((prev) => ({
-      ...prev,
-      rawDomain: value,
-      lookup: {
-        status: "invalid-input",
-        message: INVALID_DOMAIN_MESSAGE,
-        lastValidResult: lastValidResultFrom(prev.lookup),
-      },
-    }));
-    return;
-  }
-  // ...
-}
-```
-
-Apply the same `cancelInFlightLookup()` call in `handleDomainPaste`'s invalid
-branch. This ensures any lookup started before the input became invalid (or
-before the newest edit) can never win a race against the state it has since
-been superseded by.
+The findings below are quality observations on the *new test's* timing
+design, not defects in the production fix.
 
 ## Warnings
 
-### WR-01: Multi-segment TXT records may leave stray embedded quotes in the displayed value
+### WR-01: New race-safety test has tighter timing margins than its sibling test, raising CI flakiness risk
 
-**File:** `lib/dns/parse.ts:30-35` (`normalizeValue`)
-
-**Issue:** `normalizeValue` strips exactly one leading and one trailing
-double-quote when the whole TXT `data` string starts and ends with `"`. Per
-RFC 1035, a TXT RDATA can consist of multiple `<character-string>`s, and
-DoH JSON `data` fields for such records commonly render each segment
-individually quoted and space-joined (e.g. `"first-255-bytes" "rest"`) —
-common for long SPF includes and DKIM public keys that exceed 255 bytes.
-For such a value, `data.startsWith('"') && data.endsWith('"')` is `true`,
-but `data.slice(1, -1)` only removes the outermost pair, leaving the
-internal `" "` sequence intact in the displayed/copied value (e.g.
-`first-255-bytes" "rest` — a value with embedded literal quote characters
-that was never present in the "real" unwrapped TXT content). The current
-comment/tests only exercise a single-segment TXT value.
-
-**Fix:** Verify against a live multi-segment TXT record (e.g. a real DKIM
-selector) and, if confirmed, join multiple quoted segments before
-stripping, e.g.:
-
-```ts
-if (type === "TXT") {
-  const segments = data.match(/"(?:[^"\\]|\\.)*"/g);
-  if (segments) {
-    return segments.map((s) => s.slice(1, -1)).join("");
-  }
-  return data;
-}
-```
-
-### WR-02: Resolver JSON-parse failures bypass the documented error-classification contract
-
-**File:** `lib/dns/resolve.ts:36-59` (`queryAndClassify`)
-
-**Issue:** The module header comment states every caller "only ever has to
-handle the two typed error classes [`RateLimitError`/`ResolverFailureError`],
-never a raw unclassified exception" (except for a re-thrown abort). The
-`try/catch` around `queryResolver` only wraps the fetch call itself
-(lines 42-48); `response.json()` on line 53 is unguarded. If a resolver
-returns a 2xx response with a malformed/non-JSON body (e.g. an
-intermittent CDN error page or truncated response), `response.json()`
-throws a raw `SyntaxError` that is never wrapped into `ResolverFailureError`
-and propagates to `resolveWithFallback`'s catch (line 76), then to any
-external caller. `DnsTool.tsx`'s `classifyError` happens to default
-unrecognized errors to `"resolver-unavailable"`, so the UI degrades
-gracefully today — but the contract this module documents (and that other
-code may come to rely on, e.g. logging `err.status` unconditionally) is
-violated for this case.
-
-**Fix:** Wrap the `.json()` call in the same try/catch (or a second one)
-and re-throw as `ResolverFailureError`:
-
-```ts
-let body: DohResponse;
-try {
-  body = (await response.json()) as DohResponse;
-} catch {
-  throw new ResolverFailureError(response.status);
-}
-```
-
-### WR-03: `DnsTool()` / `runLookup()` have grown into high-complexity functions
-
-**File:** `app/tools/dns/DnsTool.tsx:396-801` (component), `422-507` (`runLookup`)
-
-**Issue:** `runLookup` is ~85 lines with 4 nested nulls/early-returns and
-3 separate `setState` branches; the `DnsTool` component itself is ~400
-lines mixing state machine, debounce/abort orchestration, and rendering for
-5 error states + loading + success. This is a maintainability risk — the
-CR-01 bug above is a direct symptom of this orchestration logic being hard
-to reason about in one place.
-
-**Fix:** Consider extracting the lookup/debounce/abort orchestration into a
-dedicated hook (e.g. `useDnsLookup()`) that owns `abortControllerRef`,
-`requestSeqRef`, `debounceTimerRef`, and exposes `runLookupImmediate`/
-`scheduleDebouncedLookup`/`cancelInFlightLookup` — this would make the
-sequencing invariant enforceable in one place instead of three call sites.
+**File:** `tests/e2e/dns-lookup.spec.ts:377, 389`
+**Issue:** The test waits only 750ms for the 700ms `DEBOUNCE_MS` debounce to
+fire — a 50ms margin (~7%) — and then only 500ms between typing the second
+domain and sampling the stale-record checkpoint, a window that must land
+after the first fetch's ~400ms artificial delay resolves (t≈1100 absolute)
+but before the second domain's own debounce fires (t=1450 absolute), leaving
+only ~150-200ms of slack on each side. All of these are real-time
+`waitForTimeout` calls with no synchronization on an actual observable
+signal (e.g. waiting for the mocked request to actually be dispatched).
+Under CI load or a slower runner, event-loop scheduling jitter on either the
+debounce timer or the mocked route's own `setTimeout` could shift these
+windows enough to make the checkpoint sample land in the wrong place,
+producing an intermittent false pass or false fail unrelated to the fix's
+correctness. The sibling test immediately above it (`the final-typed
+domain's result always wins…`) uses comparatively looser margins (a 100ms
+settle gap, an 800ms final confirmation wait) since it doesn't need to align
+with a specific debounce-firing instant.
+**Fix:** Widen the buffer around `DEBOUNCE_MS` (e.g. wait `DEBOUNCE_MS +
+300` instead of a bare `750`, derived from the constant rather than a magic
+number — see IN-02), and/or replace the blind `waitForTimeout(750)` with a
+deterministic wait on the mocked route actually being hit for
+`SLOW_DEBOUNCE_DOMAIN` (e.g. resolve a promise from inside that `page.route`
+handler and await it) so the test doesn't depend on wall-clock margins alone
+to prove the fetch is genuinely in flight before the second edit lands.
 
 ## Info
 
-### IN-01: Unreachable dead-code branch in `isValidDomainInput`
+### IN-01: Redundant abort/clear when `cancelInFlightLookup` and `scheduleDebouncedLookup` run back-to-back
 
-**File:** `lib/dns/validate.ts:34-35`
+**File:** `app/tools/dns/DnsTool.tsx:535-542, 517-523`
+**Issue:** `cancelInFlightLookup()` clears `debounceTimerRef.current` and
+nulls it; `scheduleDebouncedLookup` immediately re-checks the same ref and
+no-ops its own `clearTimeout` since it's already null. This isn't a bug
+(both functions are individually correct and idempotent), but the duplicated
+guard could read as unclear ownership to a future maintainer trying to
+determine which function is "responsible" for clearing the debounce timer.
+**Fix:** Optional — a one-line comment noting the overlap is intentional
+belt-and-suspenders would remove the ambiguity. Not required before
+shipping.
 
-**Issue:** `const labels = trimmed.split(".")` on a non-empty string always
-returns an array of length ≥ 1 (even `"".split(".")` returns `[""]`, and
-`trimmed` is already guaranteed non-empty by the preceding `!trimmed` guard
-on line 32). The subsequent `if (labels.length < 1) return false;` can
-never evaluate to `true`.
+### IN-02: New test's timing constants are magic numbers disconnected from `DEBOUNCE_MS`
 
-**Fix:** Remove the dead branch:
-
-```ts
-const labels = trimmed.split(".");
-return labels.every((label) => label.length <= 63 && LABEL_RE.test(label));
-```
-
-### IN-02: Worked-example TTL/value will silently drift from reality over time
-
-**File:** `app/tools/dns/faq-data.ts:75-80` (`sampleFields`)
-
-**Issue:** `sampleFields.value`/`.ttl` are hardcoded from a single live
-capture (dated in the file header comment). Cloudflare's edge IPs and TTLs
-for `cloudflare.com` can change; nothing re-verifies this worked example
-against reality, so the page can end up displaying a value/TTL pair that no
-longer corresponds to what a live lookup of the same domain/type actually
-returns (undermining the "worked example" framing, though not a functional
-bug).
-
-**Fix:** Not urgent for v1 given it's explicitly documented as illustrative,
-but consider a periodic (e.g. quarterly) manual re-verification, or a build-time
-check that fails CI if a live check diverges materially (optional).
+**File:** `tests/e2e/dns-lookup.spec.ts:377, 389`
+**Issue:** The waits of `750` and `500` are hand-derived from the production
+`DEBOUNCE_MS = 700` constant (`DnsTool.tsx:44`) but hardcoded as plain
+numbers, tied together only by a comment explaining the derivation. The
+file's own comment on `DEBOUNCE_MS` calls it a "locked 600-800ms window,"
+implying it may be retuned within that range; if it moves, these test
+constants will silently stop matching the intended timing relationship with
+no compile-time or lint signal, reintroducing the WR-01 flakiness risk
+without an obvious trigger to revisit them.
+**Fix:** Duplicate the constant as a named `const TEST_DEBOUNCE_MS = 700` at
+the top of the spec file (mirroring the production value) and derive the
+waits from it (`TEST_DEBOUNCE_MS + 300`, etc.) so a future change to the
+production constant is at least visually obvious as needing a corresponding
+test update.
 
 ---
 
-_Reviewed: 2026-07-24T16:54:03Z_
+_Reviewed: 2026-07-25T00:00:00Z_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
