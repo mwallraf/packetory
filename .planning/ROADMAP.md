@@ -133,7 +133,7 @@ Plans:
   4. NXDOMAIN, empty-NOERROR, invalid-input, rate-limited, and resolver-unavailable states each render a distinct, clearly worded message, and a slower earlier response can never overwrite a newer result on screen (verified under simulated out-of-order resolution).
   5. The current domain and record-type state is reflected in the URL and can be bookmarked/shared.
 
-**Plans**: 4 plans (3 executed + 1 gap-closure pending)
+**Plans**: 4/4 plans executed
 Plans:
 **Wave 1**
 
@@ -146,7 +146,7 @@ Plans:
 
 **Gap closure** *(from 04-VERIFICATION.md)*
 
-- [ ] 04-04-PLAN.md — DNS-04 race-safety gap: wire `cancelInFlightLookup()` into `handleDomainChange`'s valid branch (stale in-flight response can no longer overwrite a superseding valid typed edit) + E2E regression test for the typed-debounce-vs-in-flight race
+- [x] 04-04-PLAN.md — DNS-04 race-safety gap: wire `cancelInFlightLookup()` into `handleDomainChange`'s valid branch (stale in-flight response can no longer overwrite a superseding valid typed edit) + E2E regression test for the typed-debounce-vs-in-flight race
 
 **UI hint**: yes
 
@@ -177,5 +177,5 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 1. Shared Shell + Registry | 5/5 | Complete    | 2026-07-23 |
 | 2. UUID Generator | 4/4 | Complete    | 2026-07-24 |
 | 3. IP Subnet Calculator | 5/5 | Complete    | 2026-07-24 |
-| 4. DNS Lookup | 3/3 | In Progress|  |
+| 4. DNS Lookup | 4/4 | In Progress|  |
 | 5. MAC Address Inspector | 0/TBD | Not started | - |

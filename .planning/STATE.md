@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 04
 current_phase_name: dns-lookup
 status: executing
-stopped_at: Completed 04-03-PLAN.md
-last_updated: "2026-07-25T10:50:30.307Z"
-last_activity: 2026-07-24
+stopped_at: Completed 04-04-PLAN.md
+last_updated: "2026-07-25T11:00:18.699Z"
+last_activity: 2026-07-25
 last_activity_desc: Phase 04 execution started
 progress:
   total_phases: 4
   completed_phases: 4
-  total_plans: 17
-  completed_plans: 17
+  total_plans: 18
+  completed_plans: 18
 ---
 
 # Project State
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-07-24)
 ## Current Position
 
 Phase: 04 (dns-lookup) — EXECUTING
-Plan: 3 of 3
+Plan: 2 of 4
 Status: Ready to execute
-Last activity: 2026-07-24 — Phase 04 execution started
+Last activity: 2026-07-25 — Phase 04 execution started
 
 Progress: [██████████] 100%
 
@@ -77,6 +77,7 @@ Progress: [██████████] 100%
 | Phase 04 P01 | 17min | 3 tasks | 18 files |
 | Phase 04 P02 | 19min | 2 tasks | 5 files |
 | Phase 04 P03 | 3min | 2 tasks | 4 files |
+| Phase 04 P04 | 12min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -139,6 +140,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 04] Plan 02: fixed a pre-existing useKeyboardShortcut bug where Enter never fired while focus was inside a tool's own text input (isInteractiveTarget wrongly delegated to isEditableTarget) -- un-breaks DNS-03 and Subnet's Enter-blur, benefits all future tools
 - [Phase ?]: [Phase 04] Plan 03: sampleFields.value/ttl are the literal first Answer[] entry from a real live cloudflare-dns.com type-A query for cloudflare.com, captured during implementation (2026-07-24) rather than a lib/dns import
 - [Phase ?]: [Phase 04] Plan 03: privacy-notice D-02 disclosure added as a new paragraph inside the existing 'No accounts, no personal data' section rather than a new top-level section
+- [Phase ?]: [Phase 04] Plan 04 (gap closure): handleDomainChange's valid branch now calls cancelInFlightLookup() before scheduling the debounce, closing the last DNS-04/ROADMAP SC4 race-safety gap (04-VERIFICATION.md)
+- [Phase ?]: [Phase 04] Plan 04: E2E race regression test uses a one-shot locator.count()+toBe(0) sample at the critical checkpoint instead of expect(locator).toHaveCount(0) -- the auto-retrying assertion would silently pass on the pre-fix buggy code since the second domain's own later success overwrites the transient stale render before the assertion's retry timeout elapses
 
 ### Pending Todos
 
@@ -159,6 +162,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-24T16:46:02.831Z
-Stopped at: Completed 04-03-PLAN.md
+Last session: 2026-07-25T11:00:18.691Z
+Stopped at: Completed 04-04-PLAN.md
 Resume file: None
