@@ -133,7 +133,7 @@ Plans:
   4. NXDOMAIN, empty-NOERROR, invalid-input, rate-limited, and resolver-unavailable states each render a distinct, clearly worded message, and a slower earlier response can never overwrite a newer result on screen (verified under simulated out-of-order resolution).
   5. The current domain and record-type state is reflected in the URL and can be bookmarked/shared.
 
-**Plans**: 3/3 plans executed
+**Plans**: 4 plans (3 executed + 1 gap-closure pending)
 Plans:
 **Wave 1**
 
@@ -143,6 +143,10 @@ Plans:
 
 - [x] 04-02-PLAN.md — Error-state matrix (QUAL-08): 5 distinct inline states (invalid-input, NXDOMAIN, empty-NOERROR, rate-limited, resolver-unavailable) with Try-again, record-type display completeness, out-of-order race E2E (wave 2)
 - [x] 04-03-PLAN.md — SEO/content: metadata + canonical/OG + hand-verified worked example + FAQ (incl. D-02 Cloudflare/Google resolver disclosure) + FAQPage JSON-LD + privacy-notice disclosure (wave 2)
+
+**Gap closure** *(from 04-VERIFICATION.md)*
+
+- [ ] 04-04-PLAN.md — DNS-04 race-safety gap: wire `cancelInFlightLookup()` into `handleDomainChange`'s valid branch (stale in-flight response can no longer overwrite a superseding valid typed edit) + E2E regression test for the typed-debounce-vs-in-flight race
 
 **UI hint**: yes
 
