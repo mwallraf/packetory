@@ -3,11 +3,17 @@ import { expect, test } from "@playwright/test";
 /**
  * MAC Address Inspector walking-skeleton happy path (MAC-01, MAC-02,
  * MAC-04..MAC-08, MAC-09, D-06, D-07, D-08, D-09, D-10) — mirrors
- * `tests/e2e/dns-lookup.spec.ts`'s shape. Nothing in this plan touches the
- * network (parse/format/classify are pure, synchronous, framework-agnostic
- * functions; vendor lookup ships in 05-03) — no `page.route` mocking is
- * needed anywhere in this file, which is itself the MAC-08 proof: bit-level
- * classification renders correctly with zero `/api/mac-vendor` involvement.
+ * `tests/e2e/dns-lookup.spec.ts`'s shape. The two `describe` blocks below
+ * (walking skeleton + 320px layout) deliberately never mock
+ * `/api/mac-vendor` — parse/format/classify are pure, synchronous,
+ * framework-agnostic functions with zero network dependency, so this is
+ * itself the MAC-08 proof: bit-level classification renders correctly with
+ * zero `/api/mac-vendor` involvement, real or mocked.
+ *
+ * 05-03 adds a third `describe` block below (vendor lookup, MAC-03/MAC-08/
+ * MAC-10/D-11/D-12) that DOES mock `/api/mac-vendor` via `page.route`,
+ * mirroring `tests/e2e/ip-widget.spec.ts`'s mocking pattern, to prove the
+ * success/unavailable/not-applicable vendor states end to end.
  */
 test.describe("MAC Address Inspector walking skeleton (MAC-01, MAC-02, D-06)", () => {
   test("auto-normalizes the demo MAC into all 4 formats on load, no typing required", async ({
@@ -213,6 +219,161 @@ test.describe("MAC Address Inspector layout at 320px (backstop)", () => {
     // 3-badge case is the widest content this row ever renders.
     await input.fill("02:00:00:00:00:00");
     await expect(page.getByTestId("mac-badge-randomization")).toBeVisible();
+
+    const hasHorizontalScroll = await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth >
+        document.documentElement.clientWidth
+    );
+    expect(hasHorizontalScroll).toBe(false);
+  });
+});
+
+/**
+ * Vendor lookup (MAC-03, MAC-08, MAC-10, D-11, D-12) — mirrors
+ * `tests/e2e/ip-widget.spec.ts`'s `page.route("**\/api/mac-vendor", ...)`
+ * mocking pattern. Every test here explicitly mocks the route, unlike the
+ * two `describe` blocks above.
+ */
+test.describe("MAC Address Inspector vendor lookup (MAC-03, MAC-08, MAC-10, D-11, D-12)", () => {
+  test("a successful vendor lookup shows the company name (MAC-03)", async ({
+    page,
+  }) => {
+    await page.route("**/api/mac-vendor**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "ok",
+          found: true,
+          company: "Apple, Inc.",
+        }),
+      })
+    );
+
+    await page.goto("/tools/mac");
+
+    await expect(page.getByTestId("mac-vendor-value")).toContainText(
+      "Apple, Inc."
+    );
+  });
+
+  test("vendor lookup unavailable shows the neutral D-11 note while formats/OUI/classification badges still fully render (MAC-08)", async ({
+    page,
+  }) => {
+    await page.route("**/api/mac-vendor**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ status: "unavailable" }),
+      })
+    );
+
+    await page.goto("/tools/mac");
+
+    await expect(page.getByTestId("mac-vendor-value")).toHaveText(
+      "Vendor: lookup unavailable."
+    );
+    // The rest of the panel is unaffected — never blocked, never dimmed
+    // because of a vendor failure (MAC-08's isolation guarantee).
+    await expect(page.getByTestId("mac-format-colon-value")).toHaveText(
+      "3C:22:FB:AA:BB:CC"
+    );
+    await expect(page.getByTestId("mac-format-dash-value")).toHaveText(
+      "3C-22-FB-AA-BB-CC"
+    );
+    await expect(page.getByTestId("mac-format-dot-value")).toHaveText(
+      "3C22.FBAA.BBCC"
+    );
+    await expect(page.getByTestId("mac-format-none-value")).toHaveText(
+      "3C22FBAABBCC"
+    );
+    await expect(page.getByTestId("mac-oui-value")).toHaveText("3C22FB");
+    await expect(page.getByTestId("mac-badge-ul")).toContainText(
+      "Universally Administered"
+    );
+    await expect(page.getByTestId("mac-badge-ig")).toContainText("Unicast");
+  });
+
+  test("a genuine registry miss shows 'Not found in OUI registry.' — distinct from lookup unavailable (05-RESEARCH.md Pitfall 3)", async ({
+    page,
+  }) => {
+    await page.route("**/api/mac-vendor**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ status: "ok", found: false, company: null }),
+      })
+    );
+
+    await page.goto("/tools/mac");
+
+    await expect(page.getByTestId("mac-vendor-value")).toHaveText(
+      "Not found in OUI registry."
+    );
+  });
+
+  test("a locally-administered MAC shows the D-12 not-applicable note and makes ZERO /api/mac-vendor requests for it", async ({
+    page,
+  }) => {
+    let vendorRequestCount = 0;
+    await page.route("**/api/mac-vendor**", (route) => {
+      vendorRequestCount++;
+      return route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "ok",
+          found: true,
+          company: "Should never be requested for a randomized address",
+        }),
+      });
+    });
+
+    await page.goto("/tools/mac");
+    // The demo MAC (universally-administered) legitimately triggers one
+    // mount-on-load request — reset the counter so the assertion below is
+    // scoped to ONLY the subsequent locally-administered edit (D-12).
+    await expect(page.getByTestId("mac-vendor-value")).not.toContainText(
+      "Looking up vendor"
+    );
+    vendorRequestCount = 0;
+
+    const input = page.getByTestId("mac-input");
+    await input.fill("02:00:00:00:00:00");
+
+    await expect(page.getByTestId("mac-vendor-value")).toHaveText(
+      "Vendor: not applicable (randomized address)."
+    );
+    // Give the D-03 debounce window (500ms) time to elapse, confirming no
+    // delayed request either — the skip is structural (D-12), not a race.
+    await page.waitForTimeout(700);
+    expect(vendorRequestCount).toBe(0);
+  });
+
+  test("a very long vendor company name (40+ chars) wraps rather than clips at 320px alongside the OUI prefix (overflow backstop)", async ({
+    page,
+  }) => {
+    const longCompanyName =
+      "A Very Long Organization Name That Exceeds Forty Characters, Incorporated";
+    await page.route("**/api/mac-vendor**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          status: "ok",
+          found: true,
+          company: longCompanyName,
+        }),
+      })
+    );
+
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto("/tools/mac");
+
+    await expect(page.getByTestId("mac-vendor-value")).toContainText(
+      longCompanyName
+    );
 
     const hasHorizontalScroll = await page.evaluate(
       () =>

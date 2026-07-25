@@ -73,4 +73,20 @@ describe("redactParams", () => {
     const withAllow = redactParams("?newParam=value", ["newParam"]);
     expect(withAllow).toEqual({ newParam: "value" });
   });
+
+  it("MAC-10 regression: DEFAULT_ALLOW_LIST does not include 'mac' or 'oui' — the full MAC address / OUI must never reach analytics", () => {
+    expect(DEFAULT_ALLOW_LIST).not.toContain("mac");
+    expect(DEFAULT_ALLOW_LIST).not.toContain("oui");
+    // Belt-and-suspenders: even if a future `?mac=`/`?oui=` URL-state param
+    // were ever added to a page (05-RESEARCH.md Open Question 2 left this
+    // optional/undecided), redactParams itself would still exclude it by
+    // default — the allow-list is the sole inclusion mechanism (no
+    // block-list), so a fake `?mac=`/`?oui=` param is dropped automatically
+    // with zero code change, exactly like Phase 3's `cidr` precedent.
+    const result = redactParams(
+      "?mac=AA:BB:CC:DD:EE:FF&oui=AABBCC",
+      DEFAULT_ALLOW_LIST
+    );
+    expect(result).toEqual({});
+  });
 });
