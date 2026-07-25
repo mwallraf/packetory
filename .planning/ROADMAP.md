@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: UUID Generator** - Instant v4/v7 UUID generation with batch, formatting, export, and copy — proves the tool-page pattern (completed 2026-07-24)
 - [x] **Phase 3: IP Subnet Calculator** - Instant IPv4/IPv6 CIDR breakdown with full field output and bookmarkable URL state (completed 2026-07-24)
 - [x] **Phase 4: DNS Lookup** - Debounced, race-safe DNS-over-HTTPS lookups across common record types with transparent resolver attribution (completed 2026-07-25)
-- [ ] **Phase 5: MAC Address Inspector** - As-you-type MAC normalization, vendor lookup, and hedged bit-level classification
+- [x] **Phase 5: MAC Address Inspector** - As-you-type MAC normalization, vendor lookup, and hedged bit-level classification (completed 2026-07-25)
 
 ## Phase Details
 
@@ -191,4 +191,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. UUID Generator | 4/4 | Complete    | 2026-07-24 |
 | 3. IP Subnet Calculator | 5/5 | Complete    | 2026-07-24 |
 | 4. DNS Lookup | 4/4 | Complete    | 2026-07-25 |
-| 5. MAC Address Inspector | 3/3 | In Progress|  |
+| 5. MAC Address Inspector | 3/3 | Complete    | 2026-07-25 |
