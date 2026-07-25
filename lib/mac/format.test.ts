@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { fc, it as fcIt } from "@fast-check/vitest";
 import { formatMac } from "./format";
 
 const BYTES = [0x3c, 0x22, 0xfb, 0x00, 0x00, 0x00];
@@ -28,4 +29,33 @@ describe("formatMac", () => {
     expect(formats.dot).toBe("0005.0AFF.1001");
     expect(formats.none).toBe("00050AFF1001");
   });
+
+  // Property-based tests (WR-04) — per CLAUDE.md's Testing Stack convention
+  // ("Vitest + fast-check own all of ... lib/mac"), exercised across the
+  // full 6-byte tuple space rather than a handful of hand-picked vectors.
+  const byteArb = fc.integer({ min: 0, max: 255 });
+  const bytesArb = fc.tuple(byteArb, byteArb, byteArb, byteArb, byteArb, byteArb);
+
+  fcIt.prop([bytesArb])(
+    "every variant is uppercase hex, always 12 hex digits total, for any 6-byte input (MAC-02)",
+    (bytes) => {
+      const formats = formatMac(bytes);
+      for (const variant of ["colon", "dash", "dot", "none"] as const) {
+        const hexOnly = formats[variant].replace(/[^0-9A-F]/g, "");
+        expect(hexOnly).toHaveLength(12);
+        expect(formats[variant]).toBe(formats[variant].toUpperCase());
+      }
+    }
+  );
+
+  fcIt.prop([bytesArb])(
+    "all 4 variants agree on the same underlying hex digits, differing only in separator placement (Pitfall 1)",
+    (bytes) => {
+      const formats = formatMac(bytes);
+      const stripSeparators = (s: string) => s.replace(/[:\-.]/g, "");
+      expect(stripSeparators(formats.colon)).toBe(formats.none);
+      expect(stripSeparators(formats.dash)).toBe(formats.none);
+      expect(stripSeparators(formats.dot)).toBe(formats.none);
+    }
+  );
 });

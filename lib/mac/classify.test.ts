@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { fc, it as fcIt } from "@fast-check/vitest";
 import { classifyMac } from "./classify";
 
 /**
@@ -42,4 +43,42 @@ describe("classifyMac", () => {
     expect(result.isUniversallyAdministered).toBe(true);
     expect(result.randomizationLikely).toBe(false);
   });
+
+  // Property-based tests (WR-04) — per CLAUDE.md's Testing Stack convention
+  // ("Vitest + fast-check own all of ... lib/mac"), exercised across the
+  // full byte[0] 0-255 range rather than a handful of hand-picked vectors,
+  // asserting the bit-level invariants directly from the documented
+  // I/G-bit-0 and U/L-bit-1 contract (MAC-04, MAC-05, MAC-06, MAC-07, D-10).
+  const byteArb = fc.integer({ min: 0, max: 255 });
+  const bytesArb = fc.tuple(byteArb, byteArb, byteArb, byteArb, byteArb, byteArb);
+
+  fcIt.prop([bytesArb])(
+    "isUnicast tracks bit 0 (I/G) of byte[0] alone, across the full byte range and any other-byte values",
+    (bytes) => {
+      const result = classifyMac(bytes);
+      expect(result.isUnicast).toBe((bytes[0] & 0x01) === 0);
+    }
+  );
+
+  fcIt.prop([bytesArb])(
+    "isUniversallyAdministered tracks bit 1 (U/L) of byte[0] alone, and randomizationLikely is always its exact negation (D-10)",
+    (bytes) => {
+      const result = classifyMac(bytes);
+      expect(result.isUniversallyAdministered).toBe((bytes[0] & 0x02) === 0);
+      expect(result.randomizationLikely).toBe(!result.isUniversallyAdministered);
+    }
+  );
+
+  fcIt.prop([bytesArb])(
+    "ouiHex is always the first 3 bytes as 6 uppercase hex characters, for any 6-byte input",
+    (bytes) => {
+      const result = classifyMac(bytes);
+      const expected = bytes
+        .slice(0, 3)
+        .map((b) => b.toString(16).toUpperCase().padStart(2, "0"))
+        .join("");
+      expect(result.ouiHex).toBe(expected);
+      expect(result.ouiHex).toHaveLength(6);
+    }
+  );
 });

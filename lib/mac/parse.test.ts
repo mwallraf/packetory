@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { fc, it as fcIt } from "@fast-check/vitest";
 import { parseMacInput } from "./parse";
+import { formatMac } from "./format";
 
 describe("parseMacInput", () => {
   it("accepts colon-separated input (MAC-01, D-04)", () => {
@@ -70,4 +72,37 @@ describe("parseMacInput", () => {
   ])("never throws for pathological input: %s", (input) => {
     expect(() => parseMacInput(input)).not.toThrow();
   });
+
+  // Property-based tests (WR-04) — per CLAUDE.md's Testing Stack convention
+  // ("Vitest + fast-check own all of ... lib/mac"), exercised across the
+  // full 6-byte tuple space rather than a handful of hand-picked vectors.
+  const byteArb = fc.integer({ min: 0, max: 255 });
+  const bytesArb = fc.tuple(byteArb, byteArb, byteArb, byteArb, byteArb, byteArb);
+
+  fcIt.prop([bytesArb])(
+    "round-trips through every formatMac() variant: parseMacInput(formatMac(bytes)[variant]) recovers the original bytes (MAC-01/MAC-02 contract)",
+    (bytes) => {
+      const formats = formatMac(bytes);
+      for (const variant of ["colon", "dash", "dot", "none"] as const) {
+        expect(parseMacInput(formats[variant])).toEqual({
+          valid: true,
+          bytes,
+        });
+      }
+    }
+  );
+
+  fcIt.prop([fc.string()])(
+    "never throws for any arbitrary string input (total function, D-04)",
+    (raw) => {
+      expect(() => parseMacInput(raw)).not.toThrow();
+    }
+  );
+
+  fcIt.prop([fc.string({ minLength: 0, maxLength: 11 })])(
+    "rejects any input of 11 characters or fewer — stripping non-hex characters can only shrink the string, so it can never reach the required 12 hex digits",
+    (tooShort) => {
+      expect(parseMacInput(tooShort)).toEqual({ valid: false });
+    }
+  );
 });
