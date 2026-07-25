@@ -164,7 +164,20 @@ Plans:
   4. Bit-level classification (OUI, U/L, I/G, randomized-likelihood) still works and shows useful output even when vendor lookup fails or is unavailable.
   5. User can copy individual fields or the complete result, and full MAC addresses are never sent to analytics.
 
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+**Wave 1**
+
+- [ ] 05-01-PLAN.md — Walking skeleton: instant demo MAC normalized into all 4 formats (colon/dash/dot/none) + per-field & copy-all + keep-last-valid + SEO/FAQ shell + registry flip (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 05-02-PLAN.md — Bit-level classification: OUI prefix + U/L, I/G, and hedged randomization badges, computed pure/offline (works with zero vendor network — MAC-08) (wave 2)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 05-03-PLAN.md — Vendor lookup slice (the API-route/core-logic separation): first upstream-fetching `/api/mac-vendor` route + OUI-only client cache/debounce + 4 vendor states + MAC-10 privacy guard (wave 3)
+
 **UI hint**: yes
 
 ## Progress
