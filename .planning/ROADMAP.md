@@ -23,7 +23,7 @@ Full phase details archived at `.planning/milestones/v1.0-ROADMAP.md`.
 ### v1.1 Production Domain & Landing Page Polish (Phases 6-7)
 
 - [x] **Phase 6: Landing Page Card Navigation** - Tool cards in the landing grid become clickable, reaching parity with the nav menu (completed 2026-07-25)
-- [ ] **Phase 7: Production Domain Cutover (packetory.dev)** - Code-side domain cutover (canonical URLs, redirects, runbook) separated from the manual registration/DNS steps only the user can perform
+- [x] **Phase 7: Production Domain Cutover (packetory.dev)** - Code-side domain cutover complete (canonical URLs confirmed via audit); redirects and runbook deliberately descoped by user decision after live-evidence review (completed 2026-07-25)
 
 ## Phase Details
 
@@ -52,20 +52,23 @@ Full phase details archived at `.planning/milestones/v1.0-ROADMAP.md`.
 ### Phase 7: Production Domain Cutover (packetory.dev)
 
 **Goal**: All code-side pieces of the packetory.dev cutover are in place (canonical origin used everywhere, old-URL redirects configured, and a runbook exists) so that once the user completes the one-time manual steps — registering the domain and adding it in Vercel's dashboard — the site goes live at packetory.dev with old URLs redirecting to it.
+
+**Scope narrowed during Phase 7 discussion** (see `07-CONTEXT.md` D-01..D-08): the user had already manually registered and configured `packetory.dev` in Vercel before planning started, and explicitly chose not to implement redirects or a runbook after being shown live evidence. Final phase outcome: DOM-01 verified-live, DOM-03 confirmed complete by audit, DOM-02 and DOM-04 deliberately descoped.
+
 **Depends on**: Nothing (independent of Phase 6; execution order between the two doesn't matter)
 **Requirements**: DOM-01, DOM-02, DOM-03, DOM-04
 **Success Criteria** (what must be TRUE):
 
-  1. *(Agent-verifiable)* Every hardcoded site-origin reference — the `SITE_URL` constant, per-tool canonical URLs and OG tags, `sitemap.xml`, `robots.txt` — resolves to `https://packetory.dev`, confirmed by a repo-wide search that turns up zero remaining `packetory.vercel.app` literals in application code
-  2. *(Agent-verifiable)* A redirect rule is committed to the deployed config (e.g. `next.config.ts` or `vercel.json`) so that requests to `packetory.vercel.app` and `www.packetory.dev` are redirected to the canonical apex `packetory.dev`
-  3. *(Agent-verifiable)* A runbook document exists that walks through, step by step, how to register `packetory.dev`, add it as a Domain in the Vercel project dashboard, and confirm DNS/SSL issuance — accurate and specific enough for the user to execute without needing to ask follow-up questions
-  4. *(Requires user confirmation after the user's own manual steps)* Once the user has registered the domain and completed the Vercel dashboard configuration per the runbook, `https://packetory.dev` resolves the live site over valid HTTPS (DOM-01) — this cannot be verified by the agent since it depends on registration/DNS/SSL steps only the user can perform
-  5. *(Requires user confirmation after the user's own manual steps)* `packetory.vercel.app` and `www.packetory.dev` both redirect to `https://packetory.dev` in production (DOM-02) — verifiable only after the domain is live
+  1. **MET** *(Agent-verifiable)* Every hardcoded site-origin reference — the `SITE_URL` constant, per-tool canonical URLs and OG tags, `sitemap.xml`, `robots.txt` — resolves to `https://packetory.dev`, confirmed by a repo-wide search that turns up zero remaining `packetory.vercel.app` literals in application code (DOM-03, confirmed by Phase 7 audit per D-07/D-08 — no code changes were needed since `SITE_URL` already derived every reference)
+  2. **DESCOPED** *(Agent-verifiable)* A redirect rule is committed to the deployed config (e.g. `next.config.ts` or `vercel.json`) so that requests to `packetory.vercel.app` and `www.packetory.dev` are redirected to the canonical apex `packetory.dev` — the user deliberately chose not to implement this after being shown live evidence that neither host currently redirects (D-02/D-03/D-04). Accepted consequence: `packetory.vercel.app` remains a live duplicate-content URL and `www.packetory.dev` keeps failing TLS, indefinitely, unless revisited in a future phase.
+  3. **DESCOPED** *(Agent-verifiable)* A runbook document exists that walks through, step by step, how to register `packetory.dev`, add it as a Domain in the Vercel project dashboard, and confirm DNS/SSL issuance — the user already completed these one-time manual steps themselves and does not want documentation of a completed action written (D-05/D-06); no runbook was created and `DEPLOY.md` was not extended.
+  4. **MET** *(Requires user confirmation after the user's own manual steps)* Once the user has registered the domain and completed the Vercel dashboard configuration per the runbook, `https://packetory.dev` resolves the live site over valid HTTPS (DOM-01) — verified live 2026-07-25 via `curl -sI https://packetory.dev` → `HTTP/2 200`, valid TLS certificate (`CN=packetory.dev`), per D-01.
+  5. **DESCOPED** *(Requires user confirmation after the user's own manual steps)* `packetory.vercel.app` and `www.packetory.dev` both redirect to `https://packetory.dev` in production (DOM-02) — descoped alongside criterion 2 per D-02/D-03/D-04; neither redirect exists and none was added this phase.
 
-**Plans**: 1 plan
+**Plans**: 1/1 plan executed
 **Wave 1**
 
-- [ ] 07-01-PLAN.md — DOM-03 confirmation audit + reconcile REQUIREMENTS/ROADMAP/PROJECT docs (DOM-01 verified-live, DOM-02/DOM-04 descoped) (DOM-01, DOM-02, DOM-03, DOM-04)
+- [x] 07-01-PLAN.md — DOM-03 confirmation audit + reconcile REQUIREMENTS/ROADMAP/PROJECT docs (DOM-01 verified-live, DOM-02/DOM-04 descoped) (DOM-01, DOM-02, DOM-03, DOM-04)
 
 ## Progress
 
@@ -77,4 +80,4 @@ Full phase details archived at `.planning/milestones/v1.0-ROADMAP.md`.
 | 4. DNS Lookup | v1.0 | 4/4 | Complete | 2026-07-25 |
 | 5. MAC Address Inspector | v1.0 | 3/3 | Complete | 2026-07-25 |
 | 6. Landing Page Card Navigation | v1.1 | 2/2 | Complete    | 2026-07-25 |
-| 7. Production Domain Cutover | v1.1 | 0/TBD | Not started | - |
+| 7. Production Domain Cutover | v1.1 | 1/1 | Complete (DOM-02/DOM-04 descoped) | 2026-07-25 |
