@@ -164,11 +164,11 @@ Plans:
   4. Bit-level classification (OUI, U/L, I/G, randomized-likelihood) still works and shows useful output even when vendor lookup fails or is unavailable.
   5. User can copy individual fields or the complete result, and full MAC addresses are never sent to analytics.
 
-**Plans**: 3 plans
+**Plans**: 1/3 plans executed
 Plans:
 **Wave 1**
 
-- [ ] 05-01-PLAN.md — Walking skeleton: instant demo MAC normalized into all 4 formats (colon/dash/dot/none) + per-field & copy-all + keep-last-valid + SEO/FAQ shell + registry flip (wave 1)
+- [x] 05-01-PLAN.md — Walking skeleton: instant demo MAC normalized into all 4 formats (colon/dash/dot/none) + per-field & copy-all + keep-last-valid + SEO/FAQ shell + registry flip (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -191,4 +191,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. UUID Generator | 4/4 | Complete    | 2026-07-24 |
 | 3. IP Subnet Calculator | 5/5 | Complete    | 2026-07-24 |
 | 4. DNS Lookup | 4/4 | Complete    | 2026-07-25 |
-| 5. MAC Address Inspector | 0/TBD | Not started | - |
+| 5. MAC Address Inspector | 1/3 | In Progress|  |

@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 5
-current_phase_name: MAC Address Inspector
+current_phase: 05
+current_phase_name: mac-address-inspector
 status: executing
-stopped_at: Phase 5 UI-SPEC approved
-last_updated: "2026-07-25T13:07:18.073Z"
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-07-25T13:24:11.019Z"
 last_activity: 2026-07-25
-last_activity_desc: Phase 04 complete, transitioned to Phase 5
+last_activity_desc: Phase 05 execution started
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 18
-  completed_plans: 18
+  total_plans: 21
+  completed_plans: 19
 ---
 
 # Project State
@@ -23,16 +23,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-24)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Phase 04 — dns-lookup
+**Current focus:** Phase 05 — mac-address-inspector
 
 ## Current Position
 
-Phase: 5 — MAC Address Inspector
-Plan: Not started
+Phase: 05 (mac-address-inspector) — EXECUTING
+Plan: 2 of 3
 Status: Ready to execute
-Last activity: 2026-07-25 — Phase 04 complete, transitioned to Phase 5
+Last activity: 2026-07-25 — Phase 05 execution started
 
-Progress: [██████████] 100%
+Progress: [█████████░] 90%
 
 ## Performance Metrics
 
@@ -79,6 +79,7 @@ Progress: [██████████] 100%
 | Phase 04 P02 | 19min | 2 tasks | 5 files |
 | Phase 04 P03 | 3min | 2 tasks | 4 files |
 | Phase 04 P04 | 12min | 2 tasks | 2 files |
+| Phase 05 P01 | 15min | 3 tasks | 16 files |
 
 ## Accumulated Context
 
@@ -143,6 +144,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 04] Plan 03: privacy-notice D-02 disclosure added as a new paragraph inside the existing 'No accounts, no personal data' section rather than a new top-level section
 - [Phase ?]: [Phase 04] Plan 04 (gap closure): handleDomainChange's valid branch now calls cancelInFlightLookup() before scheduling the debounce, closing the last DNS-04/ROADMAP SC4 race-safety gap (04-VERIFICATION.md)
 - [Phase ?]: [Phase 04] Plan 04: E2E race regression test uses a one-shot locator.count()+toBe(0) sample at the critical checkpoint instead of expect(locator).toHaveCount(0) -- the auto-retrying assertion would silently pass on the pre-fix buggy code since the second domain's own later success overwrites the transient stale render before the assertion's retry timeout elapses
+- [Phase ?]: [Phase 05] Plan 01: DEFAULT_MAC = 3C:22:FB:AA:BB:CC (Apple-range OUI, U/L bit clear) chosen as the D-06 demo address so 05-02's future randomization flag never misclassifies it
+- [Phase ?]: [Phase 05] Plan 01: flipping tools/registry.ts mac.status to active broke 4 pre-existing tests hardcoding a 'mac stays planned' assumption (registry.test.ts, sitemap.test.ts, navigation.spec.ts, home.spec.ts) — fixed in place, same class of break as the Phase 2 uuid and Phase 4 dns flips
 
 ### Pending Todos
 
@@ -163,6 +166,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-25T12:29:51.906Z
-Stopped at: Phase 5 UI-SPEC approved
-Resume file: .planning/phases/05-mac-address-inspector/05-UI-SPEC.md
+Last session: 2026-07-25T13:24:11.010Z
+Stopped at: Completed 05-01-PLAN.md
+Resume file: None
