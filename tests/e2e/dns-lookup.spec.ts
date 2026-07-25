@@ -311,6 +311,109 @@ test.describe("DNS Lookup race safety (DNS-04)", () => {
     );
     await expect(page.getByTestId("dns-record-value")).toHaveCount(1);
   });
+
+  test("a valid typed edit cancels an already-in-flight debounced lookup so its stale response never renders (DNS-04)", async ({
+    page,
+  }) => {
+    const SLOW_DEBOUNCE_DOMAIN = "slow-debounce-example.com";
+    const SECOND_DEBOUNCE_DOMAIN = "second-debounce-example.net";
+
+    await page.route("**/cloudflare-dns.com/**", async (route) => {
+      const url = new URL(route.request().url());
+      const name = url.searchParams.get("name");
+
+      if (name === SLOW_DEBOUNCE_DOMAIN) {
+        // Artificial delay — this fetch is still in flight when the user
+        // types a different valid domain below (the exact CR-01 sub-case
+        // that the invalid-branch-only fix left unguarded).
+        await new Promise((resolve) => setTimeout(resolve, 400));
+        return route.fulfill({
+          status: 200,
+          contentType: "application/dns-json",
+          body: JSON.stringify({
+            Status: 0,
+            Answer: [
+              { name: SLOW_DEBOUNCE_DOMAIN, type: 1, TTL: 300, data: "9.9.9.9" },
+            ],
+          }),
+        });
+      }
+      if (name === SECOND_DEBOUNCE_DOMAIN) {
+        return route.fulfill({
+          status: 200,
+          contentType: "application/dns-json",
+          body: JSON.stringify({
+            Status: 0,
+            Answer: [
+              {
+                name: SECOND_DEBOUNCE_DOMAIN,
+                type: 1,
+                TTL: 300,
+                data: "8.8.4.4",
+              },
+            ],
+          }),
+        });
+      }
+      return route.fulfill({
+        status: 200,
+        contentType: "application/dns-json",
+        body: JSON.stringify(CLOUDFLARE_A_RESPONSE),
+      });
+    });
+
+    await page.goto("/tools/dns");
+    await expect(page.getByTestId("dns-record-value").first()).toBeVisible();
+
+    const input = page.getByTestId("dns-domain-input");
+
+    // A single typed edit — the valid branch of handleDomainChange — which
+    // schedules the 700ms debounce (DEBOUNCE_MS). This is the TYPED/DEBOUNCE
+    // path, not the Enter/immediate path exercised by the test above.
+    await input.fill(SLOW_DEBOUNCE_DOMAIN);
+
+    // The debounce has now fired and dispatched the slow fetch, which is
+    // in flight (it will not fulfill for another ~400ms).
+    await page.waitForTimeout(750);
+
+    // A different valid domain typed while the slow fetch is still in
+    // flight. With the Task-1 fix this calls cancelInFlightLookup() —
+    // aborting the slow request and bumping the sequence token — before
+    // arming the second domain's own debounce.
+    await input.fill(SECOND_DEBOUNCE_DOMAIN);
+
+    // This window is past the point at which the slow fetch would have
+    // resolved, but BEFORE the second domain's own debounce (700ms from its
+    // fill above) has had a chance to fire and resolve — on the pre-fix code
+    // the stale 9.9.9.9 would already be rendered here.
+    await page.waitForTimeout(500);
+
+    // A non-retrying instantaneous sample is required here, NOT an
+    // auto-retrying `expect(locator).toHaveCount(0)`. Playwright's
+    // auto-retrying assertions poll for up to their timeout (default 5s) —
+    // long enough for the second domain's own (later, faster) fetch to
+    // resolve and silently replace a transient stale 9.9.9.9 render with
+    // 8.8.4.4, which would make the assertion pass even on the pre-fix,
+    // buggy code (the transient stale render would never be observed).
+    // Sampling the count once, synchronously, at this exact checkpoint
+    // catches the bug regardless of what happens afterward.
+    const staleCountAtCheckpoint = await page
+      .getByTestId("dns-record-value")
+      .filter({ hasText: "9.9.9.9" })
+      .count();
+    expect(staleCountAtCheckpoint).toBe(0);
+
+    // The second domain's own debounce eventually fires and its fast fetch
+    // resolves, ultimately winning.
+    await expect(page.getByTestId("dns-record-value").first()).toHaveText(
+      "8.8.4.4"
+    );
+    await expect(page.getByTestId("dns-record-value")).toHaveCount(1);
+
+    await expect(
+      page.getByTestId("dns-record-value").filter({ hasText: "9.9.9.9" })
+    ).toHaveCount(0);
+  });
 });
 
 test.describe("DNS Lookup long-value overflow at 320px (backstop)", () => {
