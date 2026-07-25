@@ -15,6 +15,18 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 - **Success metric**: Traffic and repeat/bookmarked usage, not lead generation or data collection
 - **Strategy notes**: Full brief preserved at `project-brief.md` (repo root) — the source document this PROJECT.md was distilled from
 
+## Current Milestone: v1.1 Production Domain & Landing Page Polish
+
+**Goal:** Fix the landing page so tool cards are clickable, and cut the site over to the real packetory.dev domain.
+
+**Target features:**
+- Landing page grid cards link to their tool pages (parity with the nav menu, which already works)
+- Site runs on custom domain packetory.dev via Vercel DNS (no Cloudflare, no per-tool subdomains)
+- Canonical URLs/OG tags/sitemap/robots.txt/`SITE_URL` updated from packetory.vercel.app to packetory.dev
+- Documented runbook for the manual steps (domain registration + Vercel dashboard DNS pointing) since registering/paying for a domain always requires human action (project-brief.md §14)
+
+**Key context:** Domain not registered yet — user will do that manually. Vercel DNS confirmed over Cloudflare (avoids proxy/SSL conflicts, no extra account needed). Path-based `/tools/*` routing stays; no per-tool subdomains (would fragment SEO authority and break the shared-nav "switch tools instantly" value prop).
+
 ## Requirements
 
 ### Validated
@@ -117,4 +129,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-25 after v1.0 milestone*
+*Last updated: 2026-07-25 after v1.1 milestone started*
