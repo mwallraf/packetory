@@ -3,34 +3,34 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 current_phase: 05
-current_phase_name: mac-address-inspector
-status: verifying
+status: completed
 stopped_at: Completed 05-03-PLAN.md
-last_updated: "2026-07-25T14:36:36.968Z"
+last_updated: "2026-07-25T15:19:39.390Z"
 last_activity: 2026-07-25
-last_activity_desc: Phase 05 execution started
+last_activity_desc: Phase 05 complete
 progress:
   total_phases: 5
   completed_phases: 5
   total_plans: 21
   completed_plans: 21
+current_phase_name: mac-address-inspector
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-24)
+See: .planning/PROJECT.md (updated 2026-07-25)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Phase 05 — mac-address-inspector
+**Current focus:** Milestone v1.0 complete — all 5 phases shipped (Shell, UUID, Subnet, DNS, MAC); ready for `/gsd-complete-milestone`.
 
 ## Current Position
 
-Phase: 05 (mac-address-inspector) — EXECUTING
-Plan: 3 of 3
-Status: Phase complete — ready for verification
-Last activity: 2026-07-25 — Phase 05 execution started
+Phase: 05
+Plan: Not started
+Status: All phases complete
+Last activity: 2026-07-25 — Phase 05 complete
 
 Progress: [██████████] 100%
 
@@ -38,7 +38,7 @@ Progress: [██████████] 100%
 
 **Velocity:**
 
-- Total plans completed: 18
+- Total plans completed: 21
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -50,6 +50,7 @@ Progress: [██████████] 100%
 | 02 | 4 | - | - |
 | 03 | 5 | - | - |
 | 04 | 4 | - | - |
+| 05 | 3 | - | - |
 
 **Recent Trend:**
 
@@ -152,6 +153,10 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 05] Plan 02: MacLookupState kept minimal (idle|incomplete-input|success) rather than pre-guessing 05-03's vendor-state shape
 - [Phase ?]: [Phase 05] Plan 03: demo-on-load and Esc-reset bypass the D-03 vendor debounce entirely (runVendorLookupImmediate) since D-06 requires the full result visible with zero user action; only live typing/paste go through the debounced path
 - [Phase ?]: [Phase 05] Plan 03: VendorState is a standalone 4-kind union (found/not-found/unavailable/not-applicable) with no pending member — the in-flight state is component-level UI orchestration, not a resolved lookup outcome
+- [Phase 05]: Code review (standard depth, re-run before --fix) found 1 Critical + 4 Warnings + 3 Info: a `null`-body upstream response could throw an uncaught 500 in `/api/mac-vendor` (violated its own "never 5xx" contract); unvalidated third-party JSON casts; failed vendor lookups cached for the whole session with no retry; `lib/mac` tests missing the CLAUDE.md-mandated `fast-check` property tests. 4/5 in-scope findings fixed and verified (263/263 unit tests, typecheck clean) before UAT; WR-01 (no rate limiting) correctly left unfixed as a deliberate accepted risk rather than hacked in with an unsafe IP-based limiter.
+- [Phase 05]: Security review (gsd-secure-phase) verified 9 threats across all 3 plans, all closed against actual implementation (OUI regex validation before fetch, hardcoded upstream host, OUI-only privacy boundary, AbortSignal timeout, classification/vendor decoupling, XSS-safe JSX rendering) plus 3 accepted risks (no rate limiting — cross-checked against 05-REVIEW.md WR-01; ReDoS-free parsing; no new dependencies). ASVS L1 short-circuit applied (threats_open:0, plan-time register). SECURITY.md sign-off recorded 2026-07-25.
+- [Phase 05]: UAT (7 judgment-tier items: 320px messy-input layout, no auto-reformat while typing, randomization-hedge wording, no coincidental vendor match for randomized MACs, distinct not-found-vs-unavailable copy, full-MAC-never-transmitted, long vendor-name wrap at 320px) passed with zero issues 2026-07-25 — phase fully verified. This was the last phase in milestone v1.0.
+- [Milestone v1.0]: MAC vendor data source open decision (API proxy vs. local OUI dataset) resolved during Phase 5 planning: shipped as an interim `/api/mac-vendor` server-side proxy to maclookup.app per CLAUDE.md's explicitly-sanctioned stopgap path; build-time OUI dataset compaction remains the intended permanent architecture and is tracked as follow-up tech debt, not yet scheduled.
 
 ### Pending Todos
 
@@ -160,7 +165,8 @@ None yet.
 ### Blockers/Concerns
 
 - REQUIREMENTS.md's original Traceability section stated "41 total" v1 requirements, but the actual itemized count across SHELL/UUID/SUBNET/DNS/MAC/QUAL is 48. Corrected during roadmap creation — all 48 are mapped with 100% coverage. Worth a sanity check if this number is referenced elsewhere.
-- Open decisions deferred to their owning phases (per PROJECT.md): DNS primary/fallback resolver choice → resolve during Phase 4 planning; MAC vendor data source (API proxy vs. local OUI dataset) → resolve during Phase 5 planning; ad slot placement (layout reservation only) → no phase blocks on this.
+- All phase-owning open decisions resolved (DNS resolver choice — Phase 4; MAC vendor data source — Phase 5, interim API-proxy path). Remaining unresolved item, no phase blocks on it: ad slot placement (footer vs. sidebar) — layout reserves space only, deferred to whenever monetization work starts.
+- Tech debt tracked for a future milestone: `/api/mac-vendor`'s interim API-proxy architecture should migrate to a build-time-compacted local OUI dataset per CLAUDE.md; no rate limiting on `/api/mac-vendor` (accepted risk, AR-05-01) — revisit if production traffic warrants it.
 
 ## Deferred Items
 
@@ -172,6 +178,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-25T14:36:36.959Z
-Stopped at: Completed 05-03-PLAN.md
+Last session: 2026-07-25T17:40:00Z
+Stopped at: Phase 05 complete — milestone v1.0 fully shipped, ready for /gsd-complete-milestone
 Resume file: None
