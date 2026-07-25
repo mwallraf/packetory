@@ -5,15 +5,15 @@ milestone_name: milestone
 current_phase: 05
 current_phase_name: mac-address-inspector
 status: executing
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-07-25T13:24:11.019Z"
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-07-25T13:32:32.458Z"
 last_activity: 2026-07-25
 last_activity_desc: Phase 05 execution started
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 21
-  completed_plans: 19
+  completed_plans: 20
 ---
 
 # Project State
@@ -28,11 +28,11 @@ See: .planning/PROJECT.md (updated 2026-07-24)
 ## Current Position
 
 Phase: 05 (mac-address-inspector) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-07-25 — Phase 05 execution started
 
-Progress: [█████████░] 90%
+Progress: [██████████] 95%
 
 ## Performance Metrics
 
@@ -80,6 +80,7 @@ Progress: [█████████░] 90%
 | Phase 04 P03 | 3min | 2 tasks | 4 files |
 | Phase 04 P04 | 12min | 2 tasks | 2 files |
 | Phase 05 P01 | 15min | 3 tasks | 16 files |
+| Phase 05 P02 | 10min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -146,6 +147,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 04] Plan 04: E2E race regression test uses a one-shot locator.count()+toBe(0) sample at the critical checkpoint instead of expect(locator).toHaveCount(0) -- the auto-retrying assertion would silently pass on the pre-fix buggy code since the second domain's own later success overwrites the transient stale render before the assertion's retry timeout elapses
 - [Phase ?]: [Phase 05] Plan 01: DEFAULT_MAC = 3C:22:FB:AA:BB:CC (Apple-range OUI, U/L bit clear) chosen as the D-06 demo address so 05-02's future randomization flag never misclassifies it
 - [Phase ?]: [Phase 05] Plan 01: flipping tools/registry.ts mac.status to active broke 4 pre-existing tests hardcoding a 'mac stays planned' assumption (registry.test.ts, sitemap.test.ts, navigation.spec.ts, home.spec.ts) — fixed in place, same class of break as the Phase 2 uuid and Phase 4 dns flips
+- [Phase ?]: [Phase 05] Plan 02: classifyMac(bytes) called synchronously right after parseMacInput success, before formatMac, structurally guaranteeing MAC-08 (classification never depends on the vendor lookup shipping in 05-03)
+- [Phase ?]: [Phase 05] Plan 02: MacLookupState kept minimal (idle|incomplete-input|success) rather than pre-guessing 05-03's vendor-state shape
 
 ### Pending Todos
 
@@ -166,6 +169,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-25T13:24:11.010Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-07-25T13:32:32.450Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None

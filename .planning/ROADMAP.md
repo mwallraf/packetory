@@ -164,7 +164,7 @@ Plans:
   4. Bit-level classification (OUI, U/L, I/G, randomized-likelihood) still works and shows useful output even when vendor lookup fails or is unavailable.
   5. User can copy individual fields or the complete result, and full MAC addresses are never sent to analytics.
 
-**Plans**: 1/3 plans executed
+**Plans**: 2/3 plans executed
 Plans:
 **Wave 1**
 
@@ -172,7 +172,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 05-02-PLAN.md — Bit-level classification: OUI prefix + U/L, I/G, and hedged randomization badges, computed pure/offline (works with zero vendor network — MAC-08) (wave 2)
+- [x] 05-02-PLAN.md — Bit-level classification: OUI prefix + U/L, I/G, and hedged randomization badges, computed pure/offline (works with zero vendor network — MAC-08) (wave 2)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
@@ -191,4 +191,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. UUID Generator | 4/4 | Complete    | 2026-07-24 |
 | 3. IP Subnet Calculator | 5/5 | Complete    | 2026-07-24 |
 | 4. DNS Lookup | 4/4 | Complete    | 2026-07-25 |
-| 5. MAC Address Inspector | 1/3 | In Progress|  |
+| 5. MAC Address Inspector | 2/3 | In Progress|  |

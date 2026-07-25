@@ -53,11 +53,11 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **MAC-01**: User input is normalized as they type across common MAC formats
 - [x] **MAC-02**: Normalized format variants are displayed
 - [ ] **MAC-03**: Vendor/organization is returned where known from OUI
-- [ ] **MAC-04**: OUI prefix is identified and displayed
-- [ ] **MAC-05**: Locally vs. universally administered addressing (U/L bit) is identified
-- [ ] **MAC-06**: Unicast vs. multicast addressing (I/G bit) is identified
-- [ ] **MAC-07**: Likely randomized/private MAC addressing is flagged, worded as a hedge ("likely") not a certainty
-- [ ] **MAC-08**: Bit-level classification (MAC-04–MAC-07) still works and displays useful output when vendor lookup fails or is unavailable
+- [x] **MAC-04**: OUI prefix is identified and displayed
+- [x] **MAC-05**: Locally vs. universally administered addressing (U/L bit) is identified
+- [x] **MAC-06**: Unicast vs. multicast addressing (I/G bit) is identified
+- [x] **MAC-07**: Likely randomized/private MAC addressing is flagged, worded as a hedge ("likely") not a certainty
+- [x] **MAC-08**: Bit-level classification (MAC-04–MAC-07) still works and displays useful output when vendor lookup fails or is unavailable
 - [x] **MAC-09**: User can copy individual fields or the complete result
 - [ ] **MAC-10**: Full MAC addresses are never captured in analytics
 
@@ -167,11 +167,11 @@ Populated during roadmap creation (`/gsd-new-project` → roadmap step).
 | MAC-01 | Phase 5 | Complete |
 | MAC-02 | Phase 5 | Complete |
 | MAC-03 | Phase 5 | Pending |
-| MAC-04 | Phase 5 | Pending |
-| MAC-05 | Phase 5 | Pending |
-| MAC-06 | Phase 5 | Pending |
-| MAC-07 | Phase 5 | Pending |
-| MAC-08 | Phase 5 | Pending |
+| MAC-04 | Phase 5 | Complete |
+| MAC-05 | Phase 5 | Complete |
+| MAC-06 | Phase 5 | Complete |
+| MAC-07 | Phase 5 | Complete |
+| MAC-08 | Phase 5 | Complete |
 | MAC-09 | Phase 5 | Complete |
 | MAC-10 | Phase 5 | Pending |
 
