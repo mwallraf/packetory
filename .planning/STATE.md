@@ -2,43 +2,41 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-current_phase: 4
-current_phase_name: DNS Lookup
-status: "Phase 03 shipped — PR #11"
-stopped_at: Completed 03-04-PLAN.md
-last_updated: "2026-07-24T14:43:18.321Z"
-last_activity: 2026-07-24
+status: Awaiting next milestone
+stopped_at: Phase 05 complete — milestone v1.0 fully shipped, ready for /gsd-complete-milestone
+last_updated: "2026-07-25T15:26:54.706Z"
+last_activity: 2026-07-25
+last_activity_desc: Milestone v1.0 completed and archived
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 14
-  completed_plans: 14
-last_activity_desc: Phase 03 complete, transitioned to Phase 4
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 21
+  completed_plans: 21
+current_phase: 05
+current_phase_name: mac-address-inspector
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-24)
+See: .planning/PROJECT.md (updated 2026-07-25)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Phase 4 — DNS Lookup
+**Current focus:** v1.0 shipped and archived. Planning next milestone (`/gsd-new-milestone`).
 
 ## Current Position
 
-Phase: 4 — DNS Lookup
-Plan: Not started
-Status: Phase 03 shipped — PR #11
-Last activity: 2026-07-24
-
-Progress: [██████████] 100%
+Phase: Milestone v1.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-25 — Milestone v1.0 completed and archived
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 14
+- Total plans completed: 21
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -49,6 +47,8 @@ Progress: [██████████] 100%
 | 01 | 5 | - | - |
 | 02 | 4 | - | - |
 | 03 | 5 | - | - |
+| 04 | 4 | - | - |
+| 05 | 3 | - | - |
 
 **Recent Trend:**
 
@@ -74,6 +74,13 @@ Progress: [██████████] 100%
 | Phase 03 P05 | 20min | 3 tasks | 3 files |
 | Phase 03 P03 | 15min | 3 tasks | 5 files |
 | Phase 03 P04 | 10min | 3 tasks | 5 files |
+| Phase 04 P01 | 17min | 3 tasks | 18 files |
+| Phase 04 P02 | 19min | 2 tasks | 5 files |
+| Phase 04 P03 | 3min | 2 tasks | 4 files |
+| Phase 04 P04 | 12min | 2 tasks | 2 files |
+| Phase 05 P01 | 15min | 3 tasks | 16 files |
+| Phase 05 P02 | 10min | 3 tasks | 6 files |
+| Phase 05 P03 | 59min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -129,6 +136,25 @@ Recent decisions affecting current work:
 - [Phase 03]: Security review (gsd-secure-phase) verified 17/17 threats closed against actual implementation (XSS via JSX-only rendering, ReDoS-free bounded validation, D-01 analytics exclusion, BigInt precision, bounded subdivision list) plus 3 accepted no-new-dependency risks; ASVS L1 short-circuit applied (threats_open:0, plan-time register). SECURITY.md sign-off recorded 2026-07-24.
 - [Phase 03]: api-coverage gate (ai-integration capability) false-fired on "History API"/"searchParams" keyword matches — no external API integration exists in this phase. Resolved with 03-COVERAGE.md documenting the two OPT-OUTs (searchParams prop, third-party services) and one INTEGRATE (browser History API, not a service).
 - [Phase 03]: UAT (320px field-value wrapping, reverse-DNS non-aligned-prefix display convention) passed with zero issues 2026-07-24 — phase fully verified and transitioned to Phase 4.
+- [Phase ?]: [Phase 04] Plan 01: lib/dns/resolve.ts's resolveWithFallback falls back to Google only on genuine failure (network error, non-2xx, 429, timeout, or Status-2 SERVFAIL per Assumption A1) -- never on a legitimate NXDOMAIN/empty-NOERROR answer
+- [Phase ?]: [Phase 04] Plan 01: ?name=&type= URL state syncs only on a committed lookup (debounce fires or an immediate trigger runs), never on every keystroke (Assumption A2) -- differs from Subnet's per-keystroke sync since DNS lookups are async
+- [Phase ?]: [Phase 04] Plan 01: flipping tools/registry.ts dns to status:active broke 4 pre-existing tests hard-coding dns:'planned' (registry.test.ts, sitemap.test.ts, home.spec.ts, navigation.spec.ts); fixed in place, same class of break as Phase 2's uuid flip
+- [Phase ?]: [Phase 04] Plan 02: result panel shows exactly one of skeleton/loading-dim/success/one-of-4-error-cards; only invalid-input renders inline near the input, leaving the last valid result panel untouched
+- [Phase ?]: [Phase 04] Plan 02: fixed a pre-existing useKeyboardShortcut bug where Enter never fired while focus was inside a tool's own text input (isInteractiveTarget wrongly delegated to isEditableTarget) -- un-breaks DNS-03 and Subnet's Enter-blur, benefits all future tools
+- [Phase ?]: [Phase 04] Plan 03: sampleFields.value/ttl are the literal first Answer[] entry from a real live cloudflare-dns.com type-A query for cloudflare.com, captured during implementation (2026-07-24) rather than a lib/dns import
+- [Phase ?]: [Phase 04] Plan 03: privacy-notice D-02 disclosure added as a new paragraph inside the existing 'No accounts, no personal data' section rather than a new top-level section
+- [Phase ?]: [Phase 04] Plan 04 (gap closure): handleDomainChange's valid branch now calls cancelInFlightLookup() before scheduling the debounce, closing the last DNS-04/ROADMAP SC4 race-safety gap (04-VERIFICATION.md)
+- [Phase ?]: [Phase 04] Plan 04: E2E race regression test uses a one-shot locator.count()+toBe(0) sample at the critical checkpoint instead of expect(locator).toHaveCount(0) -- the auto-retrying assertion would silently pass on the pre-fix buggy code since the second domain's own later success overwrites the transient stale render before the assertion's retry timeout elapses
+- [Phase ?]: [Phase 05] Plan 01: DEFAULT_MAC = 3C:22:FB:AA:BB:CC (Apple-range OUI, U/L bit clear) chosen as the D-06 demo address so 05-02's future randomization flag never misclassifies it
+- [Phase ?]: [Phase 05] Plan 01: flipping tools/registry.ts mac.status to active broke 4 pre-existing tests hardcoding a 'mac stays planned' assumption (registry.test.ts, sitemap.test.ts, navigation.spec.ts, home.spec.ts) — fixed in place, same class of break as the Phase 2 uuid and Phase 4 dns flips
+- [Phase ?]: [Phase 05] Plan 02: classifyMac(bytes) called synchronously right after parseMacInput success, before formatMac, structurally guaranteeing MAC-08 (classification never depends on the vendor lookup shipping in 05-03)
+- [Phase ?]: [Phase 05] Plan 02: MacLookupState kept minimal (idle|incomplete-input|success) rather than pre-guessing 05-03's vendor-state shape
+- [Phase ?]: [Phase 05] Plan 03: demo-on-load and Esc-reset bypass the D-03 vendor debounce entirely (runVendorLookupImmediate) since D-06 requires the full result visible with zero user action; only live typing/paste go through the debounced path
+- [Phase ?]: [Phase 05] Plan 03: VendorState is a standalone 4-kind union (found/not-found/unavailable/not-applicable) with no pending member — the in-flight state is component-level UI orchestration, not a resolved lookup outcome
+- [Phase 05]: Code review (standard depth, re-run before --fix) found 1 Critical + 4 Warnings + 3 Info: a `null`-body upstream response could throw an uncaught 500 in `/api/mac-vendor` (violated its own "never 5xx" contract); unvalidated third-party JSON casts; failed vendor lookups cached for the whole session with no retry; `lib/mac` tests missing the CLAUDE.md-mandated `fast-check` property tests. 4/5 in-scope findings fixed and verified (263/263 unit tests, typecheck clean) before UAT; WR-01 (no rate limiting) correctly left unfixed as a deliberate accepted risk rather than hacked in with an unsafe IP-based limiter.
+- [Phase 05]: Security review (gsd-secure-phase) verified 9 threats across all 3 plans, all closed against actual implementation (OUI regex validation before fetch, hardcoded upstream host, OUI-only privacy boundary, AbortSignal timeout, classification/vendor decoupling, XSS-safe JSX rendering) plus 3 accepted risks (no rate limiting — cross-checked against 05-REVIEW.md WR-01; ReDoS-free parsing; no new dependencies). ASVS L1 short-circuit applied (threats_open:0, plan-time register). SECURITY.md sign-off recorded 2026-07-25.
+- [Phase 05]: UAT (7 judgment-tier items: 320px messy-input layout, no auto-reformat while typing, randomization-hedge wording, no coincidental vendor match for randomized MACs, distinct not-found-vs-unavailable copy, full-MAC-never-transmitted, long vendor-name wrap at 320px) passed with zero issues 2026-07-25 — phase fully verified. This was the last phase in milestone v1.0.
+- [Milestone v1.0]: MAC vendor data source open decision (API proxy vs. local OUI dataset) resolved during Phase 5 planning: shipped as an interim `/api/mac-vendor` server-side proxy to maclookup.app per CLAUDE.md's explicitly-sanctioned stopgap path; build-time OUI dataset compaction remains the intended permanent architecture and is tracked as follow-up tech debt, not yet scheduled.
 
 ### Pending Todos
 
@@ -137,7 +163,8 @@ None yet.
 ### Blockers/Concerns
 
 - REQUIREMENTS.md's original Traceability section stated "41 total" v1 requirements, but the actual itemized count across SHELL/UUID/SUBNET/DNS/MAC/QUAL is 48. Corrected during roadmap creation — all 48 are mapped with 100% coverage. Worth a sanity check if this number is referenced elsewhere.
-- Open decisions deferred to their owning phases (per PROJECT.md): DNS primary/fallback resolver choice → resolve during Phase 4 planning; MAC vendor data source (API proxy vs. local OUI dataset) → resolve during Phase 5 planning; ad slot placement (layout reservation only) → no phase blocks on this.
+- All phase-owning open decisions resolved (DNS resolver choice — Phase 4; MAC vendor data source — Phase 5, interim API-proxy path). Remaining unresolved item, no phase blocks on it: ad slot placement (footer vs. sidebar) — layout reserves space only, deferred to whenever monetization work starts.
+- Tech debt tracked for a future milestone: `/api/mac-vendor`'s interim API-proxy architecture should migrate to a build-time-compacted local OUI dataset per CLAUDE.md; no rate limiting on `/api/mac-vendor` (accepted risk, AR-05-01) — revisit if production traffic warrants it.
 
 ## Deferred Items
 
@@ -149,6 +176,10 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-24T16:52:00.000Z
-Stopped at: Phase 3 shipped as PR #11, CI verified on merge-ready commit
+Last session: 2026-07-25T17:40:00Z
+Stopped at: Phase 05 complete — milestone v1.0 fully shipped, ready for /gsd-complete-milestone
 Resume file: None
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone

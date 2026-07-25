@@ -38,16 +38,26 @@ function isEditableTarget(target: EventTarget | null): boolean {
   return target.contentEditable === "true";
 }
 
-/** True when focus is on a native/ARIA interactive control (button, link,
- * radio, or an editable field) that self-activates on Enter. Used to guard
- * the global `Enter` shortcut (CR-01) so it doesn't double-fire alongside a
- * focused control's own `click` — otherwise both the control's `onClick`
- * (against a stale pre-update closure, since React batches the `enter`
- * handler's state update) and the global `enter` handler run for the same
- * keypress, desyncing what's copied/downloaded from what's displayed. */
+/** True when focus is on a native/ARIA interactive control (button, link, or
+ * radio) that self-activates on Enter. Used to guard the global `Enter`
+ * shortcut (CR-01) so it doesn't double-fire alongside a focused control's
+ * own `click` — otherwise both the control's `onClick` (against a stale
+ * pre-update closure, since React batches the `enter` handler's state
+ * update) and the global `enter` handler run for the same keypress,
+ * desyncing what's copied/downloaded from what's displayed.
+ *
+ * Deliberately does NOT treat a plain text `input`/`textarea` as
+ * "interactive" here (unlike `isEditableTarget`, which this function used to
+ * delegate to) — none of this project's forms wrap inputs in a `<form>`, so
+ * a bare text field never "self-activates" on Enter the way a button/radio
+ * does. Text inputs are exactly where a global Enter-triggers-the-primary-
+ * action shortcut (DNS-03's "pressing Enter resolves immediately", Subnet's
+ * Enter-blurs) is MEANT to fire — the previous over-broad check silently
+ * disabled every tool's Enter shortcut while the user was actively typing in
+ * its one free-text input (found during 04-02 while writing the DNS race
+ * E2E test, which requires Enter to work from inside the domain input). */
 function isInteractiveTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
-  if (isEditableTarget(target)) return true;
   return target.closest('button, [role="button"], [role="radio"], a[href]') !== null;
 }
 

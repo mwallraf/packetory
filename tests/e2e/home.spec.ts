@@ -34,32 +34,19 @@ test.describe("Landing page — tool registry grid", () => {
     ]);
   });
 
-  test("each 'planned' card shows a muted 'Coming soon' badge; the 'active' uuid/subnet cards do not (Phase 2 Plan 01, Phase 3 Plan 01); no card is itself a clickable link (ToolCard renders no wrapping anchor)", async ({
+  test("no card shows a 'Coming soon' badge now that all four registry tools are 'active' (Phase 2 Plan 01, Phase 3 Plan 01, Phase 4 Plan 01, Phase 5 Plan 01); no card is itself a clickable link (ToolCard renders no wrapping anchor)", async ({
     page,
   }) => {
     await page.goto("/");
 
     // Registry sort order: Subnet, UUID, DNS, MAC (see the preceding test) —
-    // uuid and subnet are "active" as of this plan; DNS/MAC stay "planned".
-    const cardNames = [
-      "IP Subnet Calculator",
-      "UUID Generator",
-      "DNS Lookup",
-      "MAC Address Inspector",
-    ];
-    const activeCardNames = ["IP Subnet Calculator", "UUID Generator"];
+    // all four are "active" as of this plan.
     const cards = page.getByTestId("tool-card");
     await expect(cards).toHaveCount(4);
 
-    for (let i = 0; i < cardNames.length; i++) {
+    for (let i = 0; i < 4; i++) {
       const card = cards.nth(i);
-      const isActive = activeCardNames.includes(cardNames[i]!);
-
-      if (isActive) {
-        await expect(card.getByText("Coming soon")).toHaveCount(0);
-      } else {
-        await expect(card.getByText("Coming soon")).toBeVisible();
-      }
+      await expect(card.getByText("Coming soon")).toHaveCount(0);
       // ToolCard never wraps itself in an anchor tag, active or planned.
       await expect(card.locator("a")).toHaveCount(0);
     }
