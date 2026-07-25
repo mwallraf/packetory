@@ -4,17 +4,17 @@ milestone: v1.1
 milestone_name: Production Domain & Landing Page Polish
 current_phase: 06
 current_phase_name: landing-page-card-navigation
-status: executing
-stopped_at: Completed 06-01-PLAN.md
-last_updated: "2026-07-25T19:40:07.623Z"
+status: verifying
+stopped_at: Completed 06-02-PLAN.md
+last_updated: "2026-07-25T19:44:00.381Z"
 last_activity: 2026-07-25
 last_activity_desc: Phase 06 execution started
 progress:
   total_phases: 2
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
-  percent: 0
+  completed_plans: 2
+  percent: 50
 ---
 
 # Project State
@@ -30,10 +30,10 @@ See: .planning/PROJECT.md (updated 2026-07-25)
 
 Phase: 06 (landing-page-card-navigation) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-25 — Phase 06 execution started
 
-Progress: [█████░░░░░] 50%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -87,6 +87,7 @@ Progress: [█████░░░░░] 50%
 | Phase 05 P02 | 10min | 3 tasks | 6 files |
 | Phase 05 P03 | 59min | 3 tasks | 9 files |
 | Phase 06 P01 | 25min | 3 tasks | 3 files |
+| Phase 06 P02 | 5min | 1 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -100,6 +101,7 @@ Recent decisions affecting current work:
 - [Roadmap v1.1]: Discovered during roadmap creation that `SITE_URL` in `app/sitemap.ts` already hardcodes `https://packetory.dev` (set proactively in Phase 1, before the domain existed) and every tool page's canonical/OG tags already derive from it — a repo-wide grep found zero remaining `packetory.vercel.app` literals in application code. Phase 7's DOM-03 work is therefore primarily an audit/confirmation pass, not a wholesale string-replace; the real remaining code gap is the www/vercel.app → apex redirect (DOM-02), which does not yet exist in `next.config.ts` or `vercel.json`.
 - [Roadmap v1.1]: Phase 7's success criteria are explicitly split into agent-verifiable (code/config/runbook correctness) vs. user-confirmation-required (live HTTPS resolution and redirect behavior, both of which depend on the user's own domain registration and Vercel dashboard steps per project-brief.md §14's human-approval rule on domain purchases).
 - [Phase 06]: Stretched-link pattern (Link + after:inset-0 in CardTitle, relative on Card) shipped exactly per CONTEXT.md D-01..D-06 and UI-SPEC's prescriptive class list — no implementation discretion needed.
+- [Phase ?]: [Phase 06]: Human-verify checkpoint approved on first pass — full-card hover/focus ring geometry confirmed correct with no issues, closing out plan 06-01's implementation with no rework needed.
 
 ### Pending Todos
 
@@ -120,8 +122,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-25T19:40:07.615Z
-Stopped at: Completed 06-01-PLAN.md
+Last session: 2026-07-25T19:44:00.373Z
+Stopped at: Completed 06-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

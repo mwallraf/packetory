@@ -38,14 +38,14 @@ Full phase details archived at `.planning/milestones/v1.0-ROADMAP.md`.
   2. A card can be reached via Tab and activated via Enter/Space, with a visible focus indicator — the grid stays fully keyboard-operable, matching the site's keyboard-first non-negotiable
   3. A tool card with `status: "planned"` (if one exists in the registry, now or in the future) keeps rendering as a non-interactive "Coming soon" card that does not navigate anywhere — today's placeholder behavior isn't broken by making active cards clickable
 
-**Plans**: 1/2 plans executed
+**Plans**: 2/2 plans executed
 **Wave 1**
 
 - [x] 06-01-PLAN.md — Stretched-link + full-card ring in ToolCard, component unit test, updated home E2E (LP-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 06-02-PLAN.md — Human-verify checkpoint: full-card hover/focus ring visually encloses the card at all breakpoints
+- [x] 06-02-PLAN.md — Human-verify checkpoint: full-card hover/focus ring visually encloses the card at all breakpoints
 
 **UI hint**: yes
 
@@ -73,5 +73,5 @@ Full phase details archived at `.planning/milestones/v1.0-ROADMAP.md`.
 | 3. IP Subnet Calculator | v1.0 | 5/5 | Complete | 2026-07-24 |
 | 4. DNS Lookup | v1.0 | 4/4 | Complete | 2026-07-25 |
 | 5. MAC Address Inspector | v1.0 | 3/3 | Complete | 2026-07-25 |
-| 6. Landing Page Card Navigation | v1.1 | 1/2 | In Progress|  |
+| 6. Landing Page Card Navigation | v1.1 | 2/2 | In Progress|  |
 | 7. Production Domain Cutover | v1.1 | 0/TBD | Not started | - |
