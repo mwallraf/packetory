@@ -65,7 +65,7 @@ Full phase details archived at `.planning/milestones/v1.0-ROADMAP.md`.
   4. **MET** *(Requires user confirmation after the user's own manual steps)* Once the user has registered the domain and completed the Vercel dashboard configuration per the runbook, `https://packetory.dev` resolves the live site over valid HTTPS (DOM-01) — verified live 2026-07-25 via `curl -sI https://packetory.dev` → `HTTP/2 200`, valid TLS certificate (`CN=packetory.dev`), per D-01.
   5. **DESCOPED** *(Requires user confirmation after the user's own manual steps)* `packetory.vercel.app` and `www.packetory.dev` both redirect to `https://packetory.dev` in production (DOM-02) — descoped alongside criterion 2 per D-02/D-03/D-04; neither redirect exists and none was added this phase.
 
-**Plans**: 1/1 plan executed
+**Plans**: 1/1 plans executed
 **Wave 1**
 
 - [x] 07-01-PLAN.md — DOM-03 confirmation audit + reconcile REQUIREMENTS/ROADMAP/PROJECT docs (DOM-01 verified-live, DOM-02/DOM-04 descoped) (DOM-01, DOM-02, DOM-03, DOM-04)
