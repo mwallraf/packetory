@@ -592,6 +592,12 @@ export function DnsTool() {
       return;
     }
 
+    // DNS-04 (CR-01 sub-case): a superseding valid edit must also abort any
+    // already-in-flight lookup and orphan its sequence token BEFORE arming
+    // the new debounce timer -- otherwise a slower earlier request's stale
+    // response can still land and render after the input has moved on.
+    cancelInFlightLookup();
+
     setState((prev) => ({
       ...prev,
       rawDomain: value,
