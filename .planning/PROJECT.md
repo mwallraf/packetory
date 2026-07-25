@@ -41,6 +41,7 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 - ✓ DNS Lookup — A/AAAA/MX/TXT/NS/CNAME via DNS-over-HTTPS, Cloudflare primary + Google fallback with transparent resolver/duration attribution, debounced typed input (700ms) with instant paste/Enter/Refresh trigger, race-safe `AbortController` + sequence-token cancellation (both invalid- and valid-input edits cancel a stale in-flight request), 5-state QUAL-08 error matrix, bookmarkable URL state (`?name=&type=`) — Phase 4 (`/tools/dns`; 60 unit + 12 e2e tests; 4 plans incl. 1 gap-closure round; security-reviewed, 0 open threats — `04-SECURITY.md` confirmed verified, correcting a prior stale note here that listed the review as still outstanding)
 - ✓ MAC Address Inspector — live 4-format normalization (colon/dash/Cisco-dot/no-separator), OUI prefix + U/L/I/G bit-level classification with hedged randomization badge (never certain), vendor/organization lookup via a new server-side `/api/mac-vendor` Route Handler (OUI-only privacy boundary, debounced + session-cached, graceful degradation), per-field and full-result copy — Phase 5 (`/tools/mac`; 263 unit + 66 e2e tests; 3 plans; security-reviewed, 0 open threats — 1 deliberately accepted risk, no rate limiting on the vendor proxy; 7/7 UAT items user-confirmed 2026-07-25)
 - ✓ Landing page grid cards link to their tool pages (LP-01) — full-card stretched-link click target (click anywhere on the card, not just the title), keyboard Tab/Enter activation, full-card hover/focus-visible accent ring reaching parity with the nav menu; `status:"planned"` cards stay inert — Phase 6 (`components/ToolCard.tsx`; 2 plans, 5 unit + 2 new e2e tests; human-verified ring encloses the full card at desktop and 320px 2026-07-25)
+- ✓ Production domain cutover (DOM-01, DOM-03) — site verified live at `https://packetory.dev` over valid HTTPS (`curl -sI` → `HTTP/2 200`, TLS `CN=packetory.dev`); every canonical URL/OG tag/sitemap entry/`robots.txt` reference confirmed to derive from the single `SITE_URL` constant (`app/sitemap.ts`) via a repo-wide audit — zero code changes needed — Phase 7 (1 plan, docs-only; DOM-02 redirects and DOM-04 runbook deliberately descoped, see Active)
 
 - ✓ Framework-agnostic core logic (`lib/`) per tool, independently unit-testable, shared by pages and future API routes — Phase 2 (`lib/uuid/*`), Phase 3 (`lib/subnet/*`), Phase 4 (`lib/dns/*`), Phase 5 (`lib/mac/{types,parse,format,classify,vendor}.ts`) — all zero framework imports, all unit-tested in isolation. Established as a consistent pattern across all 4 v1 tools.
 - ✓ Per-tool SEO — unique title/meta/canonical/OG tags, worked example, and content-matched FAQPage JSON-LD — shipped for all 4 v1 tools: UUID (Phase 2), Subnet (Phase 3), DNS (Phase 4, `app/tools/dns/faq-data.ts`), MAC (Phase 5, `app/tools/mac/faq-data.ts` — includes D-01/D-02 privacy disclosure and D-09 randomization-wording FAQ)
@@ -53,6 +54,8 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 - [ ] Public developer API (`@packetory/core` style package reusing the same `lib/` modules) — deferred to a post-v1 milestone per Business Context; no work started
 - [ ] Build-time OUI dataset compaction to replace `/api/mac-vendor`'s interim API-proxy architecture — tracked tech debt from Phase 5 (CLAUDE.md's stated long-term direction); no work started
 - [ ] Rate limiting on `/api/mac-vendor` — accepted risk (AR-05-01) at v1.0 launch; revisit if production traffic warrants it
+- [ ] `packetory.vercel.app` / `www.packetory.dev` → apex redirects (DOM-02) — deliberately descoped in Phase 7 after the user reviewed live evidence; accepted consequence: `packetory.vercel.app` stays live as a duplicate-content URL and `www.packetory.dev` keeps failing TLS; revisit if duplicate-content SEO or the `www` TLS gap becomes a priority
+- [ ] Domain registration / DNS runbook (DOM-04) — deliberately descoped in Phase 7; the user had already completed the one-time manual registration and Vercel-dashboard steps and did not want them documented after the fact
 
 ### Out of Scope
 
@@ -131,4 +134,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-25 after v1.1 milestone started*
+*Last updated: 2026-07-25 after Phase 7 (Production Domain Cutover) completed*
