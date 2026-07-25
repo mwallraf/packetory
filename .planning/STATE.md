@@ -2,18 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Production Domain & Landing Page Polish
-current_phase: 07
-status: completed
+status: Awaiting next milestone
 stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-07-25T20:33:15.614Z"
+last_updated: "2026-07-25T20:39:02.894Z"
 last_activity: 2026-07-25
-last_activity_desc: Phase 07 complete
+last_activity_desc: Milestone v1.1 completed and archived
 progress:
   total_phases: 2
   completed_phases: 2
   total_plans: 3
   completed_plans: 3
   percent: 100
+current_phase: 07
 current_phase_name: production-domain-cutover-packetory-dev
 ---
 
@@ -28,12 +28,10 @@ See: .planning/PROJECT.md (updated 2026-07-25)
 
 ## Current Position
 
-Phase: 07
-Plan: Not started
-Status: All phases complete
-Last activity: 2026-07-25 — Phase 07 complete
-
-Progress: [██████████] 100%
+Phase: Milestone v1.1 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-25 — Milestone v1.1 completed and archived
 
 ## Performance Metrics
 
@@ -130,5 +128,4 @@ Resume file: None
 
 ## Operator Next Steps
 
-- Run `/gsd-execute-phase 6` to execute the 2 plans (06-01 implementation+tests, 06-02 human-verify checkpoint for the full-card hover/focus ring).
-- Phase 7 (Production Domain Cutover) is still unplanned and independent — `/gsd-plan-phase 7` whenever.
+- Start the next milestone with /gsd-new-milestone
