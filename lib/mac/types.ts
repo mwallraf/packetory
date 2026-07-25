@@ -47,22 +47,46 @@ export type MacClassification = {
   randomizationLikely: boolean;
 };
 
+/** The vendor/OUI-lookup result (MAC-03, MAC-08, MAC-10, D-11, D-12).
+ * Resolves 05-RESEARCH.md Open Question 1: a genuine "not found in the OUI
+ * registry" answer (`not-found`) is its own state, distinct from a failed
+ * lookup (`unavailable`) — a working lookup returning a negative result must
+ * never be misrepresented as broken, and a failure must never be disguised
+ * as a clean miss (05-RESEARCH.md Pitfall 3). `not-applicable` covers D-12:
+ * a locally-administered/likely-randomized MAC skips the lookup entirely
+ * rather than surfacing a coincidental match as if it were the device's real
+ * hardware vendor. There is deliberately no "pending"/"loading" member here
+ * — the in-flight "Looking up vendor…" state is orchestration state owned
+ * by the UI layer (`app/tools/mac/MacTool.tsx`), not a resolved outcome of
+ * the lookup itself. */
+export type VendorState =
+  | { kind: "found"; company: string }
+  | { kind: "not-found" }
+  | { kind: "unavailable" }
+  | { kind: "not-applicable" };
+
 /** A fully-computed, offline-only MAC result: the 4 normalized formats plus
  * the bit-level classification, always completing together the instant a
- * MAC parses valid (MAC-08, no partial-state gap). */
+ * MAC parses valid (MAC-08, no partial-state gap) — plus the current vendor
+ * lookup outcome (MAC-03), which completes independently and later, never
+ * gating the two offline fields above (MAC-08's isolation guarantee). */
 export type MacSuccessResult = {
   formats: MacFormats;
   classification: MacClassification;
+  vendor: VendorState;
 };
 
 /** Discriminated union covering MAC Address Inspector UI states, mirroring
  * `lib/dns/types.ts`'s `DnsLookupState` discriminated-union convention
  * (D-07's "keep last valid visible, dimmed" pattern) — every non-idle,
  * non-success variant carries the last valid `MacSuccessResult` so the UI
- * can dim-and-keep rather than blank. Only `idle`/`incomplete-input`/
- * `success` are needed for this plan's offline classification+formatting
- * slice (MAC-04..MAC-08); 05-03 layers vendor-lookup states on top without
- * needing to change this shape. */
+ * can dim-and-keep rather than blank. `idle`/`incomplete-input`/`success`
+ * were sufficient for 05-02's offline classification+formatting slice
+ * (MAC-04..MAC-08); this shape itself did not need to change for 05-03's
+ * vendor lookup — only `MacSuccessResult` (embedded in the last two
+ * variants) grew a `vendor: VendorState` field, so both `incomplete-input`'s
+ * dimmed carry-over and `success`'s live result automatically include the
+ * current vendor outcome with no structural change here. */
 export type MacLookupState =
   | { status: "idle" }
   | {
