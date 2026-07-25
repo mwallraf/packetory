@@ -30,10 +30,19 @@ describe("parseMacInput", () => {
     });
   });
 
-  it("strips messy mixed separators and surrounding noise (backstop: ifconfig/ipconfig-style paste)", () => {
-    expect(parseMacInput("  00:1a-2b.3c4d5E  interface0")).toEqual({
+  it("extracts hex digits despite surrounding whitespace/punctuation noise carrying no extra hex characters", () => {
+    expect(parseMacInput("  00:1a-2b.3c4d5E  !!")).toEqual({
       valid: true,
       bytes: [0x00, 0x1a, 0x2b, 0x3c, 0x4d, 0x5e],
+    });
+  });
+
+  it("rejects (never crashes on) messy input whose trailing noise itself contains extra hex-valid characters, e.g. an ifconfig/ipconfig interface-name suffix (backstop: parse must still correctly extract-or-reject, never throw)", () => {
+    // "eth0" contributes its own hex-valid characters ("e" and "0"), so the
+    // stripped string is 14 hex characters, not 12 — correctly rejected
+    // rather than silently truncated or mis-parsed.
+    expect(parseMacInput("00:1A:2B:3C:4D:5E eth0")).toEqual({
+      valid: false,
     });
   });
 
