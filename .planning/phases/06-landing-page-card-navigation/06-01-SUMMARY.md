@@ -136,3 +136,7 @@ None - no external service configuration required.
 ---
 *Phase: 06-landing-page-card-navigation*
 *Completed: 2026-07-25*
+
+## Self-Check: PASSED
+
+All created/modified files verified present on disk; all four task/summary commit hashes (`2d96ea4`, `fb12947`, `b22efff`, `8d2ba58`) verified present in `git log`.
