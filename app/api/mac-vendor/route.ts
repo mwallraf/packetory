@@ -109,15 +109,34 @@ export async function GET(request: NextRequest) {
   // successfully without throwing, so it must be shape-checked here BEFORE
   // any field is ever touched — otherwise `body.success` throws an uncaught
   // TypeError on a `null` body, escaping this try/catch and crashing the
-  // route with an unhandled 500 (CR-01).
-  if (!body || typeof body !== "object" || !(body as Partial<UpstreamShape>).success) {
+  // route with an unhandled 500 (CR-01). Every field is also type-checked
+  // (not just presence-checked) so an upstream shape drift — e.g. `found`
+  // present as a truthy non-boolean, or `company` omitted on a `found: true`
+  // response — degrades to `unavailable` (WR-02) instead of silently
+  // returning a blank/`undefined` vendor name to the client.
+  const candidate = body as Partial<UpstreamShape> | null;
+  const isValidShape =
+    !!candidate &&
+    typeof candidate === "object" &&
+    typeof candidate.success === "boolean" &&
+    typeof candidate.found === "boolean" &&
+    (candidate.found ? typeof candidate.company === "string" : true);
+
+  if (!isValidShape) {
     return NextResponse.json(
       { status: "unavailable" },
       { status: 200, headers: { "Cache-Control": "no-store" } }
     );
   }
 
-  const upstream = body as UpstreamShape;
+  const upstream = candidate as UpstreamShape;
+
+  if (!upstream.success) {
+    return NextResponse.json(
+      { status: "unavailable" },
+      { status: 200, headers: { "Cache-Control": "no-store" } }
+    );
+  }
 
   // upstream.found === false is a genuine negative registry answer, not a
   // failure (Pitfall 3) — shaped down to only found/company, never the

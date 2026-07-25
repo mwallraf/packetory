@@ -36,6 +36,36 @@ type MacVendorRouteResponse =
   | { status: "ok"; found: boolean; company: string | null };
 
 /**
+ * Runtime-validates an unknown parsed JSON body against
+ * `MacVendorRouteResponse` before trusting any of its fields (WR-02) — any
+ * shape mismatch (missing/mistyped fields, an unexpected `status` value)
+ * degrades to `unavailable` rather than propagating an `undefined`/garbage
+ * value into the `VendorState` the UI renders.
+ */
+function toVendorState(parsed: unknown): VendorState {
+  if (!parsed || typeof parsed !== "object") return { kind: "unavailable" };
+  const candidate = parsed as {
+    status?: unknown;
+    found?: unknown;
+    company?: unknown;
+  };
+
+  if (candidate.status === "unavailable") return { kind: "unavailable" };
+
+  if (
+    candidate.status === "ok" &&
+    typeof candidate.found === "boolean" &&
+    (candidate.company === null || typeof candidate.company === "string")
+  ) {
+    return candidate.found
+      ? { kind: "found", company: candidate.company ?? "" }
+      : { kind: "not-found" };
+  }
+
+  return { kind: "unavailable" };
+}
+
+/**
  * Resolves the vendor for a given OUI: a cache hit short-circuits with no
  * fetch at all; a cache miss fetches `/api/mac-vendor?oui=<ouiHex>`, maps
  * the route's response into the 4-kind `VendorState`, caches it, and
@@ -60,13 +90,15 @@ export async function lookupVendor(
       // (D-11) rather than throwing an unclassified error.
       result = { kind: "unavailable" };
     } else {
-      const body = (await response.json()) as MacVendorRouteResponse;
-      result =
-        body.status === "unavailable"
-          ? { kind: "unavailable" }
-          : body.found
-            ? { kind: "found", company: body.company ?? "" }
-            : { kind: "not-found" };
+      // Cast to `unknown` first and validate the shape via `toVendorState`
+      // (rather than blindly `as`-casting straight to
+      // `MacVendorRouteResponse`) so a wire-format drift from our own
+      // route — e.g. `found` present as a truthy non-boolean, `company`
+      // missing on a `found: true` response, or a literal `null`/non-object
+      // body — degrades to `unavailable` instead of throwing or producing a
+      // malformed `VendorState` (WR-02, D-11).
+      const parsed = (await response.json()) as unknown;
+      result = toVendorState(parsed);
     }
   } catch (err) {
     if (signal?.aborted) throw err; // cancellation, not a failure (Pitfall 2)
