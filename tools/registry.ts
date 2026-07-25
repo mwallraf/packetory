@@ -70,7 +70,7 @@ export const tools: ToolDefinition[] = [
     category: "network",
     keywords: ["mac", "oui", "vendor", "ethernet"],
     icon: "Cpu",
-    status: "planned",
+    status: "active",
     clientOnly: false,
     featured: false,
   },

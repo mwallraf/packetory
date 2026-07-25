@@ -29,15 +29,14 @@ test.describe("Mobile nav drawer (320px, D-04, SHELL-06)", () => {
     await expect(drawer).toBeVisible();
 
     // shortName items per tools/registry.ts — uuid (Phase 2 Plan 01),
-    // subnet (Phase 3 Plan 01), and dns (Phase 4 Plan 01) are "active" and
-    // rendered as real links; MAC stays status:"planned", rendered
-    // muted/non-clickable (D-01).
+    // subnet (Phase 3 Plan 01), dns (Phase 4 Plan 01), and mac (Phase 5
+    // Plan 01) are all "active" and rendered as real links.
     for (const shortName of ["Subnet", "UUID", "DNS", "MAC"]) {
       await expect(
         drawer.getByText(shortName, { exact: true })
       ).toBeVisible();
     }
-    await expect(drawer.locator("a")).toHaveCount(3);
+    await expect(drawer.locator("a")).toHaveCount(4);
     await expect(
       drawer.getByTestId("mobile-nav-link").getByText("UUID", { exact: true })
     ).toBeVisible();
@@ -46,6 +45,9 @@ test.describe("Mobile nav drawer (320px, D-04, SHELL-06)", () => {
     ).toBeVisible();
     await expect(
       drawer.getByTestId("mobile-nav-link").getByText("DNS", { exact: true })
+    ).toBeVisible();
+    await expect(
+      drawer.getByTestId("mobile-nav-link").getByText("MAC", { exact: true })
     ).toBeVisible();
 
     // Logo and theme toggle remain visible outside the drawer while it's open (D-04).
