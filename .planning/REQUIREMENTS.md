@@ -9,7 +9,7 @@ Requirements for this milestone. Each maps to a roadmap phase.
 
 ### Landing Page
 
-- [ ] **LP-01**: User can click a tool card in the landing page grid to navigate to that tool (parity with the nav menu, which already links correctly)
+- [x] **LP-01**: User can click a tool card in the landing page grid to navigate to that tool (parity with the nav menu, which already links correctly)
 
 ### Domain / Infrastructure
 
@@ -32,13 +32,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LP-01 | Phase 6 | Pending |
+| LP-01 | Phase 6 | Complete |
 | DOM-01 | Phase 7 | Pending |
 | DOM-02 | Phase 7 | Pending |
 | DOM-03 | Phase 7 | Pending |
 | DOM-04 | Phase 7 | Pending |
 
 **Coverage:**
+
 - v1.1 requirements: 5 total
 - Mapped to phases: 5
 - Unmapped: 0 ✓
