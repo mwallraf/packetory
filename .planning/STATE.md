@@ -5,10 +5,10 @@ milestone_name: Production Domain & Landing Page Polish
 current_phase: 6
 current_phase_name: Landing Page Card Navigation
 status: planning
-stopped_at: Phase 6 context gathered
-last_updated: "2026-07-25T18:33:28.263Z"
+stopped_at: Phase 6 planned (2 plans ready)
+last_updated: "2026-07-25T21:00:00.000Z"
 last_activity: 2026-07-25
-last_activity_desc: ROADMAP.md created for v1.1, 5/5 requirements mapped (LP-01 → Phase 6; DOM-01..04 → Phase 7)
+last_activity_desc: Phase 6 planning complete — 2 plans ready (06-01 implementation+tests, 06-02 human-verify checkpoint)
 progress:
   total_phases: 2
   completed_phases: 0
@@ -24,14 +24,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-25)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** v1.1 ROADMAP.md created (Phase 6: Landing Page Card Navigation, Phase 7: Production Domain Cutover). Ready to plan a phase (`/gsd-plan-phase 6` or `/gsd-plan-phase 7` — no ordering dependency between them).
+**Current focus:** Phase 6 (Landing Page Card Navigation) planned — 2 plans across 2 waves, ready to execute. Phase 7 (Production Domain Cutover) still ready to plan whenever, no dependency between them.
 
 ## Current Position
 
-Phase: 6 of 7 (Landing Page Card Navigation) — not yet planned; Phase 7 (Production Domain Cutover) also ready, no dependency between them
+Phase: 6 of 7 (Landing Page Card Navigation) — planned, 2 plans across 2 waves, ready to execute; Phase 7 (Production Domain Cutover) still ready to plan, no dependency between them
 Plan: —
-Status: Roadmap complete, ready to plan
-Last activity: 2026-07-25 — ROADMAP.md created for v1.1, 5/5 requirements mapped (LP-01 → Phase 6; DOM-01..04 → Phase 7)
+Status: Ready to execute
+Last activity: 2026-07-25 — Phase 6 planning complete (06-01 implementation+tests, 06-02 human-verify checkpoint), requirements + decision coverage gates passed
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -52,7 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 | 03 | 5 | - | - |
 | 04 | 4 | - | - |
 | 05 | 3 | - | - |
-| 06 | TBD | - | - |
+| 06 | 2 | - | - |
 | 07 | TBD | - | - |
 
 **Recent Trend:**
@@ -118,10 +118,11 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-25T18:33:28.251Z
-Stopped at: Phase 6 context gathered
-Resume file: .planning/phases/06-landing-page-card-navigation/06-CONTEXT.md
+Last session: 2026-07-25T21:00:00.000Z
+Stopped at: Phase 6 planned (2 plans ready)
+Resume file: .planning/phases/06-landing-page-card-navigation/06-01-PLAN.md
 
 ## Operator Next Steps
 
-- Run `/gsd-plan-phase 6` (Landing Page Card Navigation) or `/gsd-plan-phase 7` (Production Domain Cutover) — either can go first, there's no dependency between them.
+- Run `/gsd-execute-phase 6` to execute the 2 plans (06-01 implementation+tests, 06-02 human-verify checkpoint for the full-card hover/focus ring).
+- Phase 7 (Production Domain Cutover) is still unplanned and independent — `/gsd-plan-phase 7` whenever.
