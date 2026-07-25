@@ -22,7 +22,7 @@ Full phase details archived at `.planning/milestones/v1.0-ROADMAP.md`.
 
 ### v1.1 Production Domain & Landing Page Polish (Phases 6-7)
 
-- [ ] **Phase 6: Landing Page Card Navigation** - Tool cards in the landing grid become clickable, reaching parity with the nav menu
+- [x] **Phase 6: Landing Page Card Navigation** - Tool cards in the landing grid become clickable, reaching parity with the nav menu (completed 2026-07-25)
 - [ ] **Phase 7: Production Domain Cutover (packetory.dev)** - Code-side domain cutover (canonical URLs, redirects, runbook) separated from the manual registration/DNS steps only the user can perform
 
 ## Phase Details
@@ -73,5 +73,5 @@ Full phase details archived at `.planning/milestones/v1.0-ROADMAP.md`.
 | 3. IP Subnet Calculator | v1.0 | 5/5 | Complete | 2026-07-24 |
 | 4. DNS Lookup | v1.0 | 4/4 | Complete | 2026-07-25 |
 | 5. MAC Address Inspector | v1.0 | 3/3 | Complete | 2026-07-25 |
-| 6. Landing Page Card Navigation | v1.1 | 2/2 | In Progress|  |
+| 6. Landing Page Card Navigation | v1.1 | 2/2 | Complete    | 2026-07-25 |
 | 7. Production Domain Cutover | v1.1 | 0/TBD | Not started | - |
