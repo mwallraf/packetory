@@ -34,7 +34,7 @@ test.describe("Landing page — tool registry grid", () => {
     ]);
   });
 
-  test("no card shows a 'Coming soon' badge now that all four registry tools are 'active' (Phase 2 Plan 01, Phase 3 Plan 01, Phase 4 Plan 01, Phase 5 Plan 01); no card is itself a clickable link (ToolCard renders no wrapping anchor)", async ({
+  test("no card shows a 'Coming soon' badge now that all four registry tools are 'active' (Phase 2 Plan 01, Phase 3 Plan 01, Phase 4 Plan 01, Phase 5 Plan 01); each active card renders exactly one clickable anchor (stretched-link, Phase 6 Plan 01)", async ({
     page,
   }) => {
     await page.goto("/");
@@ -47,9 +47,36 @@ test.describe("Landing page — tool registry grid", () => {
     for (let i = 0; i < 4; i++) {
       const card = cards.nth(i);
       await expect(card.getByText("Coming soon")).toHaveCount(0);
-      // ToolCard never wraps itself in an anchor tag, active or planned.
-      await expect(card.locator("a")).toHaveCount(0);
+      // Each active card renders exactly one stretched-link anchor (LP-01).
+      await expect(card.locator("a")).toHaveCount(1);
     }
+  });
+
+  test("clicking anywhere on an active tool card navigates to its /tools/{slug} page", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const card = page.getByTestId("tool-card").first();
+    // Click a corner point inside the card that is NOT the title text/link
+    // itself — proves the stretched-link hit area covers the whole card.
+    await card.click({ position: { x: 10, y: 10 } });
+
+    await expect(page).toHaveURL(/\/tools\//);
+  });
+
+  test("a tool card link is reachable by keyboard and activates on Enter", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const link = page.getByTestId("tool-card").first().locator("a");
+    await link.focus();
+    await expect(link).toBeFocused();
+
+    await page.keyboard.press("Enter");
+
+    await expect(page).toHaveURL(/\/tools\//);
   });
 });
 
