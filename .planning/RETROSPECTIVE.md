@@ -49,6 +49,39 @@
 
 ---
 
+## Milestone: v1.1 — Production Domain & Landing Page Polish
+
+**Shipped:** 2026-07-25
+**Phases:** 2 | **Plans:** 3 | **Tasks:** 7
+
+### What Was Built
+- Landing page grid cards (`components/ToolCard.tsx`) are now fully clickable via a stretched-link pattern (`Link` + `after:inset-0` inside `CardTitle`, `relative` on `Card`), reaching keyboard-nav parity with the top nav menu; `status:"planned"` cards stay inert (Phase 6, LP-01)
+- Production domain cutover to `packetory.dev` reconciled in project docs: DOM-01 (live HTTPS) verified, DOM-03 (canonical origin everywhere) confirmed complete via a repo-wide audit — zero code changes needed since `SITE_URL` already derived every reference; DOM-02 (redirects) and DOM-04 (runbook) explicitly recorded as descoped, not silently dropped (Phase 7)
+
+### What Worked
+- The stretched-link full-card click pattern shipped and passed its human-verify checkpoint on the first pass — no rework needed across desktop and 320px viewports, active and featured card states.
+- Phase 7's docs-only reconciliation plan was still run through the full phase machinery (build gate, test gate, independent verifier re-check) despite touching zero application code — the verifier's independent re-run of the DOM-03 audit grep and direct read of REQUIREMENTS/ROADMAP/PROJECT caught that the descope framing was honest, rather than trusting the executor's SUMMARY at face value.
+- The milestone's own descope decisions (DOM-02, DOM-04) were carried consistently across REQUIREMENTS.md, ROADMAP.md, and PROJECT.md with the same accepted-consequences language in all three, rather than drifting between documents.
+
+### What Was Inefficient
+- Phase 7's `requirements.mark-complete` tooling verb auto-checked the DOM-02/DOM-04 checkboxes as a side effect of recording them, treating "descoped" as a generic completion outcome — the executor had to manually revert those two checkboxes before the final commit to avoid contradicting the plan's own transparency prohibition (descoped items must never read as delivered).
+- No `v1.1-MILESTONE-AUDIT.md` was run before closing this milestone (the user opted to skip `/gsd-audit-milestone` given the small 2-phase scope and existing per-phase verification) — reasonable for a milestone this size, but it means cross-phase integration between the Phase 6 landing-page change and Phase 7 domain change was never explicitly checked as a single audit pass.
+
+### Patterns Established
+- Full-card click target via stretched-link (`Link` + `after:inset-0`, `relative` parent) — the reusable pattern for any future card-style component that needs a single click/keyboard target spanning a larger visual container without a JS click handler.
+- When a plan's `must_haves` explicitly prohibit recording a descoped/non-delivered item as complete, treat any automated "mark complete" tooling as a first draft — verify its output against the prohibition before committing, since generic completion helpers don't distinguish "descoped" from "shipped."
+
+### Key Lessons
+1. Automated status-tracking tooling (e.g. a generic `requirements.mark-complete` verb) can conflate "descoped" with "complete" — when a plan's transparency prohibition requires a descoped item to stay visibly unchecked/labeled, verify the tooling's output rather than trusting it silently.
+2. A docs-only, zero-code-change plan still benefits from the full phase gate stack (build, test, independent verifier) — the verifier's from-scratch re-run of the audit evidence (not just trusting the SUMMARY) is what confirms a reconciliation plan told the truth.
+3. Skipping `/gsd-audit-milestone` for a small, low-risk milestone (2 phases, both already independently verified) is a reasonable judgment call — but it's a deliberate scope trade-off worth naming explicitly rather than defaulting to silently, since it means no single pass ever checked Phase 6 and Phase 7 together.
+
+### Cost Observations
+- 2 subagents spawned this session for Phase 7 (1 `gsd-executor`, 1 `gsd-verifier`), both on `sonnet`; Phase 6 was executed in a prior session not covered by this session's telemetry.
+- Notable: the milestone shipped same-day (Phases 6 and 7 both completed 2026-07-25) with zero application-code regressions — the full test suite (268 tests, 28 files) passed unchanged before and after Phase 7's docs-only work.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -56,13 +89,16 @@
 | Milestone | Sessions | Phases | Key Change |
 |-----------|----------|--------|------------|
 | v1.0 | — | 5 | First milestone — established the shared-shell/registry pattern, Server-shell+Client-island split, and framework-agnostic `lib/` convention now expected of every future tool. |
+| v1.1 | 1 (Phase 7) + prior (Phase 6) | 2 | Smallest milestone yet (2 phases, 3 plans) — first milestone with a deliberately descoped requirement set (DOM-02/DOM-04), and first to surface a "mark-complete tooling conflates descoped-with-complete" gap. |
 
 ### Cumulative Quality
 
 | Milestone | Tests | Coverage | Zero-Dep Additions |
 |-----------|-------|----------|---------------------|
 | v1.0 | ~600+ unit + e2e (per-phase counts: 97 UUID, 169 Subnet, 72 DNS, 329+ MAC — approximate, not centrally tallied) | Not centrally measured | `ip-address`, `uuid`, DoH via native `fetch` (no new dependency) |
+| v1.1 | 268 unit tests (28 files) passing unchanged before/after; +2 new e2e for landing-page click nav | Not centrally measured | None — Phase 7 was docs-only, zero new code or dependencies |
 
 ### Top Lessons (Verified Across Milestones)
 
 1. Audit every path into a guarded async/state-transition condition before shipping a fix — established in v1.0 (DNS-04 → MAC vendor lookup), not yet cross-validated by a second milestone.
+2. Generic "mark complete" tooling doesn't understand domain-specific status nuance (e.g. descoped vs. delivered) — established in v1.1 (DOM-02/DOM-04 checkbox auto-check), not yet cross-validated by a second milestone.

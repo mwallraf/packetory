@@ -15,6 +15,31 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 - **Success metric**: Traffic and repeat/bookmarked usage, not lead generation or data collection
 - **Strategy notes**: Full brief preserved at `project-brief.md` (repo root) — the source document this PROJECT.md was distilled from
 
+## Current State
+
+**Shipped:** v1.1 Production Domain & Landing Page Polish (2026-07-25) — landing page tool cards are fully clickable with keyboard-nav parity to the top nav (LP-01), and the site is live in production at `https://packetory.dev` over valid HTTPS (DOM-01), with every canonical URL/OG tag/sitemap/robots.txt reference confirmed to derive from a single `SITE_URL` source of truth (DOM-03). Redirects from `packetory.vercel.app`/`www.packetory.dev` (DOM-02) and a domain/DNS runbook (DOM-04) were deliberately descoped after live-evidence review — see Active requirements below for the accepted consequences.
+
+**Previously shipped:** v1.0 MVP (2026-07-25) — UUID Generator, IP Subnet Calculator, DNS Lookup, MAC Address Inspector. Full phase history archived at `.planning/milestones/v1.0-ROADMAP.md`.
+
+## Next Milestone Goals
+
+Not yet defined — run `/gsd-new-milestone` to scope the next milestone.
+
+<details>
+<summary>v1.1 Production Domain & Landing Page Polish — planning detail (shipped 2026-07-25)</summary>
+
+**Goal:** Fix the landing page so tool cards are clickable, and cut the site over to the real packetory.dev domain.
+
+**Target features:**
+- Landing page grid cards link to their tool pages (parity with the nav menu, which already works)
+- Site runs on custom domain packetory.dev via Vercel DNS (no Cloudflare, no per-tool subdomains)
+- Canonical URLs/OG tags/sitemap/robots.txt/`SITE_URL` updated from packetory.vercel.app to packetory.dev
+- Documented runbook for the manual steps (domain registration + Vercel dashboard DNS pointing) since registering/paying for a domain always requires human action (project-brief.md §14) — **descoped in execution**, see Active requirements
+
+**Key context:** Domain not registered yet at planning time — user later reported having already registered and configured it manually in Vercel before Phase 7 execution began, which narrowed the phase's final scope (redirects/runbook descoped). Vercel DNS confirmed over Cloudflare (avoids proxy/SSL conflicts, no extra account needed). Path-based `/tools/*` routing stays; no per-tool subdomains (would fragment SEO authority and break the shared-nav "switch tools instantly" value prop).
+
+</details>
+
 ## Requirements
 
 ### Validated
@@ -28,6 +53,8 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 - ✓ IP Subnet Calculator — CIDR input (IPv4 + IPv6, auto-detected), full network breakdown (network/broadcast/usable range/host count/masks/binary/reverse DNS zone for IPv4; normalized prefix/RFC-5952 compressed+expanded/first-last/count/reverse DNS/subdivision options for IPv6), inline validation, bookmarkable URL state (`?cidr=`) — Phase 3 (`/tools/subnet`; 130 unit + 39 e2e tests; BigInt end-to-end, correct at /31,/32,/127,/128 boundaries; security-reviewed, 0 open threats; 2 UAT items user-confirmed)
 - ✓ DNS Lookup — A/AAAA/MX/TXT/NS/CNAME via DNS-over-HTTPS, Cloudflare primary + Google fallback with transparent resolver/duration attribution, debounced typed input (700ms) with instant paste/Enter/Refresh trigger, race-safe `AbortController` + sequence-token cancellation (both invalid- and valid-input edits cancel a stale in-flight request), 5-state QUAL-08 error matrix, bookmarkable URL state (`?name=&type=`) — Phase 4 (`/tools/dns`; 60 unit + 12 e2e tests; 4 plans incl. 1 gap-closure round; security-reviewed, 0 open threats — `04-SECURITY.md` confirmed verified, correcting a prior stale note here that listed the review as still outstanding)
 - ✓ MAC Address Inspector — live 4-format normalization (colon/dash/Cisco-dot/no-separator), OUI prefix + U/L/I/G bit-level classification with hedged randomization badge (never certain), vendor/organization lookup via a new server-side `/api/mac-vendor` Route Handler (OUI-only privacy boundary, debounced + session-cached, graceful degradation), per-field and full-result copy — Phase 5 (`/tools/mac`; 263 unit + 66 e2e tests; 3 plans; security-reviewed, 0 open threats — 1 deliberately accepted risk, no rate limiting on the vendor proxy; 7/7 UAT items user-confirmed 2026-07-25)
+- ✓ Landing page grid cards link to their tool pages (LP-01) — full-card stretched-link click target (click anywhere on the card, not just the title), keyboard Tab/Enter activation, full-card hover/focus-visible accent ring reaching parity with the nav menu; `status:"planned"` cards stay inert — Phase 6 (`components/ToolCard.tsx`; 2 plans, 5 unit + 2 new e2e tests; human-verified ring encloses the full card at desktop and 320px 2026-07-25)
+- ✓ Production domain cutover (DOM-01, DOM-03) — site verified live at `https://packetory.dev` over valid HTTPS (`curl -sI` → `HTTP/2 200`, TLS `CN=packetory.dev`); every canonical URL/OG tag/sitemap entry/`robots.txt` reference confirmed to derive from the single `SITE_URL` constant (`app/sitemap.ts`) via a repo-wide audit — zero code changes needed — Phase 7 (1 plan, docs-only; DOM-02 redirects and DOM-04 runbook deliberately descoped, see Active)
 
 - ✓ Framework-agnostic core logic (`lib/`) per tool, independently unit-testable, shared by pages and future API routes — Phase 2 (`lib/uuid/*`), Phase 3 (`lib/subnet/*`), Phase 4 (`lib/dns/*`), Phase 5 (`lib/mac/{types,parse,format,classify,vendor}.ts`) — all zero framework imports, all unit-tested in isolation. Established as a consistent pattern across all 4 v1 tools.
 - ✓ Per-tool SEO — unique title/meta/canonical/OG tags, worked example, and content-matched FAQPage JSON-LD — shipped for all 4 v1 tools: UUID (Phase 2), Subnet (Phase 3), DNS (Phase 4, `app/tools/dns/faq-data.ts`), MAC (Phase 5, `app/tools/mac/faq-data.ts` — includes D-01/D-02 privacy disclosure and D-09 randomization-wording FAQ)
@@ -40,6 +67,8 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 - [ ] Public developer API (`@packetory/core` style package reusing the same `lib/` modules) — deferred to a post-v1 milestone per Business Context; no work started
 - [ ] Build-time OUI dataset compaction to replace `/api/mac-vendor`'s interim API-proxy architecture — tracked tech debt from Phase 5 (CLAUDE.md's stated long-term direction); no work started
 - [ ] Rate limiting on `/api/mac-vendor` — accepted risk (AR-05-01) at v1.0 launch; revisit if production traffic warrants it
+- [ ] `packetory.vercel.app` / `www.packetory.dev` → apex redirects (DOM-02) — deliberately descoped in Phase 7 after the user reviewed live evidence; accepted consequence: `packetory.vercel.app` stays live as a duplicate-content URL and `www.packetory.dev` keeps failing TLS; revisit if duplicate-content SEO or the `www` TLS gap becomes a priority
+- [ ] Domain registration / DNS runbook (DOM-04) — deliberately descoped in Phase 7; the user had already completed the one-time manual registration and Vercel-dashboard steps and did not want them documented after the fact
 
 ### Out of Scope
 
@@ -58,6 +87,7 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 
 - **v1.0 shipped** 2026-07-25: all 5 phases (Shared Shell, UUID, Subnet, DNS, MAC), 21 plans, 48/48 v1 requirements complete. ~12,500 LOC TypeScript across `app/`, `lib/`, `components/`. Live at packetory.vercel.app; CI-gated (`main` auto-deploys, PRs require tests/typecheck/lint/build/e2e). Every tool's core logic lives in a framework-agnostic `lib/` module with its own unit test suite; all 4 tools passed security review (0 open threats each) and user UAT with zero unresolved issues.
 - **Known tech debt carried into v1.1+**: `/api/mac-vendor` interim API-proxy (build-time OUI dataset is the intended permanent architecture per CLAUDE.md); no rate limiting on that same route (accepted risk); no related-tool links yet; no dedicated per-tool accessibility re-audit since Phase 1's shell-level pass.
+- **v1.1 progress**: Phase 6 (Landing Page Card Navigation, LP-01) shipped 2026-07-25. Phase 7 (Production Domain Cutover to packetory.dev) is now also complete, 2026-07-25 — its scope narrowed during discussion once the user reported having already manually registered `packetory.dev` and configured it in the Vercel dashboard. DOM-01 (live HTTPS) was verified live during that discussion: `curl -sI https://packetory.dev` returned `HTTP/2 200` with a valid TLS certificate (`CN=packetory.dev`, issued 2026-07-25). DOM-03 (canonical origin usage) was confirmed complete by a repo-wide audit — `SITE_URL` in `app/sitemap.ts` already derived every canonical URL, OG tag, sitemap entry, and robots.txt reference, so no code changes were needed. DOM-02 (redirects from `packetory.vercel.app`/`www.packetory.dev` to the apex) and DOM-04 (registration/DNS runbook) were both **deliberately descoped** by the user's explicit, live-evidence-informed decision, not left incomplete by oversight: the user chose not to add redirect config after being shown that neither `packetory.vercel.app` nor `www.packetory.dev` currently redirects, and did not want a runbook documenting manual steps they had already completed themselves. Accepted consequences, preserved here for future readers: `packetory.vercel.app` remains permanently live as a duplicate-content URL, and `www.packetory.dev` continues failing TLS (its certificate covers only the apex) — both indefinitely, unless a future phase revisits them. v1.1 milestone work is now complete (Phases 6 and 7 both shipped). Phase 6's code review flagged two pre-existing/adjacent, non-blocking accessibility items (`CardTitle` renders a `<div>` not a heading element; `status:"beta"` tools are visually indistinguishable from `"active"`) — folded into the existing "dedicated per-tool accessibility re-audit" tech debt line above rather than tracked separately.
 - **Source document**: `project-brief.md` at the repo root is a comprehensive, near-final brief (design principles, per-tool specs, tech stack, NFRs, ops model). The user confirmed it's accurate as-is — treat it as the authoritative detail reference; this PROJECT.md is the distilled/living version GSD workflows act on.
 - **Build order** (confirmed): UUID Generator → IP Subnet Calculator → DNS Lookup → MAC Address Inspector. UUID first because it's fully self-contained (no external data/services); DNS and MAC come later because they depend on external resolvers / vendor data.
 - **Open decisions deferred to relevant phases** (per brief §15, user confirmed defer-not-block): MAC vendor data source — API proxy at launch vs. locally maintained OUI dataset longer-term (resolve during MAC Inspector phase), ad slot placement (footer vs. sidebar — layout reserves space only, no v1 implementation), final logo/visual identity, and `@packetory` package-name registry availability (only matters once the public API/package is on the roadmap). Primary/fallback DNS-over-HTTPS resolver choice resolved in Phase 4 (Cloudflare primary, Google fallback).
@@ -98,6 +128,8 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 | MAC vendor lookup ships as a server-side Route Handler (`app/api/mac-vendor/route.ts`) proxying to `api.maclookup.app`, sending only the 6-hex OUI — never the full MAC | Brief's open decision (API proxy vs. local OUI dataset) resolved during Phase 5 planning in favor of the interim API-proxy path (CLAUDE.md §MAC/OUI Vendor Data); this is also the phase's signature architectural seam proving API-route/core-logic separation ahead of a future public API | ✓ Shipped (Phase 5) — build-time OUI dataset compaction remains the intended permanent architecture per CLAUDE.md; API proxy is explicit interim tech debt, not yet scheduled |
 | No rate limiting added to `/api/mac-vendor` for v1 | maclookup.app's own unauthenticated ceiling (10 req/sec, 25K/6h) plus low expected traffic make an app-level limiter unnecessary; a naive in-memory/IP-based limiter was explicitly considered and rejected (would misuse `parseForwardedIp.ts`, whose docstring forbids use in security decisions) | ✓ Accepted (Phase 5, T-05-03/AR-05-01) — revisit if production traffic suggests otherwise; needs an infra decision (Vercel KV/Upstash or Firewall rules) if ever added |
 | Every async-superseding path must cancel its predecessor (abort + sequence token) — carried forward from the Phase 4 lesson, now applied to MAC's vendor lookup | Phase 4 needed two review passes because the fix for DNS-04's race guard was applied to only the "obvious" invalid-input path first, missing the valid-input path that reached the same guarded state | ✓ Shipped correctly on the first pass (Phase 5) — `MacTool.tsx` audited all paths into vendor lookup (typing/debounce, new valid paste, demo-on-load, Esc-reset) up front, per the Phase 4 retrospective decision above |
+| Full-card click target via stretched-link (`Link` + `after:inset-0` inside `CardTitle`, `relative` on `Card`), no JS click handler | Makes the entire card — not just the title text — clickable and keyboard-focusable natively, reaching nav-menu parity for LP-01; `status:"planned"` cards stay inert by simply omitting the `Link` wrapper, no extra conditional needed | ✓ Shipped (Phase 6) — human-verified the ring geometrically encloses the full card at desktop and 320px |
+| Domain cutover redirects (DOM-02) and a registration runbook (DOM-04) deliberately descoped rather than implemented | User had already manually registered and configured `packetory.dev` in Vercel before Phase 7 execution began; after being shown live `curl`/TLS evidence, the user judged redirects and a runbook for an already-completed one-time action not worth building, accepting that `packetory.vercel.app` stays live as duplicate content and `www.packetory.dev` keeps failing TLS | ✓ Accepted (Phase 7) — revisit if duplicate-content SEO or the `www` TLS gap becomes a priority |
 
 ## Evolution
 
@@ -117,4 +149,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-25 after v1.0 milestone*
+*Last updated: 2026-07-25 after v1.1 milestone completed*

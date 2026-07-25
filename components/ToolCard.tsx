@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Cpu,
   Fingerprint,
@@ -13,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import type { ToolDefinition } from "@/tools/registry";
 
 /**
@@ -38,9 +40,18 @@ const CATEGORY_LABELS: Record<ToolDefinition["category"], string> = {
 export function ToolCard({ tool }: { tool: ToolDefinition }) {
   const Icon = ICONS[tool.icon] ?? Fingerprint;
   const isPlanned = tool.status === "planned";
+  const href = `/tools/${tool.slug}`;
+  const isNavigable = !isPlanned;
 
   return (
-    <Card data-testid="tool-card" className="h-full">
+    <Card
+      data-testid="tool-card"
+      className={cn(
+        "relative h-full",
+        isNavigable &&
+          "has-[:hover]:ring-primary/40 has-[:hover]:shadow-md transition-shadow has-[:focus-visible]:outline-none has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/50"
+      )}
+    >
       <CardHeader>
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -53,7 +64,16 @@ export function ToolCard({ tool }: { tool: ToolDefinition }) {
               data-testid="tool-card-name"
               className="text-[20px] leading-[1.2] font-semibold"
             >
-              {tool.name}
+              {isNavigable ? (
+                <Link
+                  href={href}
+                  className="after:absolute after:inset-0 focus-visible:outline-none"
+                >
+                  {tool.name}
+                </Link>
+              ) : (
+                tool.name
+              )}
             </CardTitle>
           </div>
           {isPlanned ? (

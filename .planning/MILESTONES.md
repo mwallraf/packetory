@@ -1,5 +1,17 @@
 # Milestones
 
+## v1.1 Production Domain & Landing Page Polish (Shipped: 2026-07-25)
+
+**Phases completed:** 2 phases, 3 plans, 7 tasks
+
+**Key accomplishments:**
+
+- ToolCard now uses the stretched-link pattern (Link + after:inset-0 inside CardTitle, relative on Card) so clicking anywhere on an active card navigates to its /tools/{slug} page, with a full-card hover/focus-visible ring; planned cards stay fully inert.
+- Human-approved visual confirmation that the full-card hover/focus-visible accent ring built in plan 06-01 geometrically encloses the entire Card boundary — at desktop, at 320px, for active and featured states — with keyboard Enter navigation and planned-inert both confirmed.
+- Docs-only reconciliation: DOM-03 confirmed complete via repo-wide audit (zero code changes needed — `SITE_URL` already the single origin source of truth), DOM-01 recorded verified-live, and DOM-02/DOM-04 explicitly recorded as descoped (not silently dropped) across REQUIREMENTS.md, ROADMAP.md, and PROJECT.md.
+
+---
+
 ## v1.0 MVP (Shipped: 2026-07-25)
 
 **Phases completed:** 5 phases, 21 plans, 60 tasks
