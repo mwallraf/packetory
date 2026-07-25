@@ -4,16 +4,16 @@ milestone: v1.0
 milestone_name: milestone
 current_phase: 05
 current_phase_name: mac-address-inspector
-status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-07-25T13:32:32.458Z"
+status: verifying
+stopped_at: Completed 05-03-PLAN.md
+last_updated: "2026-07-25T14:36:36.968Z"
 last_activity: 2026-07-25
 last_activity_desc: Phase 05 execution started
 progress:
   total_phases: 5
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 21
-  completed_plans: 20
+  completed_plans: 21
 ---
 
 # Project State
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-07-24)
 
 Phase: 05 (mac-address-inspector) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-07-25 — Phase 05 execution started
 
-Progress: [██████████] 95%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -81,6 +81,7 @@ Progress: [██████████] 95%
 | Phase 04 P04 | 12min | 2 tasks | 2 files |
 | Phase 05 P01 | 15min | 3 tasks | 16 files |
 | Phase 05 P02 | 10min | 3 tasks | 6 files |
+| Phase 05 P03 | 59min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -149,6 +150,8 @@ Recent decisions affecting current work:
 - [Phase ?]: [Phase 05] Plan 01: flipping tools/registry.ts mac.status to active broke 4 pre-existing tests hardcoding a 'mac stays planned' assumption (registry.test.ts, sitemap.test.ts, navigation.spec.ts, home.spec.ts) — fixed in place, same class of break as the Phase 2 uuid and Phase 4 dns flips
 - [Phase ?]: [Phase 05] Plan 02: classifyMac(bytes) called synchronously right after parseMacInput success, before formatMac, structurally guaranteeing MAC-08 (classification never depends on the vendor lookup shipping in 05-03)
 - [Phase ?]: [Phase 05] Plan 02: MacLookupState kept minimal (idle|incomplete-input|success) rather than pre-guessing 05-03's vendor-state shape
+- [Phase ?]: [Phase 05] Plan 03: demo-on-load and Esc-reset bypass the D-03 vendor debounce entirely (runVendorLookupImmediate) since D-06 requires the full result visible with zero user action; only live typing/paste go through the debounced path
+- [Phase ?]: [Phase 05] Plan 03: VendorState is a standalone 4-kind union (found/not-found/unavailable/not-applicable) with no pending member — the in-flight state is component-level UI orchestration, not a resolved lookup outcome
 
 ### Pending Todos
 
@@ -169,6 +172,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-25T13:32:32.450Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-07-25T14:36:36.959Z
+Stopped at: Completed 05-03-PLAN.md
 Resume file: None

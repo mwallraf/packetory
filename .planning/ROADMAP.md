@@ -164,7 +164,7 @@ Plans:
   4. Bit-level classification (OUI, U/L, I/G, randomized-likelihood) still works and shows useful output even when vendor lookup fails or is unavailable.
   5. User can copy individual fields or the complete result, and full MAC addresses are never sent to analytics.
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans executed
 Plans:
 **Wave 1**
 
@@ -176,7 +176,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 05-03-PLAN.md — Vendor lookup slice (the API-route/core-logic separation): first upstream-fetching `/api/mac-vendor` route + OUI-only client cache/debounce + 4 vendor states + MAC-10 privacy guard (wave 3)
+- [x] 05-03-PLAN.md — Vendor lookup slice (the API-route/core-logic separation): first upstream-fetching `/api/mac-vendor` route + OUI-only client cache/debounce + 4 vendor states + MAC-10 privacy guard (wave 3)
 
 **UI hint**: yes
 
@@ -191,4 +191,4 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. UUID Generator | 4/4 | Complete    | 2026-07-24 |
 | 3. IP Subnet Calculator | 5/5 | Complete    | 2026-07-24 |
 | 4. DNS Lookup | 4/4 | Complete    | 2026-07-25 |
-| 5. MAC Address Inspector | 2/3 | In Progress|  |
+| 5. MAC Address Inspector | 3/3 | In Progress|  |
