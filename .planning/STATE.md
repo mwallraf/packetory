@@ -24,7 +24,7 @@ current_phase_name: production-domain-cutover-packetory-dev
 See: .planning/PROJECT.md (updated 2026-07-25)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Phase 07 — production-domain-cutover-packetory-dev
+**Current focus:** Planning next milestone
 
 ## Current Position
 
@@ -92,16 +92,7 @@ Last activity: 2026-07-25 — Milestone v1.1 completed and archived
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- [Roadmap v1.1]: Phase 6 (Landing Page Card Navigation, LP-01) and Phase 7 (Production Domain Cutover, DOM-01..04) created, continuing numbering from v1.0's Phase 5 — 5/5 v1.1 requirements mapped, no orphans, no dependency between the two phases.
-- [Roadmap v1.1]: LP-01 kept as its own phase rather than folded into Phase 7 — it's a self-contained frontend fix verified by clicking/keyboard interaction, while Phase 7 is verified by config/grep checks plus a manual-steps runbook; combining them would mix two unrelated verification styles in one phase.
-- [Roadmap v1.1]: Discovered during roadmap creation that `SITE_URL` in `app/sitemap.ts` already hardcodes `https://packetory.dev` (set proactively in Phase 1, before the domain existed) and every tool page's canonical/OG tags already derive from it — a repo-wide grep found zero remaining `packetory.vercel.app` literals in application code. Phase 7's DOM-03 work is therefore primarily an audit/confirmation pass, not a wholesale string-replace; the real remaining code gap is the www/vercel.app → apex redirect (DOM-02), which does not yet exist in `next.config.ts` or `vercel.json`.
-- [Roadmap v1.1]: Phase 7's success criteria are explicitly split into agent-verifiable (code/config/runbook correctness) vs. user-confirmation-required (live HTTPS resolution and redirect behavior, both of which depend on the user's own domain registration and Vercel dashboard steps per project-brief.md §14's human-approval rule on domain purchases).
-- [Phase 06]: Stretched-link pattern (Link + after:inset-0 in CardTitle, relative on Card) shipped exactly per CONTEXT.md D-01..D-06 and UI-SPEC's prescriptive class list — no implementation discretion needed.
-- [Phase ?]: [Phase 06]: Human-verify checkpoint approved on first pass — full-card hover/focus ring geometry confirmed correct with no issues, closing out plan 06-01's implementation with no rework needed.
-- [Phase ?]: DOM-01 recorded verified-live (HTTP/2 200 + valid TLS CN=packetory.dev, 2026-07-25); DOM-03 confirmed complete via repo-wide audit (zero code changes, SITE_URL already single origin source of truth); DOM-02 and DOM-04 explicitly recorded as descoped, not complete or pending, preserving accepted duplicate-content and www-TLS-failure consequences per user decision
+Decisions are logged in PROJECT.md Key Decisions table (v1.1 entries added at milestone close: stretched-link full-card pattern, DOM-02/DOM-04 descope rationale).
 
 ### Pending Todos
 
@@ -109,8 +100,8 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 7 (DOM-01/DOM-02/DOM-04) requires the user to manually register `packetory.dev` and add it as a Domain in the Vercel dashboard — an agent cannot do this per the project's human-approval rule on registering/paying for domains (project-brief.md §14). The phase's code-side work (canonical URLs, redirect config, runbook) can proceed independently; DOM-01/DOM-02's live-HTTPS/redirect criteria need the user to confirm after they've completed those manual steps.
 - Tech debt carried from v1.0, not in v1.1 scope: `/api/mac-vendor`'s interim API-proxy architecture should migrate to a build-time-compacted local OUI dataset per CLAUDE.md; no rate limiting on `/api/mac-vendor` (accepted risk, AR-05-01) — revisit if production traffic warrants it. Related-tool links and a dedicated per-tool accessibility re-audit also remain deferred.
+- Tech debt carried from v1.1: `packetory.vercel.app`/`www.packetory.dev` → apex redirects (DOM-02) and a domain/DNS runbook (DOM-04) were deliberately descoped — revisit if duplicate-content SEO or the `www` TLS gap becomes a priority.
 
 ## Deferred Items
 
