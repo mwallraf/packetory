@@ -105,4 +105,79 @@ describe("MacTool", () => {
       expect.stringContaining("3C22FBAABBCC")
     );
   });
+
+  it("renders the OUI prefix field for the demo MAC (MAC-04)", () => {
+    render(<MacTool />);
+
+    expect(screen.getByTestId("mac-oui-value").textContent).toBe("3C22FB");
+  });
+
+  it("renders the U/L and I/G badges with their explanation text for the universally-administered, unicast demo MAC (MAC-05, MAC-06, no randomization badge)", () => {
+    render(<MacTool />);
+
+    const ulBadge = screen.getByTestId("mac-badge-ul");
+    expect(ulBadge.textContent).toContain("Universally Administered");
+    expect(ulBadge.textContent).toContain(
+      "Assigned by the IEEE to a specific vendor."
+    );
+
+    const igBadge = screen.getByTestId("mac-badge-ig");
+    expect(igBadge.textContent).toContain("Unicast");
+    expect(igBadge.textContent).toContain("Addressed to a single device.");
+
+    expect(screen.queryByTestId("mac-badge-randomization")).toBeNull();
+  });
+
+  it("shows the exact D-09 randomization-hedge badge for a locally-administered input (MAC-07)", () => {
+    render(<MacTool />);
+
+    const input = screen.getByTestId("mac-input") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "02:00:00:00:00:00" } });
+
+    expect(screen.getByTestId("mac-badge-ul").textContent).toContain(
+      "Locally Administered"
+    );
+
+    const randomizationBadge = screen.getByTestId("mac-badge-randomization");
+    expect(randomizationBadge.textContent).toContain(
+      "Likely randomized (privacy MAC)."
+    );
+    expect(randomizationBadge.textContent).toContain(
+      "This address has the locally-administered bit set, a pattern used by iOS/Android/Windows MAC randomization — it may not reflect the device's real hardware vendor."
+    );
+  });
+
+  it("does NOT show the randomization badge for the 01:00:5E multicast case (I/G=1 but U/L=0) — proves the flag tracks U/L, not I/G (D-10)", () => {
+    render(<MacTool />);
+
+    const input = screen.getByTestId("mac-input") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "01:00:5E:00:00:00" } });
+
+    expect(screen.getByTestId("mac-badge-ig").textContent).toContain(
+      "Multicast"
+    );
+    expect(screen.getByTestId("mac-badge-ul").textContent).toContain(
+      "Universally Administered"
+    );
+    expect(screen.queryByTestId("mac-badge-randomization")).toBeNull();
+  });
+
+  it("uses the neutral/outline Badge variant for U/L, I/G, and randomization badges — never destructive/accent (Color section)", () => {
+    render(<MacTool />);
+
+    const input = screen.getByTestId("mac-input") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "02:00:00:00:00:00" } });
+
+    expect(
+      screen.getByTestId("mac-badge-ul-pill").getAttribute("data-variant")
+    ).toBe("outline");
+    expect(
+      screen.getByTestId("mac-badge-ig-pill").getAttribute("data-variant")
+    ).toBe("outline");
+    expect(
+      screen
+        .getByTestId("mac-badge-randomization-pill")
+        .getAttribute("data-variant")
+    ).toBe("outline");
+  });
 });
