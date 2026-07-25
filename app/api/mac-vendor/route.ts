@@ -95,9 +95,9 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  let body: UpstreamShape;
+  let body: unknown;
   try {
-    body = (await response.json()) as UpstreamShape;
+    body = await response.json();
   } catch {
     return NextResponse.json(
       { status: "unavailable" },
@@ -105,18 +105,29 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  if (!body.success) {
+  // A syntactically valid JSON body (e.g. the literal `null`) parses
+  // successfully without throwing, so it must be shape-checked here BEFORE
+  // any field is ever touched — otherwise `body.success` throws an uncaught
+  // TypeError on a `null` body, escaping this try/catch and crashing the
+  // route with an unhandled 500 (CR-01).
+  if (!body || typeof body !== "object" || !(body as Partial<UpstreamShape>).success) {
     return NextResponse.json(
       { status: "unavailable" },
       { status: 200, headers: { "Cache-Control": "no-store" } }
     );
   }
 
-  // body.found === false is a genuine negative registry answer, not a
+  const upstream = body as UpstreamShape;
+
+  // upstream.found === false is a genuine negative registry answer, not a
   // failure (Pitfall 3) — shaped down to only found/company, never the
   // upstream's address/country/block-type detail fields.
   return NextResponse.json(
-    { status: "ok", found: body.found, company: body.found ? body.company : null },
+    {
+      status: "ok",
+      found: upstream.found,
+      company: upstream.found ? upstream.company : null,
+    },
     { headers: { "Cache-Control": "no-store" } }
   );
 }

@@ -127,6 +127,18 @@ describe("GET /api/mac-vendor", () => {
     expect(await response.json()).toEqual({ status: "unavailable" });
   });
 
+  it("returns 200 { status: 'unavailable' } on a literal JSON `null` upstream body, never a 500 crash (CR-01)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(new Response("null", { status: 200 }))
+    );
+
+    const response = await GET(requestFor("?oui=3C22FB"));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ status: "unavailable" });
+  });
+
   it("returns 200 { status: 'unavailable' } on malformed/non-JSON upstream body", async () => {
     vi.stubGlobal(
       "fetch",
