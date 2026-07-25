@@ -29,17 +29,17 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 - ✓ DNS Lookup — A/AAAA/MX/TXT/NS/CNAME via DNS-over-HTTPS, Cloudflare primary + Google fallback with transparent resolver/duration attribution, debounced typed input (700ms) with instant paste/Enter/Refresh trigger, race-safe `AbortController` + sequence-token cancellation (both invalid- and valid-input edits cancel a stale in-flight request), 5-state QUAL-08 error matrix, bookmarkable URL state (`?name=&type=`) — Phase 4 (`/tools/dns`; 60 unit + 12 e2e tests; 4 plans incl. 1 gap-closure round; security-reviewed, 0 open threats — `04-SECURITY.md` confirmed verified, correcting a prior stale note here that listed the review as still outstanding)
 - ✓ MAC Address Inspector — live 4-format normalization (colon/dash/Cisco-dot/no-separator), OUI prefix + U/L/I/G bit-level classification with hedged randomization badge (never certain), vendor/organization lookup via a new server-side `/api/mac-vendor` Route Handler (OUI-only privacy boundary, debounced + session-cached, graceful degradation), per-field and full-result copy — Phase 5 (`/tools/mac`; 263 unit + 66 e2e tests; 3 plans; security-reviewed, 0 open threats — 1 deliberately accepted risk, no rate limiting on the vendor proxy; 7/7 UAT items user-confirmed 2026-07-25)
 
+- ✓ Framework-agnostic core logic (`lib/`) per tool, independently unit-testable, shared by pages and future API routes — Phase 2 (`lib/uuid/*`), Phase 3 (`lib/subnet/*`), Phase 4 (`lib/dns/*`), Phase 5 (`lib/mac/{types,parse,format,classify,vendor}.ts`) — all zero framework imports, all unit-tested in isolation. Established as a consistent pattern across all 4 v1 tools.
+- ✓ Per-tool SEO — unique title/meta/canonical/OG tags, worked example, and content-matched FAQPage JSON-LD — shipped for all 4 v1 tools: UUID (Phase 2), Subnet (Phase 3), DNS (Phase 4, `app/tools/dns/faq-data.ts`), MAC (Phase 5, `app/tools/mac/faq-data.ts` — includes D-01/D-02 privacy disclosure and D-09 randomization-wording FAQ)
+- ✓ Light/dark mode, mobile usability down to 320px, CLS-free async states (loading/error/empty/success) — shell-level theme toggle and 320px CLS manually verified in Phase 1 UAT; Phase 3 user-confirmed 320px wrapping for subnet field values; Phase 5 user-confirmed 320px layout integrity for messy MAC input and long vendor-name wrap — re-verified per-tool across all 4 tool families (calculation-heavy, list-heavy, async-network, badge-heavy)
+
 ### Active
 
-- [ ] Related-tool links (part of per-tool SEO) — not yet built on any tool page (UUID, Subnet, DNS, or MAC)
-- [ ] Accessibility: full keyboard nav, contrast, labels, logical focus order, screen-reader announcements — shell-level focus order and focus-ring visibility manually verified in Phase 1 UAT; Phase 2 added accessible names to the UUID tool's Version/Export-format toggle groups; not re-audited per-tool since
+- [ ] Related-tool links (part of per-tool SEO) — not yet built on any tool page (UUID, Subnet, DNS, or MAC); candidate for v1.1
+- [ ] Accessibility: full keyboard nav, contrast, labels, logical focus order, screen-reader announcements — shell-level focus order and focus-ring visibility manually verified in Phase 1 UAT; Phase 2 added accessible names to the UUID tool's Version/Export-format toggle groups; not re-audited per-tool since; candidate for a dedicated a11y pass in v1.1
 - [ ] Public developer API (`@packetory/core` style package reusing the same `lib/` modules) — deferred to a post-v1 milestone per Business Context; no work started
-
-### Validated
-
-- ✓ Framework-agnostic core logic (`lib/`) per tool, independently unit-testable, shared by pages and future API routes — Phase 2 (`lib/uuid/*`), Phase 3 (`lib/subnet/*`), Phase 4 (`lib/dns/*`), Phase 5 (`lib/mac/{types,parse,format,classify,vendor}.ts`) — all zero framework imports, all unit-tested in isolation. Established as a consistent pattern across all 4 v1 tools.
-- ✓ Per-tool SEO — unique title/meta/canonical/OG tags, worked example, and content-matched FAQPage JSON-LD — shipped for all 4 v1 tools: UUID (Phase 2), Subnet (Phase 3), DNS (Phase 4, `app/tools/dns/faq-data.ts` — confirmed present, correcting a prior stale note that listed DNS as still needing this), MAC (Phase 5, `app/tools/mac/faq-data.ts` — includes D-01/D-02 privacy disclosure and D-09 randomization-wording FAQ)
-- ✓ Light/dark mode, mobile usability down to 320px, CLS-free async states (loading/error/empty/success) — shell-level theme toggle and 320px CLS manually verified in Phase 1 UAT; Phase 3 user-confirmed 320px wrapping for subnet field values; Phase 5 user-confirmed 320px layout integrity for messy MAC input and long vendor-name wrap — the pattern has now been explicitly re-verified per-tool across all 4 tool families (calculation-heavy, list-heavy, async-network, badge-heavy)
+- [ ] Build-time OUI dataset compaction to replace `/api/mac-vendor`'s interim API-proxy architecture — tracked tech debt from Phase 5 (CLAUDE.md's stated long-term direction); no work started
+- [ ] Rate limiting on `/api/mac-vendor` — accepted risk (AR-05-01) at v1.0 launch; revisit if production traffic warrants it
 
 ### Out of Scope
 
@@ -56,6 +56,8 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 
 ## Context
 
+- **v1.0 shipped** 2026-07-25: all 5 phases (Shared Shell, UUID, Subnet, DNS, MAC), 21 plans, 48/48 v1 requirements complete. ~12,500 LOC TypeScript across `app/`, `lib/`, `components/`. Live at packetory.vercel.app; CI-gated (`main` auto-deploys, PRs require tests/typecheck/lint/build/e2e). Every tool's core logic lives in a framework-agnostic `lib/` module with its own unit test suite; all 4 tools passed security review (0 open threats each) and user UAT with zero unresolved issues.
+- **Known tech debt carried into v1.1+**: `/api/mac-vendor` interim API-proxy (build-time OUI dataset is the intended permanent architecture per CLAUDE.md); no rate limiting on that same route (accepted risk); no related-tool links yet; no dedicated per-tool accessibility re-audit since Phase 1's shell-level pass.
 - **Source document**: `project-brief.md` at the repo root is a comprehensive, near-final brief (design principles, per-tool specs, tech stack, NFRs, ops model). The user confirmed it's accurate as-is — treat it as the authoritative detail reference; this PROJECT.md is the distilled/living version GSD workflows act on.
 - **Build order** (confirmed): UUID Generator → IP Subnet Calculator → DNS Lookup → MAC Address Inspector. UUID first because it's fully self-contained (no external data/services); DNS and MAC come later because they depend on external resolvers / vendor data.
 - **Open decisions deferred to relevant phases** (per brief §15, user confirmed defer-not-block): MAC vendor data source — API proxy at launch vs. locally maintained OUI dataset longer-term (resolve during MAC Inspector phase), ad slot placement (footer vs. sidebar — layout reserves space only, no v1 implementation), final logo/visual identity, and `@packetory` package-name registry availability (only matters once the public API/package is on the roadmap). Primary/fallback DNS-over-HTTPS resolver choice resolved in Phase 4 (Cloudflare primary, Google fallback).
@@ -115,4 +117,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-25 after Phase 5*
+*Last updated: 2026-07-25 after v1.0 milestone*
