@@ -32,17 +32,17 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| LP-01 | TBD | Pending |
-| DOM-01 | TBD | Pending |
-| DOM-02 | TBD | Pending |
-| DOM-03 | TBD | Pending |
-| DOM-04 | TBD | Pending |
+| LP-01 | Phase 6 | Pending |
+| DOM-01 | Phase 7 | Pending |
+| DOM-02 | Phase 7 | Pending |
+| DOM-03 | Phase 7 | Pending |
+| DOM-04 | Phase 7 | Pending |
 
 **Coverage:**
 - v1.1 requirements: 5 total
-- Mapped to phases: 0
-- Unmapped: 5 ⚠️ (pending roadmap creation)
+- Mapped to phases: 5
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-07-25*
-*Last updated: 2026-07-25 after initial definition*
+*Last updated: 2026-07-25 after ROADMAP.md creation — 100% v1.1 coverage across Phase 6 (LP-01) and Phase 7 (DOM-01..04)*
