@@ -1,15 +1,15 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("Landing page — tool registry grid", () => {
-  test("renders exactly four tool cards from the registry, each with name/description/category", async ({
+  test("renders every tool card from the registry with name/description/category", async ({
     page,
   }) => {
     await page.goto("/");
 
     const cards = page.getByTestId("tool-card");
-    await expect(cards).toHaveCount(4);
+    await expect(cards).toHaveCount(5);
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       const card = cards.nth(i);
       await expect(card.getByTestId("tool-card-name")).toBeVisible();
       await expect(card.getByTestId("tool-card-description")).toBeVisible();
@@ -17,7 +17,7 @@ test.describe("Landing page — tool registry grid", () => {
     }
   });
 
-  test("cards render in order Subnet, UUID, DNS, MAC (featured desc, then name asc)", async ({
+  test("cards render featured first, then by name", async ({
     page,
   }) => {
     await page.goto("/");
@@ -29,22 +29,21 @@ test.describe("Landing page — tool registry grid", () => {
     expect(names).toEqual([
       "IP Subnet Calculator",
       "UUID Generator",
+      "Config Syntax Highlighter",
       "DNS Lookup",
       "MAC Address Inspector",
     ]);
   });
 
-  test("no card shows a 'Coming soon' badge now that all four registry tools are 'active' (Phase 2 Plan 01, Phase 3 Plan 01, Phase 4 Plan 01, Phase 5 Plan 01); each active card renders exactly one clickable anchor (stretched-link, Phase 6 Plan 01)", async ({
+  test("active cards have no 'Coming soon' badge and exactly one clickable anchor", async ({
     page,
   }) => {
     await page.goto("/");
 
-    // Registry sort order: Subnet, UUID, DNS, MAC (see the preceding test) —
-    // all four are "active" as of this plan.
     const cards = page.getByTestId("tool-card");
-    await expect(cards).toHaveCount(4);
+    await expect(cards).toHaveCount(5);
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       const card = cards.nth(i);
       await expect(card.getByText("Coming soon")).toHaveCount(0);
       // Each active card renders exactly one stretched-link anchor (LP-01).

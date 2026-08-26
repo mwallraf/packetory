@@ -74,6 +74,19 @@ export const tools: ToolDefinition[] = [
     clientOnly: false,
     featured: false,
   },
+  {
+    slug: "config",
+    name: "Config Syntax Highlighter",
+    shortName: "Config",
+    description:
+      "Highlight Cisco network configurations locally, then copy rich formatting for email and documents or copy the original plain text.",
+    category: "network",
+    keywords: ["config", "cisco", "ios", "ios-xe", "ios-xr", "syntax"],
+    icon: "Network",
+    status: "active",
+    clientOnly: true,
+    featured: false,
+  },
 ];
 
 /**
