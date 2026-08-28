@@ -28,15 +28,13 @@ test.describe("Mobile nav drawer (320px, D-04, SHELL-06)", () => {
     const drawer = page.getByTestId("mobile-nav-drawer");
     await expect(drawer).toBeVisible();
 
-    // shortName items per tools/registry.ts — uuid (Phase 2 Plan 01),
-    // subnet (Phase 3 Plan 01), dns (Phase 4 Plan 01), and mac (Phase 5
-    // Plan 01) are all "active" and rendered as real links.
-    for (const shortName of ["Subnet", "UUID", "DNS", "MAC"]) {
+    // All active registry entries render as real links using their shortName.
+    for (const shortName of ["Subnet", "UUID", "Config", "DNS", "MAC"]) {
       await expect(
         drawer.getByText(shortName, { exact: true })
       ).toBeVisible();
     }
-    await expect(drawer.locator("a")).toHaveCount(4);
+    await expect(drawer.locator("a")).toHaveCount(5);
     await expect(
       drawer.getByTestId("mobile-nav-link").getByText("UUID", { exact: true })
     ).toBeVisible();

@@ -19,7 +19,7 @@ describe("app/sitemap", () => {
     expect(urls).toContain(`${BASE_URL}/privacy`);
   });
 
-  it("contains exactly the /tools/* entries for 'active' registry tools (uuid, subnet, dns, mac, as of Phase 5 Plan 01)", async () => {
+  it("contains exactly the /tools/* entries for active registry tools", async () => {
     vi.resetModules();
     const { default: sitemap } = await import("./sitemap");
     const toolUrls = sitemap()
@@ -32,6 +32,7 @@ describe("app/sitemap", () => {
         `${BASE_URL}/tools/subnet`,
         `${BASE_URL}/tools/dns`,
         `${BASE_URL}/tools/mac`,
+        `${BASE_URL}/tools/config`,
       ].sort()
     );
   });
@@ -79,7 +80,7 @@ describe("app/sitemap", () => {
 
   it("does not hardcode a tool slug literal in app/sitemap.ts (registry-derived only)", () => {
     const source = readFileSync(path.join(__dirname, "sitemap.ts"), "utf-8");
-    const registrySlugs = ["uuid", "subnet", "dns", "mac"];
+    const registrySlugs = ["uuid", "subnet", "dns", "mac", "config"];
 
     for (const slug of registrySlugs) {
       const quotedLiteral = new RegExp(`["'\`]${slug}["'\`]`);

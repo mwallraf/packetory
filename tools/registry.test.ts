@@ -2,20 +2,26 @@ import { describe, expect, it } from "vitest";
 import { getSortedTools, getToolBySlug, tools } from "./registry";
 
 describe("tools/registry", () => {
-  it("contains exactly the four v1 tool entries", () => {
-    expect(tools).toHaveLength(4);
+  it("contains the active tool entries", () => {
+    expect(tools).toHaveLength(5);
     const slugs = tools.map((t) => t.slug).sort();
-    expect(slugs).toEqual(["dns", "mac", "subnet", "uuid"]);
+    expect(slugs).toEqual(["config", "dns", "mac", "subnet", "uuid"]);
   });
 
   it("getSortedTools() sorts by featured desc, then name asc (case-insensitive)", () => {
     const sorted = getSortedTools();
-    expect(sorted.map((t) => t.slug)).toEqual(["subnet", "uuid", "dns", "mac"]);
+    expect(sorted.map((t) => t.slug)).toEqual([
+      "subnet",
+      "uuid",
+      "config",
+      "dns",
+      "mac",
+    ]);
   });
 
   it("ties within the same featured group break by case-insensitive name localeCompare", () => {
     // Featured group: IP Subnet Calculator vs UUID Generator -> "IP Subnet..." < "UUID..." asc
-    // Non-featured group: DNS Lookup vs MAC Address Inspector -> "DNS..." < "MAC..." asc
+    // Non-featured tools sort alphabetically by their full names.
     const sorted = getSortedTools();
     const featured = sorted.filter((t) => t.featured);
     const notFeatured = sorted.filter((t) => !t.featured);
@@ -33,7 +39,7 @@ describe("tools/registry", () => {
     expect(notFeaturedNames).toEqual(sortedNotFeaturedNames);
   });
 
-  it("uuid, subnet, dns, and mac are all 'active' (Phase 2 Plan 01, Phase 3 Plan 01, Phase 4 Plan 01, Phase 5 Plan 01)", () => {
+  it("all registered tools are active", () => {
     const statuses = Object.fromEntries(
       tools.map((tool) => [tool.slug, tool.status])
     );
@@ -42,6 +48,7 @@ describe("tools/registry", () => {
       subnet: "active",
       dns: "active",
       mac: "active",
+      config: "active",
     });
   });
 
