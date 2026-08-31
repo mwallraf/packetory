@@ -42,16 +42,36 @@ describe("config highlighting", () => {
     ]);
   });
 
-  it("produces self-contained, escaped clipboard HTML with inline styles", () => {
+  it("produces minimal, escaped clipboard HTML with inline colour styles", () => {
     const html = buildConfigHtml(
-      `description Core <uplink> & "edge"`,
+      `description Core <uplink> & "edge"\n ip address 192.0.2.1 255.255.255.0`,
       "cisco"
     );
 
-    expect(html).toContain("<pre style=");
+    expect(html).toMatch(/^<span style="font-family:/);
     expect(html).toContain("font-family:Consolas");
-    expect(html).toContain("Core &lt;uplink&gt; &amp; &quot;edge&quot;");
+    expect(html).toContain("color:#1d4ed8");
+    expect(html).toContain(
+      "Core&nbsp;&lt;uplink&gt;&nbsp;&amp;&nbsp;&quot;edge&quot;"
+    );
+    expect(html).toMatch(/<br>(?:<span[^>]*>)?&nbsp;/);
     expect(html).not.toContain("class=");
     expect(html).not.toContain("Core <uplink>");
+    expect(html).not.toMatch(/<(?:pre|div|table)\b/);
+    expect(html).not.toMatch(/(?:margin|padding|border|background):/);
+  });
+
+  it("produces monochrome clipboard HTML without syntax colours", () => {
+    const html = buildConfigHtml(
+      "! uplink\ninterface GigabitEthernet0/1\n description Core uplink",
+      "cisco",
+      { monochrome: true }
+    );
+
+    expect(html).toContain("font-family:Consolas");
+    expect(html).toContain("font-weight:600");
+    expect(html).toContain("font-style:italic");
+    expect(html).not.toContain("color:");
+    expect(html).not.toMatch(/<(?:pre|div|table)\b/);
   });
 });
