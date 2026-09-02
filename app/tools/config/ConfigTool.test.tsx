@@ -19,6 +19,10 @@ describe("ConfigTool", () => {
       "disabled",
       true
     );
+    expect(screen.getByTestId("config-clear")).toHaveProperty(
+      "disabled",
+      true
+    );
   });
 
   it("updates the highlighted preview live", () => {
@@ -33,6 +37,52 @@ describe("ConfigTool", () => {
       "GigabitEthernet0/1"
     );
     expect(preview.querySelectorAll('[data-token="address"]')).toHaveLength(2);
+  });
+
+  it("clears the input and rendered preview", () => {
+    render(<ConfigTool />);
+    fireEvent.change(screen.getByTestId("config-input"), {
+      target: { value: "interface GigabitEthernet0/1" },
+    });
+
+    fireEvent.click(screen.getByTestId("config-clear"));
+
+    expect(screen.getByTestId("config-input")).toHaveProperty("value", "");
+    expect(screen.getByTestId("config-preview").textContent).toBe(
+      "Your highlighted preview will appear here."
+    );
+    expect(
+      screen.getByTestId("config-preview").querySelector("[data-token]")
+    ).toBeNull();
+    expect(screen.getByTestId("config-copy-rich")).toHaveProperty(
+      "disabled",
+      true
+    );
+  });
+
+  it("renders every token with the same foreground colour in monochrome mode", () => {
+    render(<ConfigTool />);
+    fireEvent.change(screen.getByTestId("config-input"), {
+      target: { value: "interface GigabitEthernet0/1\n description Core uplink" },
+    });
+
+    fireEvent.click(screen.getByTestId("config-monochrome"));
+
+    expect(
+      screen.getByTestId("config-monochrome").getAttribute("aria-pressed")
+    ).toBe("true");
+    const tokens = screen
+      .getByTestId("config-preview")
+      .querySelectorAll<HTMLElement>("[data-token]");
+    expect(tokens.length).toBeGreaterThan(0);
+    expect(
+      Array.from(tokens).every((token) =>
+        token.className.includes("text-foreground")
+      )
+    ).toBe(true);
+    expect(
+      Array.from(tokens).some((token) => token.className.includes("text-blue"))
+    ).toBe(false);
   });
 
   it("copies the original configuration as plain text", async () => {

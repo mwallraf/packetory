@@ -8,6 +8,8 @@ interface GigabitEthernet0/1
  no shutdown`;
 
 test.describe("Config Syntax Highlighter", () => {
+  test.describe.configure({ mode: "serial" });
+
   test("highlights pasted Cisco configuration live", async ({ page }) => {
     await page.goto("/tools/config");
 
@@ -20,6 +22,21 @@ test.describe("Config Syntax Highlighter", () => {
       "! Core uplink"
     );
     await expect(preview.locator('[data-token="address"]')).toHaveCount(3);
+  });
+
+  test("clears the input and returns the preview to its empty state", async ({
+    page,
+  }) => {
+    await page.goto("/tools/config");
+    await page.getByTestId("config-input").fill(IOS_CONFIG);
+
+    await page.getByTestId("config-clear").click();
+
+    await expect(page.getByTestId("config-input")).toHaveValue("");
+    await expect(page.getByTestId("config-preview")).toHaveText(
+      "Your highlighted preview will appear here."
+    );
+    await expect(page.getByTestId("config-copy-rich")).toBeDisabled();
   });
 
   test("copies plain text byte-for-byte", async ({ page, context }) => {
@@ -62,5 +79,38 @@ test.describe("Config Syntax Highlighter", () => {
     expect(clipboard.plain).toBe(IOS_CONFIG);
     expect(clipboard.html).toContain("font-family:Consolas");
     expect(clipboard.html).toContain("color:#1d4ed8");
+    expect(clipboard.html).not.toMatch(/<(?:pre|div|table)\b/);
+    expect(clipboard.html).not.toMatch(
+      /(?:margin|padding|border|background):/
+    );
+  });
+
+  test("copies equivalent rich text without syntax colours in monochrome mode", async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.goto("/tools/config");
+    await page.getByTestId("config-input").fill(IOS_CONFIG);
+    await page.getByTestId("config-monochrome").click();
+
+    await expect(page.getByTestId("config-monochrome")).toHaveAttribute(
+      "aria-pressed",
+      "true"
+    );
+    await page.getByTestId("config-copy-rich").click();
+    await expect(page.getByTestId("config-copy-rich")).toContainText(
+      "Copied!"
+    );
+
+    const clipboard = await page.evaluate(async () => {
+      const [item] = await navigator.clipboard.read();
+      const plain = await (await item.getType("text/plain")).text();
+      const html = await (await item.getType("text/html")).text();
+      return { plain, html };
+    });
+    expect(clipboard.plain).toBe(IOS_CONFIG);
+    expect(clipboard.html).toContain("font-family:Consolas");
+    expect(clipboard.html).not.toContain("color:");
   });
 });

@@ -1,7 +1,8 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Clipboard, Copy } from "lucide-react";
+import { Check, Clipboard, Copy, Eraser, Palette } from "lucide-react";
+import { Toggle } from "@/components/ui/toggle";
 import { copyPlainText, copyRichText } from "@/lib/config/clipboard";
 import {
   buildConfigHtml,
@@ -23,12 +24,24 @@ const TOKEN_CLASSES: Record<ConfigTokenKind, string> = {
   string: "text-fuchsia-700 dark:text-fuchsia-300",
 };
 
+const MONOCHROME_TOKEN_CLASSES: Record<ConfigTokenKind, string> = {
+  plain: "text-foreground",
+  comment: "text-foreground italic",
+  command: "font-semibold text-foreground",
+  keyword: "font-semibold text-foreground",
+  interface: "text-foreground",
+  address: "text-foreground",
+  number: "text-foreground",
+  string: "text-foreground",
+};
+
 const COPY_ERROR_MESSAGE =
   "Couldn't copy — select the configuration and copy it manually.";
 
 export function ConfigTool() {
   const [config, setConfig] = useState("");
   const [profile, setProfile] = useState<ConfigProfile>("cisco");
+  const [monochrome, setMonochrome] = useState(false);
   const [richCopyState, setRichCopyState] = useState<CopyState>("idle");
   const [plainCopyState, setPlainCopyState] = useState<CopyState>("idle");
   const richResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -67,7 +80,7 @@ export function ConfigTool() {
     try {
       const result = await copyRichText(
         config,
-        buildConfigHtml(config, profile)
+        buildConfigHtml(config, profile, { monochrome })
       );
       setRichCopyState(result === "rich" ? "copied" : "plain-fallback");
     } catch {
@@ -88,38 +101,77 @@ export function ConfigTool() {
 
   const isEmpty = config.length === 0;
 
+  function handleClear() {
+    setConfig("");
+    resetCopyStates();
+  }
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1.5 sm:max-w-sm">
-        <label
-          htmlFor="config-profile"
-          className="text-[14px] leading-[1.4] font-semibold text-foreground"
-        >
-          Language / profile
-        </label>
-        <select
-          id="config-profile"
-          data-testid="config-profile"
-          value={profile}
-          onChange={(event) => {
-            setProfile(event.target.value as ConfigProfile);
-            resetCopyStates();
-          }}
-          className="h-11 w-full rounded-lg border border-input bg-background px-3 text-[14px] text-foreground outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
-        >
-          <option value="cisco">Cisco IOS / IOS-XE / IOS-XR</option>
-          <option value="plain">Plain text</option>
-        </select>
+      <div className="flex flex-wrap items-end gap-4">
+        <div className="flex w-full flex-col gap-1.5 sm:max-w-sm">
+          <label
+            htmlFor="config-profile"
+            className="text-[14px] leading-[1.4] font-semibold text-foreground"
+          >
+            Language / profile
+          </label>
+          <select
+            id="config-profile"
+            data-testid="config-profile"
+            value={profile}
+            onChange={(event) => {
+              setProfile(event.target.value as ConfigProfile);
+              resetCopyStates();
+            }}
+            className="h-11 w-full rounded-lg border border-input bg-background px-3 text-[14px] text-foreground outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30"
+          >
+            <option value="cisco">Cisco IOS / IOS-XE / IOS-XR</option>
+            <option value="plain">Plain text</option>
+          </select>
+        </div>
+
+        <div className="flex flex-col gap-1.5">
+          <span className="text-[14px] leading-[1.4] font-semibold text-foreground">
+            Colour mode
+          </span>
+          <Toggle
+            variant="outline"
+            size="lg"
+            pressed={monochrome}
+            onPressedChange={(pressed) => {
+              setMonochrome(pressed);
+              resetCopyStates();
+            }}
+            data-testid="config-monochrome"
+            className="h-11 px-3 data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
+          >
+            <Palette aria-hidden="true" />
+            Monochrome
+          </Toggle>
+        </div>
       </div>
 
       <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-1.5">
-          <label
-            htmlFor="config-input"
-            className="text-[14px] leading-[1.4] font-semibold text-foreground"
-          >
-            Configuration
-          </label>
+          <div className="flex min-h-7 items-center justify-between gap-3">
+            <label
+              htmlFor="config-input"
+              className="text-[14px] leading-[1.4] font-semibold text-foreground"
+            >
+              Configuration
+            </label>
+            <button
+              type="button"
+              data-testid="config-clear"
+              onClick={handleClear}
+              disabled={isEmpty}
+              className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[13px] font-medium text-muted-foreground outline-none transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
+            >
+              <Eraser aria-hidden="true" className="size-3.5" />
+              Clear
+            </button>
+          </div>
           <textarea
             id="config-input"
             data-testid="config-input"
@@ -155,7 +207,11 @@ export function ConfigTool() {
                     {line.map((token, tokenIndex) => (
                       <span
                         key={`${lineIndex}-${tokenIndex}`}
-                        className={TOKEN_CLASSES[token.kind]}
+                        className={
+                          monochrome
+                            ? MONOCHROME_TOKEN_CLASSES[token.kind]
+                            : TOKEN_CLASSES[token.kind]
+                        }
                         data-token={token.kind}
                       >
                         {token.text}

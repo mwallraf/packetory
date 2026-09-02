@@ -88,15 +88,21 @@ const INTERFACE_PATTERN =
 const IPV4_PATTERN =
   /^(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:\/(?:3[0-2]|[12]?\d))?/;
 
-const INLINE_STYLES: Record<ConfigTokenKind, string> = {
-  plain: "color:#0f172a;",
-  comment: "color:#64748b;font-style:italic;",
-  command: "color:#1d4ed8;font-weight:600;",
-  keyword: "color:#7c3aed;font-weight:600;",
-  interface: "color:#b45309;",
-  address: "color:#047857;",
-  number: "color:#be123c;",
-  string: "color:#a21caf;",
+const INLINE_COLORS: Record<ConfigTokenKind, string> = {
+  plain: "#0f172a",
+  comment: "#64748b",
+  command: "#1d4ed8",
+  keyword: "#7c3aed",
+  interface: "#b45309",
+  address: "#047857",
+  number: "#be123c",
+  string: "#a21caf",
+};
+
+const INLINE_EMPHASIS: Partial<Record<ConfigTokenKind, string>> = {
+  comment: "font-style:italic;",
+  command: "font-weight:600;",
+  keyword: "font-weight:600;",
 };
 
 function appendToken(
@@ -255,20 +261,36 @@ function escapeHtml(value: string): string {
     .replaceAll("'", "&#039;");
 }
 
+function escapeHtmlWithPreservedWhitespace(value: string): string {
+  return escapeHtml(value)
+    .replaceAll("\t", "&nbsp;&nbsp;&nbsp;&nbsp;")
+    .replaceAll(" ", "&nbsp;");
+}
+
+function renderClipboardToken(
+  token: ConfigToken,
+  monochrome: boolean
+): string {
+  const content = escapeHtmlWithPreservedWhitespace(token.text);
+  const style = `${monochrome ? "" : `color:${INLINE_COLORS[token.kind]};`}${INLINE_EMPHASIS[token.kind] ?? ""}`;
+
+  return style ? `<span style="${style}">${content}</span>` : content;
+}
+
+type ConfigHtmlOptions = {
+  monochrome?: boolean;
+};
+
 export function buildConfigHtml(
   config: string,
-  profile: ConfigProfile
+  profile: ConfigProfile,
+  { monochrome = false }: ConfigHtmlOptions = {}
 ): string {
   const content = highlightConfig(config, profile)
     .map((line) =>
-      line
-        .map(
-          (token) =>
-            `<span style="${INLINE_STYLES[token.kind]}">${escapeHtml(token.text)}</span>`
-        )
-        .join("")
+      line.map((token) => renderClipboardToken(token, monochrome)).join("")
     )
-    .join("\n");
+    .join("<br>");
 
-  return `<pre style="margin:0;padding:16px;border:1px solid #e2e8f0;border-radius:6px;background:#ffffff;color:#0f172a;font-family:Consolas,Monaco,'Courier New',monospace;font-size:13px;line-height:1.5;white-space:pre-wrap;overflow-wrap:normal;">${content}</pre>`;
+  return `<span style="font-family:Consolas,Monaco,'Courier New',monospace;font-size:13px;line-height:1.5;">${content}</span>`;
 }
