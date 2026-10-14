@@ -10,8 +10,8 @@
 
 - [x] **HASH-01**: User gets correct MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-512, RIPEMD-160, and CRC32 (IEEE, unsigned, 8-digit zero-padded hex) digests, verified against published test vectors (RFC 1321, FIPS 180-4, FIPS 202, RIPEMD-160 reference, CRC catalogue `123456789` → `cbf43926`) including padding-boundary lengths and SHA3-vs-Keccak negative cases
 - [x] **HASH-02**: User's text is hashed as exact UTF-8 bytes (no trimming or Unicode normalization), so results match `printf '%s' "…" | sha256sum` for non-ASCII and emoji input
-- [ ] **HASH-03**: User gets identical digests whether input is hashed in one shot or in arbitrary chunks (property-tested chunk-split invariance)
-- [ ] **HASH-04**: All hashing runs in a Web Worker off the main thread, so typing and scrolling never jank, and the hash engine (`@noble/hashes`, imported only from `lib/hash/engine.ts`) is not part of the initial page JS
+- [x] **HASH-03**: User gets identical digests whether input is hashed in one shot or in arbitrary chunks (property-tested chunk-split invariance)
+- [x] **HASH-04**: All hashing runs in a Web Worker off the main thread, so typing and scrolling never jank, and the hash engine (`@noble/hashes`, imported only from `lib/hash/engine.ts`) is not part of the initial page JS
 
 ### Text Input
 
@@ -79,8 +79,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 |-------------|-------|--------|
 | HASH-01 | Phase 8 | Complete |
 | HASH-02 | Phase 8 | Complete |
-| HASH-03 | Phase 8 | Pending |
-| HASH-04 | Phase 8 | Pending |
+| HASH-03 | Phase 8 | Complete |
+| HASH-04 | Phase 8 | Complete |
 | TEXT-01 | Phase 9 | Pending |
 | TEXT-02 | Phase 9 | Pending |
 | TEXT-03 | Phase 9 | Pending |

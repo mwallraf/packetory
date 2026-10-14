@@ -56,7 +56,7 @@ Full phase details archived at `.planning/milestones/v1.1-ROADMAP.md`.
   4. Hashing the same bytes in one shot or split into arbitrary chunks gives identical digests for all 10 algorithms — proven by a fast-check chunk-split property and a differential check against `node:crypto` / `zlib.crc32`
   5. In a production build (`next build` + `next start`), a hash job runs inside a Web Worker and returns correct digests; `@noble/hashes` is imported only by `lib/hash/engine.ts` and lands in the worker chunk, never in initial client JS; starting a new job through the hash client always cancels the in-flight one first, and a superseded or disposed job never delivers a result (fake-Worker tests)
 
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans executed
 
 Plans:
 **Wave 1**
@@ -68,7 +68,7 @@ Plans:
 - [x] 08-04-PLAN.md — Import-boundary guards (ESLint + source walk) and harness-gate proofs (unit + dev-server 404)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 08-05-PLAN.md — Production proof expansion (Blob slices, cancel timing, dispose, network silence), CI `test:e2e:prod` step, full phase gate
+- [x] 08-05-PLAN.md — Production proof expansion (Blob slices, cancel timing, dispose, network silence), CI `test:e2e:prod` step, full phase gate
 
 **Research flags**: Confirm the Worker `{ type: "module" }` option with an in-repo production-build smoke test on the pinned Next 16.2.11 (keep Next pinned — Turbopack worker regressions were reported around 16.2.4 / 16.3 canaries). CI needs Node ≥22.2 for the `zlib.crc32` oracle; guard the RIPEMD-160 `node:crypto` oracle with try/catch (OpenSSL 3 may not expose `ripemd160`). noble v2 requires `.js` subpath imports and its hashers are single-use after `digest()`. File reads use `blob.slice().arrayBuffer()` in 1 MiB chunks (jsdom lacks `Blob.stream`).
 
@@ -117,6 +117,6 @@ Plans:
 | 5. MAC Address Inspector | v1.0 | 3/3 | Complete | 2026-07-25 |
 | 6. Landing Page Card Navigation | v1.1 | 2/2 | Complete | 2026-07-25 |
 | 7. Production Domain Cutover | v1.1 | 1/1 | Complete | 2026-07-25 |
-| 8. Hash Core & Worker Runtime | v1.2 | 4/5 | In Progress | - |
+| 8. Hash Core & Worker Runtime | v1.2 | 5/5 | In Progress | - |
 | 9. Hash Tool Page & Text Hashing | v1.2 | 0/TBD | Not started | - |
 | 10. File Hashing & Release Hardening | v1.2 | 0/TBD | Not started | - |
