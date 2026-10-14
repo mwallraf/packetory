@@ -5,17 +5,17 @@ milestone_name: Hash Generator
 current_phase: 08
 current_phase_name: Hash Core & Worker Runtime
 status: executing
-stopped_at: Completed 08-03-PLAN.md
-last_updated: "2026-10-14T19:20:43.911Z"
+stopped_at: Completed 08-04-PLAN.md
+last_updated: "2026-10-14T19:22:57.006Z"
 last_activity: 2026-10-14
 last_activity_desc: Phase 08 execution started
-state_head: 287f8e1d38b96139d1f503bb7d07cbc51272fbce
+state_head: d70ecf3b7f737678305cace99b1646691eae4f50
 progress:
   total_phases: 3
   completed_phases: 7
   total_plans: 5
-  completed_plans: 3
-  percent: 60
+  completed_plans: 4
+  percent: 80
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-14)
 ## Current Position
 
 Phase: 08 (Hash Core & Worker Runtime) — EXECUTING
-Plan: 4 of 5
+Plan: 5 of 5
 Status: Ready to execute
 Last activity: 2026-10-14 — Phase 08 execution started
 
-Progress: [██████░░░░] 60%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -93,6 +93,7 @@ Progress: [██████░░░░] 60%
 | Phase 08 P01 | 7min | 1 tasks | 14 files |
 | Phase 08 P02 | 2 min | 3 tasks | 8 files |
 | Phase 08 P03 | 3 min | 2 tasks | 2 files |
+| Phase 08 P04 | 6 min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -109,6 +110,7 @@ Decisions are logged in PROJECT.md Key Decisions table. v1.2 locked decisions (u
 - [Phase 08]: 08-01: HashSmoke ready flag uses useSyncExternalStore on window.__hashSmoke (lint forbids setState in effect)
 - [Phase 08]: 08-02: single-use assertion accepts both noble messages (hash was destroyed for SHA2/MD family and CRC32; digest() was already called for Keccak-based SHA3)
 - [Phase 08]: 08-03: No production code changed; client/worker-core import sets untouched for 08-04 boundary guard
+- [Phase 08]: 08-04: boundary guard specifier regex covers from/bare/dynamic import()/require(); guard test excludes itself from the walk
 
 ### Pending Todos
 
@@ -131,8 +133,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-14T19:20:43.897Z
-Stopped at: Completed 08-03-PLAN.md
+Last session: 2026-10-14T19:22:56.990Z
+Stopped at: Completed 08-04-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
