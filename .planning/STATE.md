@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v1.2
 milestone_name: Hash Generator
-current_phase: 8
+current_phase: 08
 current_phase_name: Hash Core & Worker Runtime
-status: planning
-stopped_at: v1.2 ROADMAP.md created (Phases 8-10), awaiting user approval
-last_updated: "2026-10-14T18:54:51.180Z"
+status: executing
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-10-14T19:13:17.637Z"
 last_activity: 2026-10-14
-last_activity_desc: ROADMAP.md created for v1.2, 24/24 requirements mapped (HASH-01..04 → Phase 8; TEXT-01..04, OUT-01..05, INT-01, INT-03, INTG-01, INTG-02 → Phase 9; FILE-01..04, INT-02, INTG-03, INTG-04 → Phase 10)
-state_head: 9c9d48670d322e28ed8b185d18e8a71d8bac2aea
+last_activity_desc: Phase 08 execution started
+state_head: 65345ea2a573fc737d3f2f8ceea65a9bf1d29d1a
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 7
   total_plans: 5
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 20
 ---
 
 # Project State
@@ -25,16 +25,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-14)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** v1.2 ROADMAP.md created (Phase 8: Hash Core & Worker Runtime → Phase 9: Hash Tool Page & Text Hashing → Phase 10: File Hashing & Release Hardening). Ready to start Phase 8 (`/gsd-discuss-phase 8`, then `/gsd-plan-phase 8`).
+**Current focus:** Phase 08 — Hash Core & Worker Runtime
 
 ## Current Position
 
-Phase: 8 (Hash Core & Worker Runtime) — READY TO EXECUTE
-Plan: —
-Status: Roadmap complete, ready to plan
-Last activity: 2026-10-14 — ROADMAP.md created for v1.2, 24/24 requirements mapped (HASH-01..04 → Phase 8; TEXT-01..04, OUT-01..05, INT-01, INT-03, INTG-01, INTG-02 → Phase 9; FILE-01..04, INT-02, INTG-03, INTG-04 → Phase 10)
+Phase: 08 (Hash Core & Worker Runtime) — EXECUTING
+Plan: 2 of 5
+Status: Ready to execute
+Last activity: 2026-10-14 — Phase 08 execution started
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [██░░░░░░░░] 20%
 
 ## Performance Metrics
 
@@ -90,6 +90,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 06 P01 | 25min | 3 tasks | 3 files |
 | Phase 06 P02 | 5min | 1 tasks | 0 files |
 | Phase 07 P01 | 20min | 3 tasks | 3 files |
+| Phase 08 P01 | 7min | 1 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,8 @@ Decisions are logged in PROJECT.md Key Decisions table. v1.2 locked decisions (u
 - [v1.2]: Extras in scope = paste-to-verify, `sha256sum` copy format, Base64 toggle; HMAC deferred to Future
 - [v1.2]: Registry category = `encode`
 - [v1.2 roadmap]: TEXT-04 ("Copy link") placed in Phase 9 with the rest of the text path (research had Copy link in the file phase) so Phase 9 ships a complete text-only tool
+- [Phase 08]: 08-01: job.ts derives algorithm ids from Object.keys(FACTORIES); algorithms.ts/format.ts deferred to 08-02
+- [Phase 08]: 08-01: HashSmoke ready flag uses useSyncExternalStore on window.__hashSmoke (lint forbids setState in effect)
 
 ### Pending Todos
 
@@ -124,8 +127,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-14T17:42:20.000Z
-Stopped at: v1.2 ROADMAP.md created (Phases 8-10), awaiting user approval
+Last session: 2026-10-14T19:13:17.623Z
+Stopped at: Completed 08-01-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
