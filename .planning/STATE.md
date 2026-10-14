@@ -3,10 +3,10 @@ gsd_state_version: "1.0"
 milestone: v1.2
 milestone_name: Hash Generator
 status: planning
-last_updated: "2026-10-14T17:22:35.741Z"
+last_updated: "2026-10-14T17:42:20.000Z"
 last_activity: 2026-10-14
 progress:
-  total_phases: 0
+  total_phases: 3
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,17 +17,19 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-25)
+See: .planning/PROJECT.md (updated 2026-10-14)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Planning next milestone
+**Current focus:** v1.2 ROADMAP.md created (Phase 8: Hash Core & Worker Runtime → Phase 9: Hash Tool Page & Text Hashing → Phase 10: File Hashing & Release Hardening). Ready to start Phase 8 (`/gsd-discuss-phase 8`, then `/gsd-plan-phase 8`).
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 8 of 10 (Hash Core & Worker Runtime) — v1.2 phase 1 of 3, not yet planned
 Plan: —
-Status: Defining requirements
-Last activity: 2026-10-14 — Milestone v1.2 started
+Status: Roadmap complete, ready to plan
+Last activity: 2026-10-14 — ROADMAP.md created for v1.2, 24/24 requirements mapped (HASH-01..04 → Phase 8; TEXT-01..04, OUT-01..05, INT-01, INT-03, INTG-01, INTG-02 → Phase 9; FILE-01..04, INT-02, INTG-03, INTG-04 → Phase 10)
+
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -88,7 +90,13 @@ Last activity: 2026-10-14 — Milestone v1.2 started
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table (v1.1 entries added at milestone close: stretched-link full-card pattern, DOM-02/DOM-04 descope rationale).
+Decisions are logged in PROJECT.md Key Decisions table. v1.2 locked decisions (user-confirmed before roadmap, do not reopen):
+
+- [v1.2]: Hash engine = `@noble/hashes@2.4.0` (imported only from `lib/hash/engine.ts`) + hand-rolled IEEE CRC32
+- [v1.2]: URL state = read `?text=` on load; write only via explicit "Copy link" (length-capped), never auto-written
+- [v1.2]: Extras in scope = paste-to-verify, `sha256sum` copy format, Base64 toggle; HMAC deferred to Future
+- [v1.2]: Registry category = `encode`
+- [v1.2 roadmap]: TEXT-04 ("Copy link") placed in Phase 9 with the rest of the text path (research had Copy link in the file phase) so Phase 9 ships a complete text-only tool
 
 ### Pending Todos
 
@@ -96,8 +104,10 @@ None yet.
 
 ### Blockers/Concerns
 
-- Tech debt carried from v1.0, not in v1.1 scope: `/api/mac-vendor`'s interim API-proxy architecture should migrate to a build-time-compacted local OUI dataset per CLAUDE.md; no rate limiting on `/api/mac-vendor` (accepted risk, AR-05-01) — revisit if production traffic warrants it. Related-tool links and a dedicated per-tool accessibility re-audit also remain deferred.
-- Tech debt carried from v1.1: `packetory.vercel.app`/`www.packetory.dev` → apex redirects (DOM-02) and a domain/DNS runbook (DOM-04) were deliberately descoped — revisit if duplicate-content SEO or the `www` TLS gap becomes a priority.
+- Phase 8 entry checks: Worker `{ type: "module" }` smoke test on pinned Next 16.2.11; CI Node ≥22.2 for the `zlib.crc32` oracle; RIPEMD-160 `node:crypto` oracle availability (OpenSSL 3).
+- Phase 10: analytics `redactBeforeSend` passes events through untouched when there's no `?`, so URL-fragment state would bypass redaction — fixed under INTG-03.
+- Tech debt carried from v1.0: `/api/mac-vendor` interim API-proxy (build-time OUI dataset is the intended architecture); no rate limiting on it (AR-05-01); related-tool links and a per-tool accessibility re-audit still deferred.
+- Tech debt carried from v1.1: DOM-02 redirects and DOM-04 runbook deliberately descoped — revisit if duplicate-content SEO or the `www` TLS gap becomes a priority.
 
 ## Deferred Items
 
@@ -109,10 +119,10 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-25T20:26:26.905Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-10-14T17:42:20.000Z
+Stopped at: v1.2 ROADMAP.md created (Phases 8-10), awaiting user approval
 Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Review and approve the v1.2 roadmap, then start Phase 8 with /gsd-discuss-phase 8 (or /gsd-plan-phase 8)

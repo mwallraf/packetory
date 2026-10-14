@@ -77,12 +77,37 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| HASH-01 | Phase 8 | Pending |
+| HASH-02 | Phase 8 | Pending |
+| HASH-03 | Phase 8 | Pending |
+| HASH-04 | Phase 8 | Pending |
+| TEXT-01 | Phase 9 | Pending |
+| TEXT-02 | Phase 9 | Pending |
+| TEXT-03 | Phase 9 | Pending |
+| TEXT-04 | Phase 9 | Pending |
+| OUT-01 | Phase 9 | Pending |
+| OUT-02 | Phase 9 | Pending |
+| OUT-03 | Phase 9 | Pending |
+| OUT-04 | Phase 9 | Pending |
+| OUT-05 | Phase 9 | Pending |
+| INT-01 | Phase 9 | Pending |
+| INT-03 | Phase 9 | Pending |
+| INTG-01 | Phase 9 | Pending |
+| INTG-02 | Phase 9 | Pending |
+| FILE-01 | Phase 10 | Pending |
+| FILE-02 | Phase 10 | Pending |
+| FILE-03 | Phase 10 | Pending |
+| FILE-04 | Phase 10 | Pending |
+| INT-02 | Phase 10 | Pending |
+| INTG-03 | Phase 10 | Pending |
+| INTG-04 | Phase 10 | Pending |
 
 **Coverage:**
-- v1.2 requirements: 23 total
-- Mapped to phases: 0
-- Unmapped: 23 ⚠️
+
+- v1.2 requirements: 24 total (corrected from an earlier miscount of 23 — the list above has 4 HASH + 4 TEXT + 4 FILE + 5 OUT + 3 INT + 4 INTG)
+- Mapped to phases: 24
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-10-14*
-*Last updated: 2026-10-14 after initial definition*
+*Last updated: 2026-10-14 after ROADMAP.md creation — 100% v1.2 coverage across Phase 8 (HASH-01..04), Phase 9 (TEXT-01..04, OUT-01..05, INT-01, INT-03, INTG-01, INTG-02), and Phase 10 (FILE-01..04, INT-02, INTG-03, INTG-04)*
