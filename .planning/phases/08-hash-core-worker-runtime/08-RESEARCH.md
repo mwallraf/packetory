@@ -634,15 +634,19 @@ Spec body (all three assertions were executed and passed in real Chrome against 
 | A5 | The env-gated `HASH_SMOKE` harness route is acceptable to the user as an interim, Phase-9-deleted artifact (alternatives in Open Questions) | Summary / Structure | If rejected, the planner needs another host page for criterion 5 |
 | A6 | Absolute browser throughput is similar to Node/V8 (~14 MB/s all-10) | Pattern 3 | Only affects progress-UI sizing in Phase 10, not Phase 8 correctness |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **How should criterion 5 be hosted given there is no tool route?**
    - What we know: needs a real page to construct the worker in a production build; `app/_x` private folders are not routable; env-gated `app/hash-smoke` (404 unless `HASH_SMOKE=1`) verified working and leaves the default build, sitemap, and nav untouched.
    - What's unclear: whether the user prefers shipping a permanent `noindex` page, or building the real `/tools/hash` shell early.
    - Recommendation: env-gated `app/hash-smoke` + `playwright.prod.config.ts`; delete the route and retarget the spec at `/tools/hash` in Phase 9.
+   - **RESOLVED (adopted):** the env-gated `app/hash-smoke` harness + `playwright.prod.config.ts` is the criterion-5 host. Built in 08-01 (harness, prod config, prod spec); its gate (404 without `HASH_SMOKE=1`, noindex, absent from registry/sitemap/nav) is proven in 08-04. Phase 9 deletes the route.
 2. **In-thread fallback client (no `Worker`)?** Earlier research proposed a dynamic `import("./engine")` fallback. Recommendation: skip it in Phase 8 (every supported browser has Workers; it adds a second noble-bearing chunk and weakens the boundary). The loopback/`FakeWorker` test doubles cover Phase 9 component tests instead. Revisit only if the client's `error` outcome shows real-world worker-construction failures.
+   - **RESOLVED (not built in Phase 8):** no in-thread fallback is planned. The client's `onerror` / throwing-factory paths resolve an `error` outcome instead (08-01 implements, 08-03 tests); 08-04's boundary guard keeps `engine.ts` reachable only through the worker chain.
 3. **Should the repo leave iCloud-synced `~/Documents`?** `node_modules` corruption (Pitfall 1) will recur. Out of Phase 8 scope; needs a user decision.
+   - **RESOLVED (DEFERRED to user, out of plan scope):** moving the repo is a user decision and no plan performs it. Mitigated inside the phase by the Wave-0 `rm -rf node_modules && npm ci` repair in 08-01 and a per-plan install check (re-run `npm ci` when vitest or `@noble/hashes` is unresolvable) at the start of 08-02..08-05.
 4. **`hashText`/`hashBytes` convenience helpers** (needed by Phase 9's `sampleDigests` unit test and by the vector tests): keep them in `job.ts` (inside the engine boundary, importable only by tests and `worker-core`). The boundary test must then allow only `*.test.ts` plus the worker chain. Confirm during planning.
+   - **RESOLVED (confirmed):** `hashText`/`hashBytes` live in `job.ts` (08-01 implements them); 08-02's vector and property tests use them; 08-04's `boundaries.test.ts` allows only test files plus `worker-core.ts` to import `job.ts`.
 
 ## Environment Availability
 
