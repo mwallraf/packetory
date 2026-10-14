@@ -5,17 +5,17 @@ milestone_name: Hash Generator
 current_phase: 08
 current_phase_name: Hash Core & Worker Runtime
 status: executing
-stopped_at: Completed 08-01-PLAN.md
-last_updated: "2026-10-14T19:13:17.637Z"
+stopped_at: Completed 08-02-PLAN.md
+last_updated: "2026-10-14T19:17:33.227Z"
 last_activity: 2026-10-14
 last_activity_desc: Phase 08 execution started
-state_head: 65345ea2a573fc737d3f2f8ceea65a9bf1d29d1a
+state_head: b875e7e394e441e72bd2626bf61aa1a23cdec0f2
 progress:
   total_phases: 3
   completed_phases: 7
   total_plans: 5
-  completed_plans: 1
-  percent: 20
+  completed_plans: 2
+  percent: 40
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-14)
 ## Current Position
 
 Phase: 08 (Hash Core & Worker Runtime) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Ready to execute
 Last activity: 2026-10-14 — Phase 08 execution started
 
-Progress: [██░░░░░░░░] 20%
+Progress: [████░░░░░░] 40%
 
 ## Performance Metrics
 
@@ -91,6 +91,7 @@ Progress: [██░░░░░░░░] 20%
 | Phase 06 P02 | 5min | 1 tasks | 0 files |
 | Phase 07 P01 | 20min | 3 tasks | 3 files |
 | Phase 08 P01 | 7min | 1 tasks | 14 files |
+| Phase 08 P02 | 2 min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,7 @@ Decisions are logged in PROJECT.md Key Decisions table. v1.2 locked decisions (u
 - [v1.2 roadmap]: TEXT-04 ("Copy link") placed in Phase 9 with the rest of the text path (research had Copy link in the file phase) so Phase 9 ships a complete text-only tool
 - [Phase 08]: 08-01: job.ts derives algorithm ids from Object.keys(FACTORIES); algorithms.ts/format.ts deferred to 08-02
 - [Phase 08]: 08-01: HashSmoke ready flag uses useSyncExternalStore on window.__hashSmoke (lint forbids setState in effect)
+- [Phase 08]: 08-02: single-use assertion accepts both noble messages (hash was destroyed for SHA2/MD family and CRC32; digest() was already called for Keccak-based SHA3)
 
 ### Pending Todos
 
@@ -127,8 +129,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-14T19:13:17.623Z
-Stopped at: Completed 08-01-PLAN.md
+Last session: 2026-10-14T19:17:33.212Z
+Stopped at: Completed 08-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
