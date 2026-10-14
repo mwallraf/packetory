@@ -59,11 +59,17 @@ Full phase details archived at `.planning/milestones/v1.1-ROADMAP.md`.
 **Plans:** 5 plans
 
 Plans:
+**Wave 1**
 - [ ] 08-01-PLAN.md — Tracer: text hashed by a Turbopack module Worker in a production build (env-gated `/hash-smoke` harness), all 10 digests correct, noble absent from main-thread JS; full `lib/hash` runtime chain + exact-pinned `@noble/hashes@2.4.0`
+
+**Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 08-02-PLAN.md — Correctness gate: published vectors, padding/rate boundaries, million-a, SHA3-not-Keccak, UTF-8 bytes, chunk-split properties; `algorithms.ts` + `format.ts`
 - [ ] 08-03-PLAN.md — Supersede/cancel protocol: FakeWorker client tests + worker-core loopback with real hashing (no-echo privacy)
 - [ ] 08-04-PLAN.md — Import-boundary guards (ESLint + source walk) and harness-gate proofs (unit + dev-server 404)
+
+**Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 08-05-PLAN.md — Production proof expansion (Blob slices, cancel timing, dispose, network silence), CI `test:e2e:prod` step, full phase gate
+
 **Research flags**: Confirm the Worker `{ type: "module" }` option with an in-repo production-build smoke test on the pinned Next 16.2.11 (keep Next pinned — Turbopack worker regressions were reported around 16.2.4 / 16.3 canaries). CI needs Node ≥22.2 for the `zlib.crc32` oracle; guard the RIPEMD-160 `node:crypto` oracle with try/catch (OpenSSL 3 may not expose `ripemd160`). noble v2 requires `.js` subpath imports and its hashers are single-use after `digest()`. File reads use `blob.slice().arrayBuffer()` in 1 MiB chunks (jsdom lacks `Blob.stream`).
 
 ### Phase 9: Hash Tool Page & Text Hashing
