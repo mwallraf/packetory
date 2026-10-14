@@ -21,9 +21,18 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 
 **Previously shipped:** v1.0 MVP (2026-07-25) — UUID Generator, IP Subnet Calculator, DNS Lookup, MAC Address Inspector. Full phase history archived at `.planning/milestones/v1.0-ROADMAP.md`.
 
-## Next Milestone Goals
+## Current Milestone: v1.2 Hash Generator
 
-Not yet defined — run `/gsd-new-milestone` to scope the next milestone.
+**Goal:** Add a fifth tool, `/tools/hash`, that computes ~10 common hashes of text or a dropped file entirely in the browser — like sha1-online.com, but with Packetory's zero-effort, one-click-copy, keyboard-first UX.
+
+**Target features:**
+- All supported algorithms computed at once, live as you type (proposed set, max ~10: MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-512, RIPEMD-160, CRC32)
+- Text input and file input (drag-and-drop + picker); files never leave the browser
+- Default result on load, per-hash copy + copy-all, bookmarkable text state
+- Registered in `tools/registry.ts` (nav/landing card/sitemap automatic) with per-tool SEO (metadata, worked example, FAQ + JSON-LD)
+- Framework-agnostic `lib/hash/` core verified against published test vectors (Vitest) + Playwright e2e
+
+**Key context:** User scoped "as many common as possible, but around 10 max". Web Crypto lacks MD5/RIPEMD-160/SHA-224/SHA-3, so a small zero-dep library is needed; large files need incremental hashing. Fully local — no third-party requests.
 
 <details>
 <summary>v1.1 Production Domain & Landing Page Polish — planning detail (shipped 2026-07-25)</summary>
@@ -62,6 +71,7 @@ Not yet defined — run `/gsd-new-milestone` to scope the next milestone.
 
 ### Active
 
+- [ ] Hash Generator (`/tools/hash`) — v1.2 milestone; ~10 algorithms, text + file input, fully in-browser (see REQUIREMENTS.md)
 - [ ] Related-tool links (part of per-tool SEO) — not yet built on any tool page (UUID, Subnet, DNS, or MAC); candidate for v1.1
 - [ ] Accessibility: full keyboard nav, contrast, labels, logical focus order, screen-reader announcements — shell-level focus order and focus-ring visibility manually verified in Phase 1 UAT; Phase 2 added accessible names to the UUID tool's Version/Export-format toggle groups; not re-audited per-tool since; candidate for a dedicated a11y pass in v1.1
 - [ ] Public developer API (`@packetory/core` style package reusing the same `lib/` modules) — deferred to a post-v1 milestone per Business Context; no work started
@@ -149,4 +159,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-25 after v1.1 milestone completed*
+*Last updated: 2026-10-14 after starting v1.2 Hash Generator milestone*
