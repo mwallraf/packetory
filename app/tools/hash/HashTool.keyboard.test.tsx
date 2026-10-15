@@ -90,6 +90,39 @@ describe("INT-01 slash", () => {
   });
 });
 
+describe("WR-01 focus-time select", () => {
+  it("WR-01: text changed in the same frame as focus is not re-selected by the deferred select", async () => {
+    render(<HashTool />);
+    const el = textarea();
+    act(() => {
+      el.focus();
+    });
+    expect(el.selectionStart).toBe(0);
+    expect(el.selectionEnd).toBe(el.value.length);
+    type("abc");
+    el.setSelectionRange(3, 3);
+    await act(async () => {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    });
+    expect(el.value).toBe("abc");
+    expect(el.selectionStart).toBe(3);
+    expect(el.selectionEnd).toBe(3);
+  });
+
+  it("WR-01: the untouched sample is still selected after the next frame", async () => {
+    render(<HashTool />);
+    const el = textarea();
+    act(() => {
+      el.focus();
+    });
+    await act(async () => {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+    });
+    expect(el.selectionStart).toBe(0);
+    expect(el.selectionEnd).toBe(el.value.length);
+  });
+});
+
 describe("INT-01 Enter", () => {
   it("INT-01: Enter on the textarea is not default-prevented (inserts a newline)", () => {
     render(<HashTool />);

@@ -289,7 +289,13 @@ export function HashTool() {
             if (e.currentTarget.value === SAMPLE_TEXT) {
               const el = e.currentTarget;
               el.select();
-              requestAnimationFrame(() => el.select());
+              requestAnimationFrame(() => {
+                // Re-check: text typed or pasted in the same frame as focus
+                // must not be selected (the next key would replace it).
+                if (el.value === SAMPLE_TEXT && document.activeElement === el) {
+                  el.select();
+                }
+              });
             }
           }}
           onMouseUp={(e) => {
