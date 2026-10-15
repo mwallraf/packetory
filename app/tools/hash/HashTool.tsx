@@ -255,8 +255,11 @@ export function HashTool() {
     () => (digests === null ? null : matchExpected(expected, digests)),
     [expected, digests],
   );
-  const verify =
-    verifyMatch === null
+  // An engine error is terminal for the pending state: no comparison can
+  // settle, so show idle (the error banner explains) rather than "Comparing...".
+  const verify = hashError
+    ? ({ state: "idle" } as const)
+    : verifyMatch === null
       ? normalizeExpected(expected) === null
         ? ({ state: "idle" } as const)
         : ({ state: "pending" } as const)

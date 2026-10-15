@@ -108,6 +108,17 @@ describe("HashTool verify box (OUT-04)", () => {
     expect(result().textContent).toBe("Matches SHA-256 and SHA3-256.");
   });
 
+  it("IN-02: after an engine error the verify line is idle, never 'Comparing...'", async () => {
+    render(<HashTool />);
+    paste("deadbeef");
+    type("abc");
+    expect(result().textContent).toContain("Comparing...");
+    await settle(0, { status: "error", message: "boom" } as never);
+    expect(screen.getByTestId("hash-notice-error")).toBeTruthy();
+    expect(result().textContent).toBe("");
+    expect(matchBadges()).toEqual([]);
+  });
+
   it("OUT-04: a value matching nothing shows a neutral no-match, never destructive", () => {
     render(<HashTool />);
     paste("deadbeef");
