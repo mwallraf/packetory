@@ -343,7 +343,7 @@ Each row owns `useCopyToClipboard()` (MacTool `FormatRow` precedent, including t
 
 D-17 leaves ambiguities. Implement `normalizeExpected(raw)` / `matchExpected(raw, digests)` in `lib/hash/verify.ts` with this deterministic order:
 
-1. Strip zero-width/BOM characters `[​-‍⁠﻿]`, then `trim()`. (Copy-pasting from web pages often includes them; `\s` does not cover ZWSP.)
+1. Strip zero-width/BOM characters the zero-width class U+200B to U+200D, U+2060 and U+FEFF (use backslash-u escapes in source, not literal characters), then `trim()`. (Copy-pasting from web pages often includes them; `\s` does not cover ZWSP.)
 2. **BSD tag form** `^[A-Za-z0-9_-]+\s*\(.*\)\s*=\s*(\S+)$` (`shasum --tag`, `openssl dgst`) -> take group 1.
 3. **Algorithm prefix**: strip only if the prefix is a **known algorithm alias** (case-insensitive, then `\s*[:=]\s*`): `md5`, `sha-?1`, `sha-?224`, `sha-?256`, `sha-?384`, `sha-?512`, `sha3[-_]?256`, `sha3[-_]?512`, `ripemd-?160`, `crc-?32`. **Do not use a generic `\w+:` prefix strip** — it would eat the first octet of colon-separated hex (`ab:cd:...`). Also strip a leading `0x`.
 4. Split on whitespace into tokens. Compute `joined = tokens.join("")` with `:`, `-`, `_` removed.
