@@ -42,19 +42,19 @@ Requirement → test map (task IDs filled in by the planner/executor):
 
 | Requirement | Behavior | Test Type | Automated Command | File Exists | Status |
 |-------------|----------|-----------|-------------------|-------------|--------|
-| TEXT-01 | sample constants == engine == node oracle; 10 rows on mount, zero worker calls; no CLS | unit + RTL + e2e | `npx vitest run lib/hash/sample.test.ts app/tools/hash/HashTool.test.tsx` | ❌ W0 | ⬜ pending |
-| TEXT-02 | out-of-order results never overwrite newer; `cancelled` ignored; StrictMode remount | RTL | `npx vitest run app/tools/hash/HashTool.test.tsx` | ❌ W0 | ⬜ pending |
-| TEXT-03 | UTF-8 byte count, newline/CRLF hint, soft-cap warning | RTL | `npx vitest run app/tools/hash/HashTool.test.tsx` | ❌ W0 | ⬜ pending |
-| TEXT-04 | `?text=` restore; URL never changes while typing; Copy link capped; redact strips `text` | RTL + unit + e2e | `npx vitest run app/tools/hash lib/analytics/redact.test.ts` | ❌ W0 | ⬜ pending |
-| OUT-01 | per-row copy + visible confirmation | RTL | `npx vitest run app/tools/hash/HashTool.test.tsx` | ❌ W0 | ⬜ pending |
-| OUT-02 | labeled list / `sha256sum` lines exact | unit | `npx vitest run lib/hash/export.test.ts` | ❌ W0 | ⬜ pending |
-| OUT-03 | hex/HEX/Base64 formatting, CRC32 stays hex, no re-hash | unit + fast-check + RTL | `npx vitest run lib/hash/format.test.ts` | ✅ extend | ⬜ pending |
-| OUT-04 | expected-checksum normalization + match/no-match | unit + RTL | `npx vitest run lib/hash/verify.test.ts` | ❌ W0 | ⬜ pending |
-| OUT-05 | MD5/SHA-1/CRC32 inline not-for-security label | RTL | `npx vitest run app/tools/hash/HashTool.test.tsx` | ❌ W0 | ⬜ pending |
-| INT-01 | `/` focus, Esc cancel+restore, copy shortcut, Enter unbound | RTL + e2e | `npx playwright test tests/e2e/hash.spec.ts` | ❌ W0 | ⬜ pending |
-| INT-03 | 320px no horizontal scroll, light+dark | e2e | `npx playwright test tests/e2e/hash.spec.ts` | ❌ W0 | ⬜ pending |
-| INTG-01 | registry/sitemap/nav/grid counts + Hash icon | unit + e2e | `npx vitest run tools app/sitemap.test.ts components` | ✅ update | ⬜ pending |
-| INTG-02 | metadata, worked example, FAQ + matching JSON-LD | e2e + unit | `npx playwright test tests/e2e/hash-seo.spec.ts` | ❌ W0 | ⬜ pending |
+| TEXT-01 | sample constants == engine == node oracle; 10 rows on mount, zero worker calls; no CLS (09-01 T1-T2, 09-07 T3) | unit + RTL + e2e | `npx vitest run lib/hash/sample.test.ts app/tools/hash/HashTool.test.tsx`; `npx playwright test tests/e2e/hash.spec.ts tests/e2e/hash-layout.spec.ts` | ❌ W0 | ⬜ pending |
+| TEXT-02 | out-of-order results never overwrite newer; `cancelled` ignored; StrictMode remount; client never rejects/hangs (09-01 T2, 09-02 T1) | RTL + unit | `npx vitest run app/tools/hash/HashTool.test.tsx lib/hash/client.test.ts` | ❌ W0 | ⬜ pending |
+| TEXT-03 | UTF-8 byte count, newline/CRLF hint, soft-cap warning + debounce (09-01 T3) | RTL + e2e | `npx vitest run app/tools/hash/HashTool.test.tsx`; `npx playwright test tests/e2e/hash.spec.ts` | ❌ W0 | ⬜ pending |
+| TEXT-04 | `?text=` restore; URL never changes while typing; Copy link capped; redact strips `text` (09-06 T1-T3) | RTL + unit + e2e | `npx vitest run app/tools/hash/HashTool.url.test.tsx lib/hash/share-link.test.ts lib/analytics/redact.test.ts`; `npx playwright test tests/e2e/hash-url.spec.ts` | ❌ W0 | ⬜ pending |
+| OUT-01 | per-row copy + visible confirmation (09-04 T1, T3) | RTL + e2e | `npx vitest run app/tools/hash/HashTool.output.test.tsx`; `npx playwright test tests/e2e/hash-output.spec.ts` | ❌ W0 | ⬜ pending |
+| OUT-02 | labeled list / `sha256sum` lines exact (09-04 T2-T3) | unit + RTL | `npx vitest run lib/hash/export.test.ts app/tools/hash/HashTool.output.test.tsx` | ❌ W0 | ⬜ pending |
+| OUT-03 | hex/HEX/Base64 formatting, CRC32 stays hex, no re-hash (09-04 T1-T3) | unit + fast-check + RTL | `npx vitest run lib/hash/format.test.ts app/tools/hash/HashTool.output.test.tsx` | ✅ extend | ⬜ pending |
+| OUT-04 | expected-checksum normalization + match/no-match (09-05 T1-T2) | unit + RTL + e2e | `npx vitest run lib/hash/verify.test.ts app/tools/hash/HashTool.verify.test.tsx`; `npx playwright test tests/e2e/hash-verify.spec.ts` | ❌ W0 | ⬜ pending |
+| OUT-05 | MD5/SHA-1/CRC32 inline not-for-security label (09-04 T3) | RTL | `npx vitest run app/tools/hash/HashTool.output.test.tsx` | ❌ W0 | ⬜ pending |
+| INT-01 | `/` focus, Esc cancel+restore, copy shortcut, Enter unbound (09-07 T1-T2) | RTL + e2e | `npx vitest run app/tools/hash/HashTool.keyboard.test.tsx lib/hooks/useKeyboardShortcut.test.ts`; `npx playwright test tests/e2e/hash-keyboard.spec.ts` | ❌ W0 | ⬜ pending |
+| INT-03 | 320px no horizontal scroll, light+dark (09-07 T3) | e2e | `npx playwright test tests/e2e/hash-layout.spec.ts` | ❌ W0 | ⬜ pending |
+| INTG-01 | registry/sitemap/nav/grid counts + Hash icon + 640px nav fit (09-03 T1-T2) | unit + e2e | `npx vitest run tools app/sitemap.test.ts components/ToolCard.test.tsx`; `npx playwright test tests/e2e/home.spec.ts tests/e2e/navigation.spec.ts` | ✅ update | ⬜ pending |
+| INTG-02 | metadata, worked example, FAQ + matching JSON-LD (09-03 T3) | e2e + unit | `npx vitest run app/tools/hash/faq-data.test.ts`; `npx playwright test tests/e2e/hash-seo.spec.ts` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -66,7 +66,8 @@ Requirement → test map (task IDs filled in by the planner/executor):
 - [ ] `lib/hash/verify.ts` + `verify.test.ts`; `lib/hash/export.ts` + `export.test.ts`; `format.ts`/`format.test.ts` extensions
 - [ ] `components/ui/textarea.tsx`
 - [ ] `app/tools/hash/HashTool.test.tsx` (mocked `@/lib/hash/client` with deferred promises; `navigator.clipboard` stub)
-- [ ] `tests/e2e/hash.spec.ts`, `tests/e2e/hash-seo.spec.ts`
+- [ ] `tests/e2e/hash.spec.ts`, `tests/e2e/hash-seo.spec.ts`, `tests/e2e/hash-output.spec.ts`, `tests/e2e/hash-verify.spec.ts`, `tests/e2e/hash-url.spec.ts`, `tests/e2e/hash-keyboard.spec.ts`, `tests/e2e/hash-layout.spec.ts` (one spec per plan slice; titles keep the `CLS`, `320px`, `keyboard` and `text=` keywords)
+- [ ] `app/tools/hash/hash-test-utils.ts` shared fake client; per-slice RTL files `HashTool.output.test.tsx`, `HashTool.verify.test.tsx`, `HashTool.url.test.tsx`, `HashTool.keyboard.test.tsx`
 - [ ] Update the four hard-coded-count tests + `redact.test.ts` case
 
 ---

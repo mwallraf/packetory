@@ -85,7 +85,26 @@ Plans:
   4. Opening `/tools/hash?text=…` restores that input on load, and the explicit, length-capped "Copy link" action is the only way text gets into a URL — the address bar never changes while typing and `text` never reaches analytics; `/` focuses the input, `Esc` cancels in-flight work and restores the sample, a copy shortcut copies the SHA-256 digest, and `Enter` inserts a newline (never bound)
   5. The page has a unique title, meta description, canonical URL, and OG tags, a worked example, and an FAQ (SHA3 vs Keccak, `echo` vs `echo -n`, MD5/SHA-1 security, a match ≠ authenticity) with content-matched FAQPage JSON-LD — and it is fully usable at 320px in light and dark mode, with long digests wrapping and no horizontal scroll
 
-**Plans**: TBD
+**Plans:** 7 plans
+
+Plans:
+**Wave 1**
+- [ ] 09-01-PLAN.md — Tracer: `/tools/hash` paints the `hello world` digests from constants and hashes typed text live in the worker; race/error/StrictMode RTL; byte count, CRLF hint, empty note, 1 MiB soft cap
+- [ ] 09-02-PLAN.md — HashClient hardening: a throwing postMessage and a worker messageerror settle as error outcomes (Phase 8 WR-01/WR-02)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 09-03-PLAN.md — Registry entry -> nav, drawer, landing grid (Hash icon), sitemap; 4->5 test fallout + 640px nav fit; worked example, FAQ and matching FAQPage JSON-LD
+- [ ] 09-04-PLAN.md — Output controls: per-row copy, hex/HEX/Base64 without re-hashing (CRC32 hex), copy all as labeled list or checksum lines, inline not-for-security badges
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 09-05-PLAN.md — Paste-to-verify: tolerant checksum normalization, row highlighting, neutral no-match hint, pending while stale
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 09-06-PLAN.md — `?text=` restore with pending rows, URL never written, explicit capped absolute Copy link, analytics redaction regression
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [ ] 09-07-PLAN.md — Keyboard (`/`, Esc + Restore your text, SHA-256 copy shortcut with guards, Enter unbound); skeleton measured and pinned (no CLS); 320px light/dark gate; full phase gate
+
 **UI hint**: yes
 **Research flags**: Standard patterns — copy the `MacToolLoader` server-shell + `next/dynamic(..., { ssr: false })` island; `sampleDigests` precomputed and pinned by a unit test. Registry fallout: hard-coded 4-tool tests (`tools/registry.test.ts`, `app/sitemap.test.ts`, `tests/e2e/home.spec.ts`, `tests/e2e/navigation.spec.ts`) move to 5, and `ToolCard` `ICONS` needs a `Hash` entry (a missing entry silently falls back to the UUID icon). Add a `?text=`-stripped regression test to `redact.test.ts`; never allow-list `text`. Textarea needs `spellCheck=false`, autocorrect/autocapitalize off, and password-manager-ignore attributes; the `useKeyboardShortcut` Enter handler fires on editable targets, so Enter must stay unbound. Decide the text-mode soft-cap warning (~1–5 MB) here. Do not modify nav, sitemap, `redact.ts`, or the privacy page; any new privacy/legal wording needs human approval.
 
@@ -118,5 +137,5 @@ Plans:
 | 6. Landing Page Card Navigation | v1.1 | 2/2 | Complete | 2026-07-25 |
 | 7. Production Domain Cutover | v1.1 | 1/1 | Complete | 2026-07-25 |
 | 8. Hash Core & Worker Runtime | v1.2 | 5/5 | Complete    | 2026-10-15 |
-| 9. Hash Tool Page & Text Hashing | v1.2 | 0/TBD | Not started | - |
+| 9. Hash Tool Page & Text Hashing | v1.2 | 0/7 | Planned | - |
 | 10. File Hashing & Release Hardening | v1.2 | 0/TBD | Not started | - |
