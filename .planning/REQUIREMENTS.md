@@ -29,11 +29,11 @@
 
 ### Output
 
-- [ ] **OUT-01**: User can copy any single digest with one click and visible confirmation
-- [ ] **OUT-02**: User can copy all digests at once, as a labeled list or in `sha256sum`-compatible `<hash>  <filename>` format (`-` for text input)
-- [ ] **OUT-03**: User can toggle hex case (lower/UPPER) and switch digests to Base64, without re-hashing (CRC32 stays hex)
+- [x] **OUT-01**: User can copy any single digest with one click and visible confirmation
+- [x] **OUT-02**: User can copy all digests at once, as a labeled list or in `sha256sum`-compatible `<hash>  <filename>` format (`-` for text input)
+- [x] **OUT-03**: User can toggle hex case (lower/UPPER) and switch digests to Base64, without re-hashing (CRC32 stays hex)
 - [ ] **OUT-04**: User can paste an expected checksum (tolerant of case, whitespace, colons, `sha256:` prefix, or a full `sha256sum` line) and every matching row is highlighted; a non-match is shown clearly
-- [ ] **OUT-05**: User sees MD5 and SHA-1 (and CRC32) labeled as not suitable for security purposes, inline (no modal)
+- [x] **OUT-05**: User sees MD5 and SHA-1 (and CRC32) labeled as not suitable for security purposes, inline (no modal)
 
 ### Interaction
 
@@ -85,11 +85,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEXT-02 | Phase 9 | Complete |
 | TEXT-03 | Phase 9 | Complete |
 | TEXT-04 | Phase 9 | Pending |
-| OUT-01 | Phase 9 | Pending |
-| OUT-02 | Phase 9 | Pending |
-| OUT-03 | Phase 9 | Pending |
+| OUT-01 | Phase 9 | Complete |
+| OUT-02 | Phase 9 | Complete |
+| OUT-03 | Phase 9 | Complete |
 | OUT-04 | Phase 9 | Pending |
-| OUT-05 | Phase 9 | Pending |
+| OUT-05 | Phase 9 | Complete |
 | INT-01 | Phase 9 | Pending |
 | INT-03 | Phase 9 | Pending |
 | INTG-01 | Phase 9 | Complete |
