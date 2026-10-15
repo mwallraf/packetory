@@ -15,7 +15,7 @@
 
 ### Text Input
 
-- [ ] **TEXT-01**: User sees all 10 digests for a sample input immediately on page load (precomputed, no input required, no CLS)
+- [x] **TEXT-01**: User sees all 10 digests for a sample input immediately on page load (precomputed, no input required, no CLS)
 - [x] **TEXT-02**: User sees all 10 digests update live as they type or paste text, with no stale result ever replacing a newer one
 - [x] **TEXT-03**: User sees the input's UTF-8 byte count and a hint explaining trailing-newline / CRLF differences versus command-line tools
 - [x] **TEXT-04**: User can restore a shared input via `?text=` on load, and can create such a link only through an explicit "Copy link" action (length-capped); typed text is never auto-written to the URL and never reaches analytics
@@ -39,7 +39,7 @@
 
 - [x] **INT-01**: User can press `/` to focus the input, `Esc` to cancel in-flight work and reset to the sample, and a copy shortcut for the primary (SHA-256) digest; `Enter` is never bound (it inserts newlines in the textarea)
 - [ ] **INT-02**: Every path that supersedes in-flight hashing (typing, paste, new file via picker or drop, mode switch, `Esc`, clear, unmount, `?text=` load) cancels its predecessor before starting
-- [ ] **INT-03**: User can use the tool at 320px width (long digests wrap, no horizontal scroll) in light and dark mode
+- [x] **INT-03**: User can use the tool at 320px width (long digests wrap, no horizontal scroll) in light and dark mode
 
 ### Integration & SEO
 
@@ -81,7 +81,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HASH-02 | Phase 8 | Complete |
 | HASH-03 | Phase 8 | Complete |
 | HASH-04 | Phase 8 | Complete |
-| TEXT-01 | Phase 9 | Pending |
+| TEXT-01 | Phase 9 | Complete |
 | TEXT-02 | Phase 9 | Complete |
 | TEXT-03 | Phase 9 | Complete |
 | TEXT-04 | Phase 9 | Complete |
@@ -91,7 +91,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OUT-04 | Phase 9 | Complete |
 | OUT-05 | Phase 9 | Complete |
 | INT-01 | Phase 9 | Complete |
-| INT-03 | Phase 9 | Pending |
+| INT-03 | Phase 9 | Complete |
 | INTG-01 | Phase 9 | Complete |
 | INTG-02 | Phase 9 | Complete |
 | FILE-01 | Phase 10 | Pending |
