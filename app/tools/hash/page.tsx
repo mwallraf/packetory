@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { SITE_URL } from "@/app/sitemap";
 import { HashToolLoader } from "./HashToolLoader";
-import { faqItems } from "./faq-data";
+import { SAMPLE_DIGEST_HEX, SAMPLE_TEXT } from "@/lib/hash/sample";
+import { ECHO_HELLO_WORLD_SHA256, faqItems } from "./faq-data";
 
 const TITLE =
   "Hash Generator (MD5, SHA-1, SHA-256, SHA-3, CRC32) — Packetory";
@@ -60,6 +61,41 @@ export default function HashPage() {
         <div className="mt-8">
           <HashToolLoader />
         </div>
+
+        <section className="mt-12" data-testid="hash-worked-example">
+          <h2 className="text-[20px] leading-[1.2] font-semibold text-foreground">
+            Worked example
+          </h2>
+          <div className="mt-4 space-y-4">
+            <p className="text-[14px] leading-[1.4] font-semibold text-foreground">
+              {SAMPLE_TEXT} hashed with SHA-256
+            </p>
+            <p
+              className="font-mono text-[16px] leading-[1.5] font-normal break-all text-foreground"
+              data-testid="hash-worked-example-sha256"
+            >
+              {SAMPLE_DIGEST_HEX.sha256}
+            </p>
+            <div
+              className="space-y-1 font-mono text-[16px] leading-[1.5] font-normal break-all text-foreground"
+              data-testid="hash-worked-example-printf"
+            >
+              <p>printf &apos;%s&apos; &apos;{SAMPLE_TEXT}&apos; | sha256sum</p>
+              <p className="whitespace-pre-wrap">{`${SAMPLE_DIGEST_HEX.sha256}  -`}</p>
+              <p className="text-muted-foreground">(matches this tool)</p>
+            </div>
+            <div
+              className="space-y-1 font-mono text-[16px] leading-[1.5] font-normal break-all text-foreground"
+              data-testid="hash-worked-example-echo"
+            >
+              <p>echo &apos;{SAMPLE_TEXT}&apos; | sha256sum</p>
+              <p className="whitespace-pre-wrap">{`${ECHO_HELLO_WORLD_SHA256}  -`}</p>
+              <p className="text-muted-foreground">
+                (differs: echo appends a newline)
+              </p>
+            </div>
+          </div>
+        </section>
 
         <section className="mt-12">
           <h2 className="text-[20px] leading-[1.2] font-semibold text-foreground">

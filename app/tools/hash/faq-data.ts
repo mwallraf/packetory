@@ -43,3 +43,11 @@ export const faqItems: FaqItem[] = [
       "Hashing runs in your browser. If you use Copy link, the link contains your text.",
   },
 ];
+
+/**
+ * SHA-256 of "hello world" plus a trailing newline - what
+ * `echo 'hello world' | sha256sum` prints, because echo appends "\n". Pinned
+ * against node:crypto by `faq-data.test.ts`.
+ */
+export const ECHO_HELLO_WORLD_SHA256 =
+  "a948904f2f0f479b8f8197694b30184b0d2ed1c1cd2a1ec0fb85d299a192a447";
