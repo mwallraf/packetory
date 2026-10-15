@@ -26,6 +26,8 @@ type DigestRowProps = {
   externalCopied?: boolean;
   /** A `?text=` restore is still hashing: placeholder value, copy disabled. */
   pending?: boolean;
+  /** The displayed digest belongs to older text (or hashing failed): copy is disabled, the value stays visible. */
+  copyDisabled?: boolean;
   /** Characters of the settled hex digest, so the pending row is the same height. */
   placeholderLength: number;
 };
@@ -45,6 +47,7 @@ export function DigestRow({
   matched = false,
   externalCopied = false,
   pending = false,
+  copyDisabled = false,
   placeholderLength,
 }: DigestRowProps) {
   const { copy, copied: ownCopied, error, reset } = useCopyToClipboard();
@@ -110,7 +113,7 @@ export function DigestRow({
         <button
           type="button"
           onClick={() => copy(value)}
-          disabled={pending}
+          disabled={pending || copyDisabled}
           aria-label={copied ? "Copied!" : "Copy " + label + " digest"}
           data-testid={"hash-row-" + id + "-copy"}
           className="ml-auto inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-full px-2.5 text-primary outline-none transition-colors hover:bg-muted hover:text-primary focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"

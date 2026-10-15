@@ -213,6 +213,22 @@ describe("INT-01 copy shortcut", () => {
     }
   });
 
+  it("WR-04: Ctrl+C is a no-op while the digests are stale or after an engine error", async () => {
+    render(<HashTool />);
+    type("abc");
+    await pressCopy();
+    expect(writeText).not.toHaveBeenCalled();
+
+    await settle(0, { status: "error", message: "boom" } as never);
+    await pressCopy();
+    expect(writeText).not.toHaveBeenCalled();
+
+    type("abcd");
+    await settle(1, { status: "done", digests: fakeDigests(5) });
+    await pressCopy();
+    expect(writeText).toHaveBeenCalledWith(toHex(fakeDigests(5).sha256));
+  });
+
   it("INT-01: nothing is copied on load, focus or typing", async () => {
     render(<HashTool />);
     textarea().focus();

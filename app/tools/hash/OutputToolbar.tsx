@@ -21,6 +21,8 @@ type OutputToolbarProps = {
   onEncodingChange: (encoding: DigestEncoding) => void;
   /** The digests currently on screen; Copy all exports exactly these. */
   digests: Digests | null;
+  /** The digests belong to older text (or hashing failed): Copy all is disabled. */
+  copyDisabled?: boolean;
 };
 
 /**
@@ -31,6 +33,7 @@ export function OutputToolbar({
   encoding,
   onEncodingChange,
   digests,
+  copyDisabled = false,
 }: OutputToolbarProps) {
   // Module-private to the toolbar: no other component needs it, and Esc
   // handling elsewhere must not reset it.
@@ -49,7 +52,7 @@ export function OutputToolbar({
   }
 
   function handleCopyAll() {
-    if (digests === null) return;
+    if (digests === null || copyDisabled) return;
     // Snapshot at click time.
     const payload =
       copyFormat === "checksum"
@@ -145,7 +148,7 @@ export function OutputToolbar({
           type="button"
           variant="outline"
           onClick={handleCopyAll}
-          disabled={digests === null}
+          disabled={digests === null || copyDisabled}
           data-testid="hash-copy-all"
           className="h-11 gap-1 text-primary"
         >

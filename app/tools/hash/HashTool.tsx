@@ -196,6 +196,12 @@ export function HashTool() {
     setHashError(false);
   }
 
+  // The displayed digests belong to older text until the latest job lands.
+  const stale = result === null || result.text !== text;
+  // Digests of older text (or none after an engine error) must never be copied
+  // as if they matched the text on screen (WR-04).
+  const copyBlocked = stale || hashError;
+
   // Enter is intentionally left unbound: it must reach the textarea and insert
   // a newline (INT-01). Hashing is live, so there is nothing to execute.
   useKeyboardShortcut({
@@ -214,7 +220,7 @@ export function HashTool() {
       // Never clobber a native copy of a text selection, and never copy
       // while no settled result exists (?text= restore still hashing).
       if ((window.getSelection()?.toString() ?? "") !== "") return;
-      if (result === null) return;
+      if (result === null || copyBlocked) return;
       void primaryCopy.copy(
         formatDigest("sha256", result.digests.sha256, encoding),
       );
@@ -239,8 +245,6 @@ export function HashTool() {
 
   const byteLength = useMemo(() => encodeText(text).length, [text]);
 
-  // The displayed digests belong to older text until the latest job lands.
-  const stale = result === null || result.text !== text;
   const overSoftCap = byteLength > TEXT_SOFT_CAP_BYTES;
 
   // Derived at render so it re-evaluates whenever the settled digests change
@@ -459,6 +463,7 @@ export function HashTool() {
           encoding={encoding}
           onEncodingChange={setEncoding}
           digests={digests}
+          copyDisabled={copyBlocked}
         />
         <div
           data-testid="hash-rows"
@@ -479,6 +484,7 @@ export function HashTool() {
                   : formatDigest(algo.id, result.digests[algo.id], encoding)
               }
               pending={result === null}
+              copyDisabled={copyBlocked}
               placeholderLength={algo.bits / 4}
               primary={algo.id === "sha256"}
               notForSecurity={algo.notForSecurity}

@@ -320,3 +320,52 @@ describe("OUT-05 row presentation", () => {
     }
   });
 });
+
+describe("WR-04 stale and error digests are not copyable", () => {
+  function buttonDisabled(testId: string): boolean {
+    return (screen.getByTestId(testId) as HTMLButtonElement).disabled;
+  }
+
+  it("WR-04: per-row Copy and Copy all are disabled while the digests belong to older text, then re-enabled", async () => {
+    const writeText = stubClipboard();
+    render(<HashTool />);
+    expect(buttonDisabled("hash-row-sha256-copy")).toBe(false);
+    expect(buttonDisabled("hash-copy-all")).toBe(false);
+
+    type("abc");
+    for (const algo of ALGORITHMS) {
+      expect(buttonDisabled(`hash-row-${algo.id}-copy`)).toBe(true);
+    }
+    expect(buttonDisabled("hash-copy-all")).toBe(true);
+    // The previous digests stay visible (dimmed), only copying is blocked.
+    expect(rowValue("sha256")).toBe(SAMPLE_DIGEST_HEX.sha256);
+    await click("hash-row-sha256-copy");
+    await click("hash-copy-all");
+    expect(writeText).not.toHaveBeenCalled();
+
+    await act(async () => {
+      liveClient().starts[0]!.resolve({
+        status: "done",
+        digests: fakeDigests(4),
+      });
+    });
+    expect(buttonDisabled("hash-row-sha256-copy")).toBe(false);
+    expect(buttonDisabled("hash-copy-all")).toBe(false);
+    await click("hash-row-sha256-copy");
+    expect(writeText).toHaveBeenCalledWith(toHex(fakeDigests(4).sha256));
+  });
+
+  it("WR-04: after an engine error the old digests stay uncopyable until a job succeeds", async () => {
+    const writeText = stubClipboard();
+    render(<HashTool />);
+    type("abc");
+    await act(async () => {
+      liveClient().starts[0]!.resolve({ status: "error" } as never);
+    });
+    expect(screen.getByTestId("hash-notice-error")).toBeTruthy();
+    expect(buttonDisabled("hash-row-sha256-copy")).toBe(true);
+    expect(buttonDisabled("hash-copy-all")).toBe(true);
+    await click("hash-copy-all");
+    expect(writeText).not.toHaveBeenCalled();
+  });
+});
