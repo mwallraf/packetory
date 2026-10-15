@@ -73,6 +73,19 @@ describe("useKeyboardShortcut", () => {
     editableDiv.remove();
   });
 
+  it("does NOT fire the copy handler on Shift or Alt chords (Ctrl+Shift+C opens DevTools) (INT-01)", () => {
+    const copy = vi.fn();
+    renderHook(() => useKeyboardShortcut({ copy }));
+
+    dispatchKeydown({ key: "C", ctrlKey: true, shiftKey: true });
+    dispatchKeydown({ key: "c", metaKey: true, shiftKey: true });
+    dispatchKeydown({ key: "c", ctrlKey: true, altKey: true });
+    expect(copy).not.toHaveBeenCalled();
+
+    dispatchKeydown({ key: "c", ctrlKey: true });
+    expect(copy).toHaveBeenCalledTimes(1);
+  });
+
   it("fires the escape and enter handlers when registered", () => {
     const escape = vi.fn();
     const enter = vi.fn();
