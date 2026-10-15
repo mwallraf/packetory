@@ -5,17 +5,17 @@ milestone_name: Hash Generator
 current_phase: 09
 current_phase_name: hash-tool-page-text-hashing
 status: executing
-stopped_at: Completed 09-05-PLAN.md
-last_updated: "2026-10-15T18:06:12.701Z"
+stopped_at: Completed 09-08-PLAN.md
+last_updated: "2026-10-15T18:09:24.123Z"
 last_activity: 2026-10-15
 last_activity_desc: Phase 09 execution started
-state_head: 8263cafa79a9f099fb9d5973bc72517c216d7b91
+state_head: 0435e7f381339b53fde80e53e76fc0dc563c2d25
 progress:
   total_phases: 3
   completed_phases: 8
   total_plans: 14
-  completed_plans: 10
-  percent: 71
+  completed_plans: 11
+  percent: 79
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 ## Current Position
 
 Phase: 09 (hash-tool-page-text-hashing) — EXECUTING
-Plan: 6 of 9
+Plan: 7 of 9
 Status: Ready to execute
 Last activity: 2026-10-15 — Phase 09 execution started
 
-Progress: [███████░░░] 71%
+Progress: [████████░░] 79%
 
 ## Performance Metrics
 
@@ -101,6 +101,7 @@ Progress: [███████░░░] 71%
 | Phase 09 P03 | 8 min | 2 tasks | 7 files |
 | Phase 09 P04 | 10 min | 3 tasks | 10 files |
 | Phase 09 P05 | 3 min | 2 tasks | 7 files |
+| Phase 09 P08 | 8 min | 2 tasks | 5 files |
 
 ## Accumulated Context
 
@@ -125,6 +126,8 @@ Decisions are logged in PROJECT.md Key Decisions table. v1.2 locked decisions (u
 - [Phase 09]: Hash slug 'hash' registered as public sitemap URL (D-25); registry description limited to 'in your browser' privacy wording, guarded by unit test (D-27)
 - [Phase 09]: 09-04: Copy-all format state lives inside OutputToolbar; payloads joined with newline, no trailing newline; checksum lines always lowercase hex with two-space dash; encoding is display-only and never re-hashes (CRC32 stays hex under Base64)
 - [Phase 09]: 09-05: BSD tag parsed via lastIndexOf(')') + anchored tail regex (linear), 0x strip applied to hex candidate only, base64url folded to standard Base64
+- [Phase 09]: 09-08: privacy-adjacent FAQ answer limited to the two approved D-27 statements, pinned by exact-equality test
+- [Phase 09]: 09-08: worked-example digest lines use whitespace-pre-wrap so the two-space sha256sum separator survives
 
 ### Pending Todos
 
@@ -146,8 +149,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-15T18:06:12.678Z
-Stopped at: Completed 09-05-PLAN.md
+Last session: 2026-10-15T18:09:24.100Z
+Stopped at: Completed 09-08-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
