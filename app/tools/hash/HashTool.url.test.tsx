@@ -9,6 +9,7 @@ import { HashTool } from "./HashTool";
 import {
   createFakeHashClient,
   fakeDigests,
+  stubClipboard,
   type FakeHashClient,
 } from "./hash-test-utils";
 
@@ -177,5 +178,80 @@ describe("HashTool ?text= restore (TEXT-04)", () => {
       last.resolve({ status: "done", digests: fakeDigests(5) });
     });
     expectRowsToBe(5);
+  });
+});
+
+describe("HashTool Copy link (TEXT-04)", () => {
+  it("TEXT-04: copies the absolute link, confirms, and a second click copies the identical string", async () => {
+    mount("/tools/hash");
+    const writeText = stubClipboard();
+    type("abc");
+    const button = screen.getByTestId("hash-copy-link");
+    await act(async () => {
+      fireEvent.click(button);
+    });
+    const expected = `${window.location.origin}/tools/hash?text=abc`;
+    expect(writeText).toHaveBeenLastCalledWith(expected);
+    expect(screen.getByTestId("hash-copy-link").textContent).toContain(
+      "Copied!",
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("hash-copy-link"));
+    });
+    expect(writeText).toHaveBeenCalledTimes(2);
+    expect(writeText).toHaveBeenNthCalledWith(2, expected);
+    expect(pushSpy).toHaveBeenCalledTimes(0);
+    expect(replaceSpy).toHaveBeenCalledTimes(0);
+  });
+
+  it("TEXT-04: the hint block always says the link contains the text", () => {
+    mount("/tools/hash");
+    expect(screen.getByTestId("hash-input-link-notice").textContent).toBe(
+      "The link contains your text.",
+    );
+  });
+
+  it("TEXT-04: over 2,000 encoded characters disables Copy link with the inline reason", () => {
+    mount("/tools/hash");
+    type("a".repeat(2001));
+    const button = screen.getByTestId("hash-copy-link") as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    const notice = screen.getByTestId("hash-notice-link");
+    expect(notice.textContent).toContain(
+      "Text is too long for a link (over 2,000 encoded characters).",
+    );
+    expect(button.getAttribute("aria-describedby")).toBe("hash-notice-link");
+    expect(notice.id).toBe("hash-notice-link");
+  });
+
+  it("TEXT-04: exactly 2,000 encoded characters is still allowed", () => {
+    mount("/tools/hash");
+    type("a".repeat(2000));
+    expect(
+      (screen.getByTestId("hash-copy-link") as HTMLButtonElement).disabled,
+    ).toBe(false);
+    expect(screen.queryByTestId("hash-notice-link")).toBeNull();
+  });
+
+  it("TEXT-04: a lone surrogate disables Copy link without throwing", () => {
+    mount("/tools/hash");
+    type("\uD800");
+    const button = screen.getByTestId("hash-copy-link") as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(screen.getByTestId("hash-notice-link").textContent).toContain(
+      "This text can't be encoded into a link.",
+    );
+  });
+
+  it("TEXT-04: empty text disables Copy link, described by the empty notice", () => {
+    mount("/tools/hash");
+    type("");
+    const button = screen.getByTestId("hash-copy-link") as HTMLButtonElement;
+    expect(button.disabled).toBe(true);
+    expect(button.getAttribute("aria-describedby")).toBe("hash-notice-empty");
+    expect(screen.getByTestId("hash-notice-empty").id).toBe(
+      "hash-notice-empty",
+    );
+    expect(screen.queryByTestId("hash-notice-link")).toBeNull();
   });
 });
