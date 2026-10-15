@@ -281,7 +281,7 @@ Privacy note [D-27]: no new privacy or legal wording is introduced. The only pri
 
 ## UI Considerations
 
-Applicable state considerations resolved: 13 covered, 3 backstop, 1 unresolved
+Applicable state considerations resolved: 14 covered, 3 backstop, 0 unresolved (the soft-cap notice target row was resolved by D-07a on 2026-10-15)
 
 | Category | Element(s) | Status | Resolution / Reason |
 |----------|------------|--------|---------------------|
@@ -302,7 +302,7 @@ Applicable state considerations resolved: 13 covered, 3 backstop, 1 unresolved
 | overflow | desktop nav with 5 links at 640px (nav) | backstop | Needs a width assertion at 640px (research assumption A5); header must not overflow. |
 | long-text | row header with badge + label + copy at 320px (interactive-control) | backstop | Header wraps (`flex-wrap`); "Error detection only" + "CRC32" + 44px button can wrap to two lines. Needs a 320px visual check. |
 | overflow | toolbar with two toggle groups + Copy all at 320px (interactive-control) | backstop | Groups wrap onto separate lines; needs a 320px visual check in both themes. |
-| unresolved | soft-cap notice target | unresolved | D-07 says "suggests file mode", but file mode ships in Phase 10. Phase 9 copy intentionally omits the pointer; Phase 10 should add "hash a file instead" to this notice. |
+| unresolved | soft-cap notice target | covered | Resolved 2026-10-15 by 09-CONTEXT.md D-07a, which amends D-07 (autonomous decision under user delegation). D-07 says "suggests file mode", but file mode ships in Phase 10. Phase 9 copy intentionally omits the pointer; Phase 10 must add the file-mode suggestion to this notice. |
 
 ### Probe coverage (ui-consideration-probe, --auto, 2026-10-15)
 
@@ -336,7 +336,7 @@ No third-party registries declared or used in this phase.
 These are auto-mode choices that go beyond, or sit at the edge of, what `09-CONTEXT.md` locked. None contradicts a locked decision.
 
 1. **"Restore your text" after Esc [DEFAULT].** D-23 makes `Esc` restore the sample unconditionally, which silently destroys a long paste (React-driven value changes are not in the textarea's native undo stack). This spec adds a one-line "Restore your text" button after an Esc reset of non-sample text, cleared on the next edit. Remove it to accept data loss exactly as D-23 reads. This was Open Question 2 in `09-RESEARCH.md`.
-2. **Soft-cap copy cannot mention file mode.** D-07 wants the warning to suggest file mode, but file hashing is Phase 10. The spec uses neutral copy and records the follow-up in the UI Considerations table.
+2. **Soft-cap copy cannot mention file mode.** D-07 wants the warning to suggest file mode, but file hashing is Phase 10. The spec uses neutral copy and records the follow-up in the UI Considerations table. **Resolved 2026-10-15:** accepted as 09-CONTEXT.md D-07a, which amends D-07 (autonomous decision under user delegation).
 3. **"No tracking" wording.** Other tools' meta descriptions say "No login, no tracking." D-27 says new wording implying a privacy claim beyond "runs in your browser" needs human approval, so this spec's meta description omits "no tracking". If the owner wants consistency with the other tools, approve that phrase explicitly.
 4. **Copy link is absolute** (`window.location.origin + /tools/hash?text=...`), not the relative path written in D-21, so the pasted link works anywhere and on preview deployments (`09-RESEARCH.md` Open Question 4). The 2,000-character cap applies to the encoded `text` value.
 5. **Destructive color is used once** (engine-failure notice). Everything else stays neutral, following the MAC precedent.

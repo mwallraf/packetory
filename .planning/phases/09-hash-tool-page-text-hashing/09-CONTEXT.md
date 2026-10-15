@@ -3,6 +3,7 @@
 **Gathered:** 2026-10-15
 **Status:** Ready for planning
 **Mode:** `--auto` (yolo chain) — every gray area resolved with the recommended default; review before planning if any choice looks wrong.
+**Amended:** 2026-10-15 — D-07a amends D-07 (soft-cap notice copy); see "Amendments" at the end of Implementation Decisions.
 
 <domain>
 ## Phase Boundary
@@ -65,6 +66,11 @@ Requirements: TEXT-01..04, OUT-01..05, INT-01, INT-03, INTG-01, INTG-02.
 
 ### Claude's Discretion
 - Exact layout (verify box placement relative to toggle/copy-all controls), skeleton height, debounce value above soft cap, sample-digest storage format, component split inside `HashTool.tsx`.
+
+### Amendments
+Dated amendments to the locked decisions above. The original decision text is left unchanged; where an amendment and its original disagree, the amendment wins for this phase.
+
+- **D-07a:** Amends D-07, 2026-10-15. Autonomous decision under user delegation, 2026-10-15: the user was away and authorized the orchestrator to make the remaining decisions per best practice and best user experience. In Phase 9 the >1 MiB soft-cap notice reads exactly "This text is over 1 MiB, so updates may lag. Hashing still runs." and has no file-mode pointer, because file mode does not exist until Phase 10 and pointing at a feature that does not exist is worse UX. The rest of D-07 is unchanged: 1 MiB UTF-8 threshold, non-blocking inline notice, hashing still runs, no hard cap. Follow-up: Phase 10 must add the file-mode suggestion to this notice.
 
 </decisions>
 
@@ -133,6 +139,7 @@ Requirements: TEXT-01..04, OUT-01..05, INT-01, INT-03, INTG-01, INTG-02.
 - HMAC (HMAC-01), Future
 - JSON copy-all format — not required by OUT-02; revisit if requested
 - Character-level diff highlighting in the verify box — nice-to-have
+- File-mode suggestion inside the >1 MiB soft-cap notice — Phase 10, once file mode exists (follow-up to D-07a)
 
 </deferred>
 

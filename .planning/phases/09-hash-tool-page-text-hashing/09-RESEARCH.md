@@ -537,22 +537,29 @@ Optional: an RTL test of `PacketoryAnalytics`'s `beforeSend` is not required (Ph
 | A5 | 5 links fit in the desktop nav between 640px and 768px | Pitfall 10 | Header overflow at narrow desktop widths; add a 640px assertion |
 | A6 | Firefox/Safari run the module Worker like Chrome (Phase 8 UAT recorded a manual pass in STATE.md, but 08-VERIFICATION flagged it as unrecorded) | Pattern 3 | Hash never computes in that browser; client degrades to `error` outcome — surface an inline message |
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+All five questions were resolved on 2026-10-15 as autonomous decisions under user delegation: the user was away and authorized the orchestrator to make the remaining decisions per best practice and best user experience. The numbers below match "autonomous decision N" in the Phase 9 plans.
 
 1. **What happens to the Phase 8 `app/hash-smoke` harness?**
    - What we know: its page comment says it "is deleted and replaced by `/tools/hash` in Phase 9"; CONTEXT says it "stays as the Phase 8 test harness"; `tests/e2e-prod/hash-worker.spec.ts`, `tests/e2e/hash-smoke-gate.spec.ts` and the CI step depend on it. Phase 10 owns the prod e2e (INTG-04).
    - Recommendation: **keep it** (follow CONTEXT, lowest risk); defer deletion/migration of the prod worker proof to Phase 10. Do not register it anywhere.
+   - **RESOLVED:** Keep `app/hash-smoke` unchanged in Phase 9 and do not register it anywhere; migration or deletion moves to Phase 10. Autonomous decision under user delegation, 2026-10-15 (autonomous decision 1). 09-07 asserts that `app/hash-smoke`, `tests/e2e-prod` and `playwright.prod.config.ts` are unchanged.
 
 2. **Esc data loss (Pitfall 6).**
    - D-23 is locked (Esc restores sample). Recommendation (needs a quick user OK since it adds UI): after an Esc reset of non-sample text, show a one-line "Restore your text" button until the next edit. Costs ~10 lines; otherwise accept data loss as specified.
+   - **RESOLVED:** Add "Restore your text" after an Esc reset of non-sample text, cleared on the next edit. This adds to D-23 and does not replace it: Esc still cancels, restores the sample and clears verify. Autonomous decision under user delegation, 2026-10-15 (autonomous decision 2), standing in for the user OK this question asked for. Implemented in 09-07.
 
 3. **Fix WR-01/WR-02 in `client.ts` now or only guard in the component?**
    - Recommendation: do both — component `.catch()` (mandatory) and a tiny hardened `client.ts` + tests (one small task, no new imports).
+   - **RESOLVED:** Do both. 09-02 hardens WR-01/WR-02 in `lib/hash/client.ts` with tests, and `client.ts` keeps a single type-only import block (boundary guard stays green). The 09-01 island adds the component `.catch()`. Autonomous decision under user delegation, 2026-10-15 (autonomous decision 3).
 
 4. **"Copy link" absolute vs relative.**
    - D-21 says `/tools/hash?text=<encoded>`. Recommendation: copy `window.location.origin + "/tools/hash?text=" + encoded` so the pasted link is clickable anywhere (preview deployments get their own origin). The 2,000 cap applies to the encoded text value only.
+   - **RESOLVED:** Copy link copies the absolute URL `window.location.origin + "/tools/hash?text=" + encoded`. The 2,000-character cap applies to the encoded `text` value only. Autonomous decision under user delegation, 2026-10-15 (autonomous decision 4). Implemented in 09-06.
 
 5. **Verify restricted by algorithm prefix?** If the user pastes `sha256:<sha3-256 digest>` we still highlight the SHA3-256 row (true match). Recommendation: keep D-18 behavior (match any row); do not add restriction.
+   - **RESOLVED:** Keep D-18: match any row regardless of algorithm prefix, with no prefix-based restriction. Autonomous decision under user delegation, 2026-10-15 (autonomous decision 5). Implemented in 09-05.
 
 ## Environment Availability
 
