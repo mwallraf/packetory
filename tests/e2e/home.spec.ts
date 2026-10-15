@@ -1,15 +1,15 @@
 import { expect, test } from "@playwright/test";
 
 test.describe("Landing page — tool registry grid", () => {
-  test("renders exactly four tool cards from the registry, each with name/description/category", async ({
+  test("renders exactly five tool cards from the registry, each with name/description/category", async ({
     page,
   }) => {
     await page.goto("/");
 
     const cards = page.getByTestId("tool-card");
-    await expect(cards).toHaveCount(4);
+    await expect(cards).toHaveCount(5);
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       const card = cards.nth(i);
       await expect(card.getByTestId("tool-card-name")).toBeVisible();
       await expect(card.getByTestId("tool-card-description")).toBeVisible();
@@ -17,7 +17,7 @@ test.describe("Landing page — tool registry grid", () => {
     }
   });
 
-  test("cards render in order Subnet, UUID, DNS, MAC (featured desc, then name asc)", async ({
+  test("cards render in order Subnet, UUID, DNS, Hash, MAC (featured desc, then name asc)", async ({
     page,
   }) => {
     await page.goto("/");
@@ -30,21 +30,22 @@ test.describe("Landing page — tool registry grid", () => {
       "IP Subnet Calculator",
       "UUID Generator",
       "DNS Lookup",
+      "Hash Generator",
       "MAC Address Inspector",
     ]);
   });
 
-  test("no card shows a 'Coming soon' badge now that all four registry tools are 'active' (Phase 2 Plan 01, Phase 3 Plan 01, Phase 4 Plan 01, Phase 5 Plan 01); each active card renders exactly one clickable anchor (stretched-link, Phase 6 Plan 01)", async ({
+  test("no card shows a 'Coming soon' badge now that all five registry tools are 'active' (Phase 2 Plan 01, Phase 3 Plan 01, Phase 4 Plan 01, Phase 5 Plan 01, Phase 9 Plan 03); each active card renders exactly one clickable anchor (stretched-link, Phase 6 Plan 01)", async ({
     page,
   }) => {
     await page.goto("/");
 
-    // Registry sort order: Subnet, UUID, DNS, MAC (see the preceding test) —
-    // all four are "active" as of this plan.
+    // Registry sort order: Subnet, UUID, DNS, Hash, MAC (see the preceding
+    // test) — all five are "active" as of this plan.
     const cards = page.getByTestId("tool-card");
-    await expect(cards).toHaveCount(4);
+    await expect(cards).toHaveCount(5);
 
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       const card = cards.nth(i);
       await expect(card.getByText("Coming soon")).toHaveCount(0);
       // Each active card renders exactly one stretched-link anchor (LP-01).
@@ -77,6 +78,31 @@ test.describe("Landing page — tool registry grid", () => {
     await page.keyboard.press("Enter");
 
     await expect(page).toHaveURL(/\/tools\//);
+  });
+});
+
+test.describe("Hash Generator integration (INTG-01)", () => {
+  test("the Hash Generator card opens /tools/hash (INTG-01)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const card = page
+      .getByTestId("tool-card")
+      .filter({ has: page.getByTestId("tool-card-name").getByText("Hash Generator", { exact: true }) });
+    await expect(card).toHaveCount(1);
+    await card.click({ position: { x: 10, y: 10 } });
+
+    await expect(page).toHaveURL(/\/tools\/hash$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Hash Generator" })
+    ).toBeVisible();
+  });
+
+  test("sitemap.xml lists /tools/hash (INTG-01)", async ({ page }) => {
+    const response = await page.request.get("/sitemap.xml");
+    expect(response.status()).toBe(200);
+    expect(await response.text()).toContain("https://packetory.dev/tools/hash");
   });
 });
 
