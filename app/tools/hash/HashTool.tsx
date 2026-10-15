@@ -1,18 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Info, TriangleAlert } from "lucide-react";
+import { Check, Info, Link as LinkIcon, TriangleAlert } from "lucide-react";
 import { createHashClient, type HashClient } from "@/lib/hash/client";
 import { ALGORITHMS } from "@/lib/hash/algorithms";
 import { formatDigest, type DigestEncoding } from "@/lib/hash/format";
 import { SAMPLE_TEXT, sampleDigests } from "@/lib/hash/sample";
 import { encodeText } from "@/lib/hash/source";
+import { buildShareLink } from "@/lib/hash/share-link";
 import { matchExpected, normalizeExpected } from "@/lib/hash/verify";
+import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
 import type { Digests } from "@/lib/hash/types";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { DigestRow } from "./DigestRow";
+import { COPY_ERROR_MESSAGE, DigestRow } from "./DigestRow";
 import { OutputToolbar } from "./OutputToolbar";
 import { VerifyBox } from "./VerifyBox";
 
@@ -24,6 +27,9 @@ const SOFT_CAP_DEBOUNCE_MS = 150;
 const EMPTY_NOTICE_COPY = "Empty input. Showing the digests of an empty string.";
 const SOFT_CAP_COPY =
   "This text is over 1 MiB, so updates may lag. Hashing still runs.";
+const LINK_TOO_LONG_COPY =
+  "Text is too long for a link (over 2,000 encoded characters).";
+const LINK_UNENCODABLE_COPY = "This text can't be encoded into a link.";
 const HASH_ERROR_COPY =
   "Couldn't compute digests in this browser. Reload the page and try again.";
 
@@ -66,6 +72,8 @@ export function HashTool() {
   const [encoding, setEncoding] = useState<DigestEncoding>("hex");
   // The pasted expected checksum (OUT-04); compared only, never hashed.
   const [expected, setExpected] = useState("");
+
+  const linkCopy = useCopyToClipboard();
 
   const clientRef = useRef<HashClient | null>(null);
   const seqRef = useRef(0);
@@ -150,6 +158,14 @@ export function HashTool() {
     runHash(value);
   }
 
+  // Built from the CURRENT text (never result.text) at render; copied only on
+  // an explicit click (D-20/D-21). The Copied! state belongs to one text.
+  const link = buildShareLink(window.location.origin, text);
+  const resetLinkCopy = linkCopy.reset;
+  useEffect(() => {
+    resetLinkCopy();
+  }, [text, resetLinkCopy]);
+
   const byteLength = useMemo(() => encodeText(text).length, [text]);
 
   // The displayed digests belong to older text until the latest job lands.
@@ -233,6 +249,44 @@ export function HashTool() {
           data-form-type="other"
           className="font-mono text-base md:text-base leading-[1.5] field-sizing-fixed min-h-[96px] max-h-[320px] resize-y overflow-y-auto break-all"
         />
+        <div className="flex flex-col items-start gap-1">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={!link.ok}
+            onClick={() => {
+              if (link.ok) void linkCopy.copy(link.url);
+            }}
+            aria-describedby={
+              link.ok
+                ? undefined
+                : link.reason === "empty"
+                  ? "hash-notice-empty"
+                  : "hash-notice-link"
+            }
+            data-testid="hash-copy-link"
+            className="h-11 gap-1 text-primary"
+          >
+            {linkCopy.copied ? (
+              <Check aria-hidden="true" className="size-4" />
+            ) : (
+              <LinkIcon aria-hidden="true" className="size-4" />
+            )}
+            {linkCopy.copied ? "Copied!" : "Copy link"}
+          </Button>
+          <span
+            aria-live="polite"
+            className="sr-only"
+            data-testid="hash-copy-link-status"
+          >
+            {linkCopy.copied ? "Copied!" : ""}
+          </span>
+          {linkCopy.error && (
+            <span className="text-[14px] leading-[1.4] font-normal text-muted-foreground">
+              {COPY_ERROR_MESSAGE}
+            </span>
+          )}
+        </div>
         <div
           id="hash-input-meta"
           data-testid="hash-input-hint"
@@ -245,11 +299,15 @@ export function HashTool() {
             <code className="font-mono">echo -n</code> to match. Pasted CRLF
             line endings become LF.
           </p>
+          <p data-testid="hash-input-link-notice">
+            The link contains your text.
+          </p>
         </div>
       </div>
 
       {text === "" && (
         <p
+          id="hash-notice-empty"
           data-testid="hash-notice-empty"
           className="flex items-start gap-2 text-[14px] leading-[1.4] text-muted-foreground"
         >
@@ -265,6 +323,17 @@ export function HashTool() {
         >
           <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
           {SOFT_CAP_COPY}
+        </p>
+      )}
+
+      {!link.ok && link.reason !== "empty" && (
+        <p
+          id="hash-notice-link"
+          data-testid="hash-notice-link"
+          className="flex items-start gap-2 text-[14px] leading-[1.4] text-muted-foreground"
+        >
+          <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          {link.reason === "too-long" ? LINK_TOO_LONG_COPY : LINK_UNENCODABLE_COPY}
         </p>
       )}
 
