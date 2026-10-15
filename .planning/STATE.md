@@ -5,17 +5,17 @@ milestone_name: Hash Generator
 current_phase: 09
 current_phase_name: hash-tool-page-text-hashing
 status: executing
-stopped_at: Completed 09-08-PLAN.md
-last_updated: "2026-10-15T18:09:24.123Z"
+stopped_at: Completed 09-06-PLAN.md
+last_updated: "2026-10-15T18:13:21.799Z"
 last_activity: 2026-10-15
 last_activity_desc: Phase 09 execution started
-state_head: 0435e7f381339b53fde80e53e76fc0dc563c2d25
+state_head: 14cd3064c5b0c20126b36a41a5165381446ed15a
 progress:
   total_phases: 3
   completed_phases: 8
   total_plans: 14
-  completed_plans: 11
-  percent: 79
+  completed_plans: 12
+  percent: 86
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 ## Current Position
 
 Phase: 09 (hash-tool-page-text-hashing) — EXECUTING
-Plan: 7 of 9
+Plan: 8 of 9
 Status: Ready to execute
 Last activity: 2026-10-15 — Phase 09 execution started
 
-Progress: [████████░░] 79%
+Progress: [█████████░] 86%
 
 ## Performance Metrics
 
@@ -102,6 +102,7 @@ Progress: [████████░░] 79%
 | Phase 09 P04 | 10 min | 3 tasks | 10 files |
 | Phase 09 P05 | 3 min | 2 tasks | 7 files |
 | Phase 09 P08 | 8 min | 2 tasks | 5 files |
+| Phase 09 P06 | 12 min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -128,6 +129,7 @@ Decisions are logged in PROJECT.md Key Decisions table. v1.2 locked decisions (u
 - [Phase 09]: 09-05: BSD tag parsed via lastIndexOf(')') + anchored tail regex (linear), 0x strip applied to hex candidate only, base64url folded to standard Base64
 - [Phase 09]: 09-08: privacy-adjacent FAQ answer limited to the two approved D-27 statements, pinned by exact-equality test
 - [Phase 09]: 09-08: worked-example digest lines use whitespace-pre-wrap so the two-space sha256sum separator survives
+- [Phase 09]: 09-06: Copy link is absolute (origin + /tools/hash?text=), disabled for empty text, cap of 2,000 encoded chars is inclusive; ?text= is read once and never written
 
 ### Pending Todos
 
@@ -149,8 +151,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-15T18:09:24.100Z
-Stopped at: Completed 09-08-PLAN.md
+Last session: 2026-10-15T18:13:21.776Z
+Stopped at: Completed 09-06-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
