@@ -68,4 +68,22 @@ test.describe("Hash Generator live text hashing (TEXT-01, TEXT-02)", () => {
     );
     expect(page.url()).toBe(urlBefore);
   });
+
+  test("select-on-focus replaces the sample (D-03)", async ({ page }) => {
+    await page.goto("/tools/hash");
+    await expect(page.getByTestId("hash-input")).toHaveValue("hello world");
+    await page.getByTestId("hash-input").click();
+    await page.keyboard.type("z");
+    await expect(page.getByTestId("hash-input")).toHaveValue("z");
+  });
+
+  test("pasted CRLF is hashed as LF (TEXT-03)", async ({ page }) => {
+    await page.goto("/tools/hash");
+    await expect(page.getByTestId("hash-input")).toHaveValue("hello world");
+    await page.getByTestId("hash-input").fill("a\r\nb");
+    await expect(page.getByTestId("hash-bytes")).toHaveText("3 bytes (UTF-8)");
+    await expect(page.getByTestId("hash-row-sha256-value")).toHaveText(
+      expectedHex("sha256", "a\nb"),
+    );
+  });
 });
