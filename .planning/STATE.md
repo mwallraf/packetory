@@ -5,17 +5,17 @@ milestone_name: Hash Generator
 current_phase: 09
 current_phase_name: hash-tool-page-text-hashing
 status: executing
-stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-10-15T17:53:48.731Z"
+stopped_at: Completed 09-03-PLAN.md
+last_updated: "2026-10-15T17:56:52.108Z"
 last_activity: 2026-10-15
 last_activity_desc: Phase 09 execution started
-state_head: eff2f65cd09b4cc1b3556b46e44c113ecac81cf5
+state_head: 7ebeb24385d0dc885931c3913021990f5a265c7b
 progress:
   total_phases: 3
   completed_phases: 8
   total_plans: 14
-  completed_plans: 7
-  percent: 50
+  completed_plans: 8
+  percent: 57
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 ## Current Position
 
 Phase: 09 (hash-tool-page-text-hashing) — EXECUTING
-Plan: 3 of 9
+Plan: 4 of 9
 Status: Ready to execute
 Last activity: 2026-10-15 — Phase 09 execution started
 
-Progress: [█████░░░░░] 50%
+Progress: [██████░░░░] 57%
 
 ## Performance Metrics
 
@@ -98,6 +98,7 @@ Progress: [█████░░░░░] 50%
 | Phase 08 P05 | 12 min | 2 tasks | 2 files |
 | Phase 09 P01 | 4 min | 3 tasks | 9 files |
 | Phase 09 P02 | 3min | 1 tasks | 2 files |
+| Phase 09 P03 | 8 min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -119,6 +120,7 @@ Decisions are logged in PROJECT.md Key Decisions table. v1.2 locked decisions (u
 - [Phase 08]: 08-05: Production proof uses mandatory node:crypto/zlib oracles for all 10 algorithms; supersede bound stays 2000 ms; CI runs test:e2e:prod sequentially after test:e2e
 - [Phase 09]: 09-01: sample digests stored as hex constants; 150 ms debounce only above 1 MiB; soft-cap copy per D-07a; select-on-focus selects sync + rAF with mouseup guard
 - [Phase 09]: 09-02: onmessageerror optional on WorkerLike; postMessage throw keeps worker, messageerror tears it down
+- [Phase 09]: Hash slug 'hash' registered as public sitemap URL (D-25); registry description limited to 'in your browser' privacy wording, guarded by unit test (D-27)
 
 ### Pending Todos
 
@@ -140,8 +142,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-15T17:53:48.709Z
-Stopped at: Completed 09-02-PLAN.md
+Last session: 2026-10-15T17:56:52.085Z
+Stopped at: Completed 09-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

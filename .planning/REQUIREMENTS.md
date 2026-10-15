@@ -43,7 +43,7 @@
 
 ### Integration & SEO
 
-- [ ] **INTG-01**: Hash Generator appears in the nav, landing grid, and sitemap via a single `tools/registry.ts` entry (category `encode`, `Hash` icon), with hard-coded 4-tool tests updated to 5
+- [x] **INTG-01**: Hash Generator appears in the nav, landing grid, and sitemap via a single `tools/registry.ts` entry (category `encode`, `Hash` icon), with hard-coded 4-tool tests updated to 5
 - [ ] **INTG-02**: `/tools/hash` has unique title/meta/canonical/OG tags, a worked example, and FAQ content with matching FAQPage JSON-LD (covering SHA3 vs Keccak, `echo` vs `echo -n`, MD5/SHA-1 security, match ≠ authenticity)
 - [ ] **INTG-03**: The page makes zero third-party network requests (e2e-verified), and analytics redaction covers query strings and URL fragments (regression-tested)
 - [ ] **INTG-04**: Production-build e2e tests cover text hashing, file hashing, cancel, and copy flows; Lighthouse stays 90+
@@ -92,7 +92,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OUT-05 | Phase 9 | Pending |
 | INT-01 | Phase 9 | Pending |
 | INT-03 | Phase 9 | Pending |
-| INTG-01 | Phase 9 | Pending |
+| INTG-01 | Phase 9 | Complete |
 | INTG-02 | Phase 9 | Pending |
 | FILE-01 | Phase 10 | Pending |
 | FILE-02 | Phase 10 | Pending |
