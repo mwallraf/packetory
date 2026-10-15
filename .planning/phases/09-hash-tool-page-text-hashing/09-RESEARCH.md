@@ -544,7 +544,7 @@ All five questions were resolved on 2026-10-15 as autonomous decisions under use
 1. **What happens to the Phase 8 `app/hash-smoke` harness?**
    - What we know: its page comment says it "is deleted and replaced by `/tools/hash` in Phase 9"; CONTEXT says it "stays as the Phase 8 test harness"; `tests/e2e-prod/hash-worker.spec.ts`, `tests/e2e/hash-smoke-gate.spec.ts` and the CI step depend on it. Phase 10 owns the prod e2e (INTG-04).
    - Recommendation: **keep it** (follow CONTEXT, lowest risk); defer deletion/migration of the prod worker proof to Phase 10. Do not register it anywhere.
-   - **RESOLVED:** Keep `app/hash-smoke` unchanged in Phase 9 and do not register it anywhere; migration or deletion moves to Phase 10. Autonomous decision under user delegation, 2026-10-15 (autonomous decision 1). 09-07 asserts that `app/hash-smoke`, `tests/e2e-prod` and `playwright.prod.config.ts` are unchanged.
+   - **RESOLVED:** Keep `app/hash-smoke` unchanged in Phase 9 and do not register it anywhere; migration or deletion moves to Phase 10. Autonomous decision under user delegation, 2026-10-15 (autonomous decision 1). 09-09 (split from 09-07) asserts that `app/hash-smoke`, `tests/e2e-prod` and `playwright.prod.config.ts` are unchanged.
 
 2. **Esc data loss (Pitfall 6).**
    - D-23 is locked (Esc restores sample). Recommendation (needs a quick user OK since it adds UI): after an Esc reset of non-sample text, show a one-line "Restore your text" button until the next edit. Costs ~10 lines; otherwise accept data loss as specified.
