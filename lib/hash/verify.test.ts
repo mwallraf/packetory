@@ -55,7 +55,7 @@ describe("matchExpected hex shapes (OUT-04, D-17)", () => {
     ["surrounding whitespace", "  \t" + SHA256 + "\n "],
     [
       "zero-width and NBSP wrapped",
-      "​﻿ " + SHA256 + " ⁠‍",
+      "\u200B\uFEFF\u00A0" + SHA256 + "\u00A0\u2060\u200D",
     ],
   ];
 
@@ -121,7 +121,7 @@ describe("matchExpected Base64 (OUT-04, D-17)", () => {
     ["base64url with padding", base64Url],
     ["base64url without padding", base64Url.replace(/=+$/, "")],
     ["with a sha256 prefix", "sha256:" + SHA256_B64],
-    ["wrapped in invisible characters", "​" + SHA256_B64 + "﻿"],
+    ["wrapped in invisible characters", "\u200B" + SHA256_B64 + "\uFEFF"],
   ])("OUT-04: Base64 %s matches SHA-256", (_name, raw) => {
     expect(ids(raw)).toEqual(["sha256"]);
   });
@@ -198,7 +198,7 @@ describe("matchExpected non-matches and hints (OUT-04, D-18)", () => {
   it("OUT-04: empty and whitespace-only values are idle", () => {
     expect(matchExpected("", d)).toEqual({ state: "idle" });
     expect(matchExpected("   \n\t ", d)).toEqual({ state: "idle" });
-    expect(matchExpected("​﻿ ", d)).toEqual({ state: "idle" });
+    expect(matchExpected("\u200B\uFEFF\u00A0", d)).toEqual({ state: "idle" });
     expect(normalizeExpected("  ")).toBeNull();
   });
 });
