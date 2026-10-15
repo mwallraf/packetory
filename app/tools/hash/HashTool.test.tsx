@@ -86,8 +86,8 @@ describe("HashTool first paint (TEXT-01)", () => {
         .querySelectorAll<HTMLElement>('[data-testid^="hash-row-"]'),
     )
       .map((el) => el.dataset.testid!)
-      .filter((tid) => !tid.endsWith("-value"))
-      .map((tid) => tid.replace("hash-row-", ""));
+      .map((tid) => tid.replace("hash-row-", ""))
+      .filter((id) => ALGORITHMS.some((a) => a.id === id));
     expect(ids).toEqual(ALGORITHMS.map((a) => a.id));
   });
 

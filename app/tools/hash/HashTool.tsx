@@ -4,13 +4,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Info, TriangleAlert } from "lucide-react";
 import { createHashClient, type HashClient } from "@/lib/hash/client";
 import { ALGORITHMS } from "@/lib/hash/algorithms";
-import { toHex } from "@/lib/hash/format";
+import { formatDigest, type DigestEncoding } from "@/lib/hash/format";
 import { SAMPLE_TEXT, sampleDigests } from "@/lib/hash/sample";
 import { encodeText } from "@/lib/hash/source";
 import type { Digests } from "@/lib/hash/types";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { DigestRow } from "./DigestRow";
+import { OutputToolbar } from "./OutputToolbar";
 
 /** Soft cap on UTF-8 bytes (D-07): above it a notice shows; hashing still runs. */
 const TEXT_SOFT_CAP_BYTES = 1_048_576;
@@ -42,6 +44,9 @@ export function HashTool() {
   const [text, setText] = useState(SAMPLE_TEXT);
   const [result, setResult] = useState<Settled>(sampleResult);
   const [hashError, setHashError] = useState(false);
+  // Display-only (D-11): never an input to runHash; toggling re-formats the
+  // stored digest bytes and never re-hashes.
+  const [encoding, setEncoding] = useState<DigestEncoding>("hex");
 
   const clientRef = useRef<HashClient | null>(null);
   const seqRef = useRef(0);
@@ -238,6 +243,7 @@ export function HashTool() {
         <h2 className="text-[20px] leading-[1.2] font-semibold text-foreground">
           Digests
         </h2>
+        <OutputToolbar encoding={encoding} onEncodingChange={setEncoding} />
         <div
           data-testid="hash-rows"
           aria-busy={stale}
@@ -247,21 +253,13 @@ export function HashTool() {
           )}
         >
           {ALGORITHMS.map((algo) => (
-            <div
+            <DigestRow
               key={algo.id}
-              data-testid={"hash-row-" + algo.id}
-              className="flex flex-col gap-1 rounded-md border border-border bg-secondary px-4 py-3"
-            >
-              <span className="text-[14px] leading-[1.4] font-semibold text-muted-foreground">
-                {algo.label}
-              </span>
-              <span
-                data-testid={"hash-row-" + algo.id + "-value"}
-                className="min-w-0 font-mono text-base leading-[1.5] break-all text-foreground"
-              >
-                {toHex(result.digests[algo.id])}
-              </span>
-            </div>
+              id={algo.id}
+              label={algo.label}
+              value={formatDigest(algo.id, result.digests[algo.id], encoding)}
+              primary={algo.id === "sha256"}
+            />
           ))}
         </div>
       </div>
