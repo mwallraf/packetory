@@ -17,7 +17,7 @@
 
 - [ ] **TEXT-01**: User sees all 10 digests for a sample input immediately on page load (precomputed, no input required, no CLS)
 - [ ] **TEXT-02**: User sees all 10 digests update live as they type or paste text, with no stale result ever replacing a newer one
-- [ ] **TEXT-03**: User sees the input's UTF-8 byte count and a hint explaining trailing-newline / CRLF differences versus command-line tools
+- [x] **TEXT-03**: User sees the input's UTF-8 byte count and a hint explaining trailing-newline / CRLF differences versus command-line tools
 - [ ] **TEXT-04**: User can restore a shared input via `?text=` on load, and can create such a link only through an explicit "Copy link" action (length-capped); typed text is never auto-written to the URL and never reaches analytics
 
 ### File Input
@@ -83,7 +83,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | HASH-04 | Phase 8 | Complete |
 | TEXT-01 | Phase 9 | Pending |
 | TEXT-02 | Phase 9 | Pending |
-| TEXT-03 | Phase 9 | Pending |
+| TEXT-03 | Phase 9 | Complete |
 | TEXT-04 | Phase 9 | Pending |
 | OUT-01 | Phase 9 | Pending |
 | OUT-02 | Phase 9 | Pending |
