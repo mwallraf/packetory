@@ -113,6 +113,9 @@ export function useKeyboardShortcut(handlers: KeyboardShortcutHandlers): void {
       }
 
       if (event.key === "Escape") {
+        // The Esc that cancels an IME composition must not reach the handler
+        // (keyCode 229 covers Safari, where isComposing is already false).
+        if (event.isComposing || event.keyCode === 229) return;
         current.escape?.();
         return;
       }

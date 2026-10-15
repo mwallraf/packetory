@@ -113,6 +113,18 @@ describe("useKeyboardShortcut", () => {
     expect(enter).toHaveBeenCalledTimes(1);
   });
 
+  it("WR-02: Escape during IME composition does not fire the escape handler", () => {
+    const escape = vi.fn();
+    renderHook(() => useKeyboardShortcut({ escape }));
+
+    dispatchKeydown({ key: "Escape", isComposing: true });
+    dispatchKeydown({ key: "Escape", keyCode: 229 });
+    expect(escape).not.toHaveBeenCalled();
+
+    dispatchKeydown({ key: "Escape" });
+    expect(escape).toHaveBeenCalledTimes(1);
+  });
+
   it("fires the enter handler while focus is inside a plain text input (04-02 regression: DNS-03/Subnet Enter must work while typing, since no form wraps these inputs)", () => {
     const enter = vi.fn();
     renderHook(() => useKeyboardShortcut({ enter }));
