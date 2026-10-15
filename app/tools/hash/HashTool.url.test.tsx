@@ -134,6 +134,16 @@ describe("HashTool ?text= restore (TEXT-04)", () => {
     expect(screen.getByTestId("hash-input")).toHaveProperty("value", "a");
   });
 
+  it("WR-03: CRLF and lone CR in ?text= are normalised to LF before hashing", () => {
+    mount("/tools/hash?text=a%0D%0Ab%0Dc");
+    expect(screen.getByTestId("hash-input")).toHaveProperty("value", "a\nb\nc");
+    expect(liveClient().starts[0]!.input).toEqual({
+      kind: "text",
+      text: "a\nb\nc",
+    });
+    expect(screen.getByTestId("hash-bytes").textContent).toBe("5 bytes (UTF-8)");
+  });
+
   it("TEXT-04: pending verify shows Comparing... for a non-empty expected value", async () => {
     mount("/tools/hash?text=abc");
     fireEvent.change(screen.getByTestId("hash-verify"), {

@@ -61,7 +61,10 @@ function sampleResult(): Settled {
 function readTextParam(): string | null {
   if (typeof window === "undefined") return null;
   const value = new URLSearchParams(window.location.search).get("text");
-  return value === null || value === "" ? null : value;
+  if (value === null || value === "") return null;
+  // The textarea normalises CR/CRLF to LF; hash what the user sees (the byte
+  // count and share link must agree with the box).
+  return value.replace(/\r\n?/g, "\n");
 }
 
 /**
