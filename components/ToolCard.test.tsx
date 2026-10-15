@@ -31,6 +31,20 @@ const FEATURED_TOOL: ToolDefinition = {
   featured: true,
 };
 
+const HASH_TOOL: ToolDefinition = {
+  slug: "hash",
+  name: "Hash Generator",
+  shortName: "Hash",
+  description:
+    "Compute MD5, SHA-1, SHA-2, SHA-3, RIPEMD-160 and CRC32 digests of any text as you type, copy them as hex or Base64, and verify a checksum — all in your browser.",
+  category: "encode",
+  keywords: ["hash", "sha256", "md5", "sha1", "checksum", "crc32", "sha3"],
+  icon: "Hash",
+  status: "active",
+  clientOnly: true,
+  featured: false,
+};
+
 const PLANNED_TOOL: ToolDefinition = {
   slug: "future-tool",
   name: "Future Tool",
@@ -104,5 +118,26 @@ describe("ToolCard", () => {
       expect(getByTestId("tool-card-category")).toBeTruthy();
       unmount();
     }
+  });
+
+  it("renders the lucide Hash icon, not the Fingerprint fallback, for icon 'Hash' (INTG-01)", () => {
+    const { container } = render(<ToolCard tool={HASH_TOOL} />);
+
+    expect(container.querySelector("svg.lucide-hash")).not.toBeNull();
+    // lucide-react v1.x renders Fingerprint with the class
+    // `lucide-fingerprint-pattern`; match the prefix so a rename cannot make
+    // this negative assertion vacuous.
+    expect(container.querySelector('svg[class*="lucide-fingerprint"]')).toBeNull();
+  });
+
+  it("falls back to the Fingerprint icon for an unknown icon string (documents the silent fallback)", () => {
+    const { container } = render(
+      <ToolCard tool={{ ...HASH_TOOL, icon: "NotARealIcon" }} />
+    );
+
+    expect(
+      container.querySelector('svg[class*="lucide-fingerprint"]')
+    ).not.toBeNull();
+    expect(container.querySelector("svg.lucide-hash")).toBeNull();
   });
 });

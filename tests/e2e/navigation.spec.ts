@@ -84,3 +84,35 @@ test.describe("Mobile nav drawer (320px, D-04, SHELL-06)", () => {
     await expect(trigger).toBeFocused();
   });
 });
+
+test.describe("Desktop nav fits five tools at 640px (INTG-01, research A5)", () => {
+  test.use({ viewport: { width: 640, height: 800 } });
+
+  test("the five nav links are visible and neither the page nor the header overflows horizontally", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const links = page.getByTestId("nav-link");
+    await expect(links).toHaveCount(5);
+    for (let i = 0; i < 5; i++) {
+      await expect(links.nth(i)).toBeVisible();
+    }
+
+    const overflow = await page.evaluate(() => {
+      const header = document.querySelector("header");
+      return {
+        pageScrollWidth: document.documentElement.scrollWidth,
+        pageClientWidth: document.documentElement.clientWidth,
+        headerScrollWidth: header?.scrollWidth ?? 0,
+        headerClientWidth: header?.clientWidth ?? 0,
+      };
+    });
+    expect(overflow.pageScrollWidth).toBeLessThanOrEqual(
+      overflow.pageClientWidth
+    );
+    expect(overflow.headerScrollWidth).toBeLessThanOrEqual(
+      overflow.headerClientWidth
+    );
+  });
+});
