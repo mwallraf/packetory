@@ -10,6 +10,7 @@ import { encodeText } from "@/lib/hash/source";
 import { buildShareLink } from "@/lib/hash/share-link";
 import { matchExpected, normalizeExpected } from "@/lib/hash/verify";
 import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
+import { useKeyboardShortcut } from "@/lib/hooks/useKeyboardShortcut";
 import type { Digests } from "@/lib/hash/types";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -157,6 +158,31 @@ export function HashTool() {
     }
     runHash(value);
   }
+
+  /**
+   * Esc (D-23): cancels the in-flight job and any debounce timer, restores the
+   * sample and its constant digests, clears the verify box and any engine
+   * error. The encoding and copy-all toggles are untouched.
+   */
+  function resetToSample() {
+    cancelPending();
+    setText(SAMPLE_TEXT);
+    setResult(sampleResult());
+    setExpected("");
+    setHashError(false);
+  }
+
+  // Enter is intentionally left unbound: it must reach the textarea and insert
+  // a newline (INT-01). Hashing is live, so there is nothing to execute.
+  useKeyboardShortcut({
+    slash: () => {
+      const el = textareaRef.current;
+      if (!el) return;
+      el.focus();
+      el.select();
+    },
+    escape: resetToSample,
+  });
 
   // Built from the CURRENT text (never result.text) at render; copied only on
   // an explicit click (D-20/D-21). The Copied! state belongs to one text.
