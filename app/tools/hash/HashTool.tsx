@@ -7,7 +7,7 @@ import { ALGORITHMS } from "@/lib/hash/algorithms";
 import { formatDigest, type DigestEncoding } from "@/lib/hash/format";
 import { SAMPLE_TEXT, sampleDigests } from "@/lib/hash/sample";
 import { encodeText } from "@/lib/hash/source";
-import { matchExpected } from "@/lib/hash/verify";
+import { matchExpected, normalizeExpected } from "@/lib/hash/verify";
 import type { Digests } from "@/lib/hash/types";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -35,6 +35,17 @@ function sampleResult(): Settled {
 }
 
 /**
+ * Reads `?text=` once, at mount (TEXT-04, D-20). Read-only: the tool never
+ * writes the typed text back into the address bar, history or the Next navigation layer. The
+ * first occurrence wins; a missing or empty value falls back to the sample.
+ */
+function readTextParam(): string | null {
+  if (typeof window === "undefined") return null;
+  const value = new URLSearchParams(window.location.search).get("text");
+  return value === null || value === "" ? null : value;
+}
+
+/**
  * Hash Generator island (TEXT-01, TEXT-02). Paints the 10 digests of the
  * sample from precomputed constants on first render (no worker call), then
  * hashes typed text live through the Phase 8 `HashClient`. A result is applied
@@ -43,8 +54,12 @@ function sampleResult(): Settled {
  * The typed text is never logged, persisted or stored.
  */
 export function HashTool() {
-  const [text, setText] = useState(SAMPLE_TEXT);
-  const [result, setResult] = useState<Settled>(sampleResult);
+  const [text, setText] = useState<string>(() => readTextParam() ?? SAMPLE_TEXT);
+  // Null while a `?text=` restore is still hashing: the sample's digests must
+  // never be shown beside non-sample text (rows show pending placeholders).
+  const [result, setResult] = useState<Settled | null>(() =>
+    text === SAMPLE_TEXT ? sampleResult() : null,
+  );
   const [hashError, setHashError] = useState(false);
   // Display-only (D-11): never an input to runHash; toggling re-formats the
   // stored digest bytes and never re-hashes.
@@ -56,23 +71,6 @@ export function HashTool() {
   const seqRef = useRef(0);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-
-  // The client is created INSIDE the effect: dispose() is final and React
-  // StrictMode runs mount -> cleanup -> mount, so a client created anywhere
-  // else would be dead after the first cleanup.
-  useEffect(() => {
-    const client = createHashClient();
-    clientRef.current = client;
-    return () => {
-      if (debounceRef.current !== null) {
-        clearTimeout(debounceRef.current);
-        debounceRef.current = null;
-      }
-      client.dispose();
-      clientRef.current = null;
-      seqRef.current += 1;
-    };
-  }, []);
 
   function runHash(value: string) {
     const client = clientRef.current;
@@ -106,6 +104,27 @@ export function HashTool() {
     clientRef.current?.cancel();
   }
 
+  // The client is created INSIDE the effect: dispose() is final and React
+  // StrictMode runs mount -> cleanup -> mount, so a client created anywhere
+  // else would be dead after the first cleanup.
+  useEffect(() => {
+    const client = createHashClient();
+    clientRef.current = client;
+    // A restored `?text=` has no precomputed digests: hash it now. Only the
+    // async continuation sets state, so nothing is set synchronously here.
+    if (text !== SAMPLE_TEXT) runHash(text);
+    return () => {
+      if (debounceRef.current !== null) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+      client.dispose();
+      clientRef.current = null;
+      seqRef.current += 1;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-time read of the restored text; the effect must run once per mount, not on every edit.
+  }, []);
+
   function handleTextChange(value: string) {
     setText(value);
     if (debounceRef.current !== null) {
@@ -134,19 +153,24 @@ export function HashTool() {
   const byteLength = useMemo(() => encodeText(text).length, [text]);
 
   // The displayed digests belong to older text until the latest job lands.
-  const stale = result.text !== text;
+  const stale = result === null || result.text !== text;
   const overSoftCap = byteLength > TEXT_SOFT_CAP_BYTES;
 
   // Derived at render so it re-evaluates whenever the settled digests change
   // (D-19). Never asserted against stale digests: pending until they settle.
+  const digests = result === null ? null : result.digests;
   const verifyMatch = useMemo(
-    () => matchExpected(expected, result.digests),
-    [expected, result.digests],
+    () => (digests === null ? null : matchExpected(expected, digests)),
+    [expected, digests],
   );
   const verify =
-    verifyMatch.state !== "idle" && stale
-      ? ({ state: "pending" } as const)
-      : verifyMatch;
+    verifyMatch === null
+      ? normalizeExpected(expected) === null
+        ? ({ state: "idle" } as const)
+        : ({ state: "pending" } as const)
+      : verifyMatch.state !== "idle" && stale
+        ? ({ state: "pending" } as const)
+        : verifyMatch;
   const matchedIds = verify.state === "match" ? verify.ids : [];
 
   return (
@@ -264,7 +288,7 @@ export function HashTool() {
         <OutputToolbar
           encoding={encoding}
           onEncodingChange={setEncoding}
-          digests={result.digests}
+          digests={digests}
         />
         <div
           data-testid="hash-rows"
@@ -279,7 +303,13 @@ export function HashTool() {
               key={algo.id}
               id={algo.id}
               label={algo.label}
-              value={formatDigest(algo.id, result.digests[algo.id], encoding)}
+              value={
+                result === null
+                  ? ""
+                  : formatDigest(algo.id, result.digests[algo.id], encoding)
+              }
+              pending={result === null}
+              placeholderLength={algo.bits / 4}
               primary={algo.id === "sha256"}
               notForSecurity={algo.notForSecurity}
               alwaysHex={algo.id === "crc32" && encoding === "base64"}

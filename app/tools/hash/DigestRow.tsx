@@ -22,6 +22,10 @@ type DigestRowProps = {
   alwaysHex: boolean;
   /** Verify (OUT-04): this row's digest equals the pasted expected checksum. */
   matched?: boolean;
+  /** A `?text=` restore is still hashing: placeholder value, copy disabled. */
+  pending?: boolean;
+  /** Characters of the settled hex digest, so the pending row is the same height. */
+  placeholderLength: number;
 };
 
 /**
@@ -37,6 +41,8 @@ export function DigestRow({
   notForSecurity,
   alwaysHex,
   matched = false,
+  pending = false,
+  placeholderLength,
 }: DigestRowProps) {
   const { copy, copied, error, reset } = useCopyToClipboard();
 
@@ -100,9 +106,10 @@ export function DigestRow({
         <button
           type="button"
           onClick={() => copy(value)}
+          disabled={pending}
           aria-label={copied ? "Copied!" : "Copy " + label + " digest"}
           data-testid={"hash-row-" + id + "-copy"}
-          className="ml-auto inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-full px-2.5 text-primary outline-none transition-colors hover:bg-muted hover:text-primary focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="ml-auto inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-full px-2.5 text-primary outline-none transition-colors hover:bg-muted hover:text-primary focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
         >
           {copied ? (
             <Check aria-hidden="true" className="size-4" />
@@ -118,7 +125,21 @@ export function DigestRow({
           primary && "font-semibold",
         )}
       >
-        {value}
+        {pending ? (
+          <>
+            <span
+              aria-hidden="true"
+              className="block motion-safe:animate-pulse rounded bg-muted"
+            >
+              <span className="text-transparent select-none">
+                {"0".repeat(placeholderLength)}
+              </span>
+            </span>
+            <span className="sr-only">Computing</span>
+          </>
+        ) : (
+          value
+        )}
       </span>
       {/* Not color-alone: the icon swap is the primary signal; this announces
           the same change to screen readers. */}

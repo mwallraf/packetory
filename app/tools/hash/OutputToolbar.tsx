@@ -20,7 +20,7 @@ type OutputToolbarProps = {
   encoding: DigestEncoding;
   onEncodingChange: (encoding: DigestEncoding) => void;
   /** The digests currently on screen; Copy all exports exactly these. */
-  digests: Digests;
+  digests: Digests | null;
 };
 
 /**
@@ -49,6 +49,7 @@ export function OutputToolbar({
   }
 
   function handleCopyAll() {
+    if (digests === null) return;
     // Snapshot at click time.
     const payload =
       copyFormat === "checksum"
@@ -144,6 +145,7 @@ export function OutputToolbar({
           type="button"
           variant="outline"
           onClick={handleCopyAll}
+          disabled={digests === null}
           data-testid="hash-copy-all"
           className="h-11 gap-1 text-primary"
         >
