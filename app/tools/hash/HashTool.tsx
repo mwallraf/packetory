@@ -243,7 +243,11 @@ export function HashTool() {
         <h2 className="text-[20px] leading-[1.2] font-semibold text-foreground">
           Digests
         </h2>
-        <OutputToolbar encoding={encoding} onEncodingChange={setEncoding} />
+        <OutputToolbar
+          encoding={encoding}
+          onEncodingChange={setEncoding}
+          digests={result.digests}
+        />
         <div
           data-testid="hash-rows"
           aria-busy={stale}
