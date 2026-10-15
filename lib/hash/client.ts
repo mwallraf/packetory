@@ -5,6 +5,12 @@
  * cancel message, then starts the new job; any worker message whose jobId is
  * not the current job is dropped.
  *
+ * Two guarantees keep a live-typing UI from ever hanging or crashing:
+ * `start()` never rejects (a throwing start `postMessage`, e.g. a
+ * DataCloneError, resolves an error outcome and clears the job slot), and a
+ * worker `messageerror` settles the in-flight job as an error, terminates the
+ * worker, and lets the next `start()` build a fresh one.
+ *
  * Every import here is type-only. This file never imports the engine, the
  * job runner, or the worker core, so loading it adds no hashing code to the
  * main-thread bundle - the engine reaches the browser only through the
@@ -22,6 +28,7 @@ export type WorkerLike = {
   terminate(): void;
   onmessage: ((ev: { data: WorkerResponse }) => void) | null;
   onerror: ((ev: { message?: string }) => void) | null;
+  onmessageerror?: ((ev: unknown) => void) | null;
 };
 
 export type HashOutcome =
@@ -96,6 +103,15 @@ export function createHashClient(
       w.terminate();
       if (worker === w) worker = null; // next start() builds a fresh worker
     };
+    w.onmessageerror = () => {
+      settle({
+        status: "error",
+        name: "WorkerError",
+        message: "Unreadable worker message",
+      });
+      w.terminate();
+      if (worker === w) worker = null; // next start() builds a fresh worker
+    };
     worker = w;
     return w;
   }
@@ -118,7 +134,18 @@ export function createHashClient(
       const id = ++seq;
       return new Promise<HashOutcome>((resolve) => {
         current = { id, resolve, onProgress: o?.onProgress };
-        w.postMessage({ type: "start", jobId: id, input });
+        try {
+          w.postMessage({ type: "start", jobId: id, input });
+        } catch (e) {
+          // Never reject; never echo the input. The worker stays up: a
+          // DataCloneError is an input problem, not a worker failure.
+          const err = e instanceof Error ? e : null;
+          settle({
+            status: "error",
+            name: err?.name ?? "Error",
+            message: err?.message ?? "Worker postMessage failed",
+          });
+        }
       });
     },
     cancel: cancelCurrent,
