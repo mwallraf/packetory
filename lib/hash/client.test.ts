@@ -14,7 +14,15 @@ class FakeWorker implements WorkerLike {
   terminated = false;
   onmessage: WorkerLike["onmessage"] = null;
   onerror: WorkerLike["onerror"] = null;
+  onmessageerror: WorkerLike["onmessageerror"] = null;
+  /** When set, the next "start" postMessage throws this value once. */
+  throwOnStart: unknown = undefined;
   postMessage(m: WorkerRequest) {
+    if (m.type === "start" && this.throwOnStart !== undefined) {
+      const e = this.throwOnStart;
+      this.throwOnStart = undefined;
+      throw e;
+    }
     this.posted.push(m);
   }
   terminate() {
@@ -25,10 +33,11 @@ class FakeWorker implements WorkerLike {
   }
 }
 
-function setup() {
+function setup(opts: { throwOnStart?: unknown } = {}) {
   const workers: FakeWorker[] = [];
   const createWorker = vi.fn(() => {
     const w = new FakeWorker();
+    if (workers.length === 0) w.throwOnStart = opts.throwOnStart;
     workers.push(w);
     return w;
   });
@@ -249,5 +258,100 @@ describe("createHashClient (HASH-04)", () => {
       message: "no workers here",
     });
     expect(createWorker).toHaveBeenCalledTimes(1);
+  });
+
+  it("resolves an error outcome instead of rejecting when postMessage throws, then recovers (WR-01, HASH-04)", async () => {
+    const { client, workers, createWorker } = setup({
+      throwOnStart: new DOMException("could not clone", "DataCloneError"),
+    });
+    await expect(client.start(textA)).resolves.toEqual({
+      status: "error",
+      name: "DataCloneError",
+      message: "could not clone",
+    });
+    expect(workers[0].terminated).toBe(false);
+
+    // A late worker message for the failed job is dropped.
+    workers[0].emit({ type: "result", jobId: 1, digests: fakeDigests(1) });
+
+    const next = client.start(textB);
+    expect(createWorker).toHaveBeenCalledTimes(1);
+    expect(workers[0].posted).toEqual([
+      { type: "start", jobId: 2, input: textB },
+    ]);
+    const digests = fakeDigests(6);
+    workers[0].emit({ type: "result", jobId: 2, digests });
+    await expect(next).resolves.toEqual({ status: "done", digests });
+  });
+
+  it("clears the current-job slot when postMessage throws so a late result changes nothing (WR-01, HASH-04)", async () => {
+    const { client, workers } = setup({ throwOnStart: new Error("nope") });
+    const p = client.start(textA);
+    await expect(p).resolves.toEqual({
+      status: "error",
+      name: "Error",
+      message: "nope",
+    });
+    // Nothing in flight: cancel() posts nothing (current slot is clear).
+    client.cancel();
+    expect(workers[0].posted).toEqual([]);
+  });
+
+  it("maps a thrown non-Error value to an error outcome named Error (WR-01, HASH-04)", async () => {
+    const { client } = setup({ throwOnStart: "plain string" });
+    await expect(client.start(textA)).resolves.toEqual({
+      status: "error",
+      name: "Error",
+      message: "Worker postMessage failed",
+    });
+  });
+
+  it("settles the in-flight job, terminates the worker and rebuilds on messageerror (WR-02, HASH-04)", async () => {
+    const { client, workers, createWorker } = setup();
+    const p = client.start(textA);
+    workers[0].onmessageerror?.({});
+    await expect(p).resolves.toEqual({
+      status: "error",
+      name: "WorkerError",
+      message: "Unreadable worker message",
+    });
+    expect(workers[0].terminated).toBe(true);
+
+    const next = client.start(textB);
+    expect(createWorker).toHaveBeenCalledTimes(2);
+    expect(workers[1].posted).toEqual([
+      { type: "start", jobId: 2, input: textB },
+    ]);
+    const digests = fakeDigests(7);
+    workers[1].emit({ type: "result", jobId: 2, digests });
+    await expect(next).resolves.toEqual({ status: "done", digests });
+  });
+
+  it("messageerror with no job in flight does not throw and still tears the worker down (WR-02, HASH-04)", async () => {
+    const { client, workers, createWorker } = setup();
+    const p = client.start(textA);
+    workers[0].emit({ type: "result", jobId: 1, digests: fakeDigests(1) });
+    await p;
+    expect(() => workers[0].onmessageerror?.({})).not.toThrow();
+    expect(workers[0].terminated).toBe(true);
+    void client.start(textB);
+    expect(createWorker).toHaveBeenCalledTimes(2);
+  });
+
+  it("never puts the input text in a WR-01 or WR-02 error outcome (T-09-07, HASH-04)", async () => {
+    const secret: HashInput = { kind: "text", text: "SENTINEL-secret-text" };
+
+    const a = setup({ throwOnStart: new DOMException("could not clone", "DataCloneError") });
+    const o1 = await a.client.start(secret);
+
+    const b = setup();
+    const p = b.client.start(secret);
+    b.workers[0].onmessageerror?.({});
+    const o2 = await p;
+
+    for (const o of [o1, o2]) {
+      expect(o.status).toBe("error");
+      expect(JSON.stringify(o)).not.toContain("SENTINEL-secret-text");
+    }
   });
 });
