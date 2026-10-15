@@ -1,7 +1,7 @@
 ---
 phase: 9
 slug: hash-tool-page-text-hashing
-status: draft
+status: approved
 shadcn_initialized: true
 preset: "b2fA (style=nova, base=radix, baseColor=neutral, font=geist, iconLibrary=lucide) - already initialized in Phase 1; unchanged this phase, confirmed live via `components.json` (style: radix-nova, baseColor: neutral, iconLibrary: lucide) and `npx shadcn info` 2026-10-15"
 created: 2026-10-15
@@ -39,7 +39,7 @@ This table is a non-exhaustive list of known-good components, never a closed all
 | Label | `@/components/ui/label` | Textarea and verify-field labels |
 | Badge | `@/components/ui/badge` | Security badges, MATCH badge. Override size/weight (see Typography) |
 | ToggleGroup / ToggleGroupItem | `@/components/ui/toggle-group` | Encoding toggle and copy-all format toggle. `type="single"`, `variant="outline"`, ignore the `""` deselect value (UUID precedent) |
-| Button | `@/components/ui/button` | "Copy link", "Copy all", "Restore your text". Use `variant="outline"` with `className="h-11"` for the 44px hit area |
+| Button | `@/components/ui/button` | "Copy link", "Copy all digests", "Restore your text". Use `variant="outline"` with `className="h-11"` for the 44px hit area |
 | Separator | `@/components/ui/separator` | Optional divider between island and worked example |
 | Textarea (NEW) | `@/components/ui/textarea` | Not installed. Add with `npx shadcn add textarea` (official `@shadcn` registry, radix-nova item). The registry item sets `field-sizing-content` (auto-grow); this tool must override it, see Textarea spec below |
 | Card, Sheet, ScrollArea, Switch, Toggle, Tooltip | `@/components/ui/*` | Installed; not used on this page. `Tooltip` is explicitly not used: security labels must be inline text (D-13) |
@@ -81,7 +81,7 @@ Declared values (multiples of 4), inherited unchanged from Phase 1:
 | 3xl | 64px | Not used on this page beyond inherited shell |
 
 Exceptions:
-- Icon-only copy buttons and the text buttons ("Copy link", "Copy all", "Restore your text") keep a 44px minimum height (`h-11`, `min-w-11`) via padding around a 16px icon. 44 is a multiple of 4; this is the same rule as Phases 2-5.
+- Icon-only copy buttons and the text buttons ("Copy link", "Copy all digests", "Restore your text") keep a 44px minimum height (`h-11`, `min-w-11`) via padding around a 16px icon. 44 is a multiple of 4; this is the same rule as Phases 2-5.
 - Digest row vertical padding is `py-3` (12px, a multiple of 4).
 - Textarea minimum height is 96px (3 lines x 24px line-height + 24px padding); `max-h-[320px]` with `overflow-y-auto` and `resize-y`. These are the only fixed pixel heights besides the skeleton.
 - No new 6px (`gap-1.5`) values in new code; use 4px or 8px. (Existing MAC/UUID code uses `gap-1.5`; do not copy it.)
@@ -129,7 +129,7 @@ Inline code in the hint (`echo`, `printf '%s'`, `echo -n`) uses Geist Mono at th
 | Destructive | `#DC2626` red-600 | `#EF4444` red-500 | Hash-engine failure notice only (see below) |
 
 Accent reserved for (explicit list, never "all interactive elements"):
-- Copy icon/label color on every copy control: per-row copy buttons, "Copy all", "Copy link", and their "Copied!" state
+- Copy icon/label color on every copy control: per-row copy buttons, "Copy all digests", "Copy link", and their "Copied!" state
 - Left accent bar (`border-l-4 border-l-primary`) on the SHA-256 primary row
 - MATCH state: matched row border (`border-primary`) + tint (`bg-primary/10`) + the `CircleCheck` icon inside the MATCH badge and verify result line
 - Active (`data-[state=on]`) item of the encoding and copy-all format toggles (`bg-primary/10 text-primary`, UUID precedent)
@@ -182,7 +182,7 @@ Dark mode: no per-component color is hard-coded; every surface and text color us
 - `h2` "Digests" (Heading role).
 - Output toolbar: `flex flex-wrap items-end gap-x-4 gap-y-2`. Two groups plus the action:
   1. Encoding group: `Label` "Encoding" (id for `aria-labelledby`) over a `ToggleGroup` (`type="single"`, `variant="outline"`, `value` = `"hex" | "HEX" | "base64"`) with items "hex" (`aria-label="Lowercase hex"`), "HEX" (`aria-label="Uppercase hex"`), "Base64". Default "hex". Ignore the `""` deselect value so one is always selected (D-11). Toggling re-formats stored bytes only, never re-hashes.
-  2. Copy-all group: `Label` "Copy all as" over a `ToggleGroup` with items "Labeled list" (default) and "Checksum lines" (D-15), then the "Copy all" `Button` (outline, `h-11`, accent text, `Copy`/`Check` swap) next to it. Wraps beneath at 320px.
+  2. Copy-all group: `Label` "Copy all as" over a `ToggleGroup` with items "Labeled list" (default) and "Checksum lines" (D-15), then the "Copy all digests" `Button` (outline, `h-11`, accent text, `Copy`/`Check` swap) next to it. Wraps beneath at 320px.
 - Copy-all payloads: labeled list = `{LABEL}: {digest}` per line in the current display encoding; checksum lines = `# {LABEL}` + `{lowercase hex}  -` per algorithm, always lowercase hex regardless of the encoding toggle (D-15/D-16). Snapshot the text at click time.
 - Rows: `flex flex-col gap-2` container, `data-testid="hash-rows"`, `aria-busy` while stale.
 
@@ -246,7 +246,7 @@ Reduced motion: the only animations are `animate-pulse` on skeleton/pending and 
 | Byte count | "{N} bytes (UTF-8)" / "1 byte (UTF-8)" |
 | Hint line (D-09) | "Hashes exactly what is typed, with no trailing newline. `echo` adds one; use `printf '%s'` or `echo -n` to match. Pasted CRLF line endings become LF." |
 | Link notice (D-21) | "The link contains your text." |
-| Primary CTA | "Copy all" (digests) - icon + label, swaps to "Copied!" |
+| Primary CTA | "Copy all digests" - icon + label, swaps to "Copied!" |
 | Secondary CTA | "Copy link" - icon + label, swaps to "Copied!" |
 | Per-row copy | Icon-only button; `aria-label` "Copy {LABEL} digest" -> "Copied!" |
 | Empty state heading | Not applicable - the default sample guarantees a populated page on load (zero-effort default) |
@@ -304,6 +304,21 @@ Applicable state considerations resolved: 13 covered, 3 backstop, 1 unresolved
 | overflow | toolbar with two toggle groups + Copy all at 320px (interactive-control) | backstop | Groups wrap onto separate lines; needs a 320px visual check in both themes. |
 | unresolved | soft-cap notice target | unresolved | D-07 says "suggests file mode", but file mode ships in Phase 10. Phase 9 copy intentionally omits the pointer; Phase 10 should add "hash a file instead" to this notice. |
 
+### Probe coverage (ui-consideration-probe, --auto, 2026-10-15)
+
+Engine report: 47 applicable categories across 8 elements, 1 unclassified (E6 skeleton, which the "loading / island first paint" row above covers). Any probe category not covered by an explicit row above is resolved at the --auto floor as `{ statement: <probe question for that element>, verification: backstop }`. The verifier must confirm it from evidence or route it to human_needed. It is never a silent pass.
+
+| Element | Probe categories |
+|---------|------------------|
+| E1 input textarea | empty, loading, error, partial, overflow, long-text |
+| E2 Copy link | loading, error, overflow, long-text |
+| E3 verify input | empty, loading, error, partial, long-text |
+| E4 output toolbar | empty, loading, error, populated, partial, overflow, zero-one-many, long-text |
+| E5 digest rows | empty, loading, error, populated, partial, overflow, zero-one-many, long-text |
+| E6 loading skeleton | unclassified |
+| E7 nav + landing grid | empty, loading, error, populated, partial, overflow, zero-one-many, long-text |
+| E8 FAQ + worked example | empty, loading, error, populated, partial, overflow, zero-one-many |
+
 ---
 
 ## Registry Safety
@@ -332,12 +347,12 @@ These are auto-mode choices that go beyond, or sit at the edge of, what `09-CONT
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
-- [ ] Dimension 7 Inventory Provenance: PASS
+- [x] Dimension 1 Copywriting: FLAG (CTA renamed to "Copy all digests"; D-07 file-mode pointer deferred to Phase 10)
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: FLAG (skeleton heights measured and pinned by executor)
+- [x] Dimension 6 Registry Safety: PASS
+- [x] Dimension 7 Inventory Provenance: PASS
 
 **Approval:** pending
