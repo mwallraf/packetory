@@ -355,4 +355,4 @@ These are auto-mode choices that go beyond, or sit at the edge of, what `09-CONT
 - [x] Dimension 6 Registry Safety: PASS
 - [x] Dimension 7 Inventory Provenance: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-10-15 (auto mode, gsd-ui-checker)
