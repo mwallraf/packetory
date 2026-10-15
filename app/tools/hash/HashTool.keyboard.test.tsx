@@ -325,6 +325,14 @@ describe("INT-01 Restore your text", () => {
     expect(document.activeElement).toBe(textarea());
   });
 
+  it("IN-01: Esc over empty text offers no restore notice", () => {
+    render(<HashTool />);
+    type("");
+    press("Escape");
+    expect(textarea().value).toBe(SAMPLE_TEXT);
+    expect(screen.queryByTestId("hash-notice-restore")).toBeNull();
+  });
+
   it("INT-01: any edit after Esc removes the restore notice", () => {
     render(<HashTool />);
     type("secret text");

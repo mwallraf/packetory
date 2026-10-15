@@ -188,7 +188,8 @@ export function HashTool() {
   function resetToSample() {
     // Esc must never irrecoverably discard typed text: keep it for "Restore
     // your text". A second Esc over the sample keeps the earlier stash.
-    if (text !== SAMPLE_TEXT) setRestorable(text);
+    // Empty text is not worth restoring.
+    if (text !== "" && text !== SAMPLE_TEXT) setRestorable(text);
     cancelPending();
     setText(SAMPLE_TEXT);
     setResult(sampleResult());
