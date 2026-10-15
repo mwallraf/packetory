@@ -85,7 +85,7 @@ Plans:
   4. Opening `/tools/hash?text=…` restores that input on load, and the explicit, length-capped "Copy link" action is the only way text gets into a URL — the address bar never changes while typing and `text` never reaches analytics; `/` focuses the input, `Esc` cancels in-flight work and restores the sample, a copy shortcut copies the SHA-256 digest, and `Enter` inserts a newline (never bound)
   5. The page has a unique title, meta description, canonical URL, and OG tags, a worked example, and an FAQ (SHA3 vs Keccak, `echo` vs `echo -n`, MD5/SHA-1 security, a match ≠ authenticity) with content-matched FAQPage JSON-LD — and it is fully usable at 320px in light and dark mode, with long digests wrapping and no horizontal scroll
 
-**Plans:** 7/9 plans executed
+**Plans:** 8/9 plans executed
 
 Plans:
 **Wave 1**
@@ -104,7 +104,7 @@ Plans:
 - [x] 09-06-PLAN.md — `?text=` restore with pending rows, URL never written, explicit capped absolute Copy link, analytics redaction regression
 
 **Wave 5** *(blocked on Wave 4 completion)*
-- [ ] 09-07-PLAN.md — Keyboard (`/`, Esc + Restore your text, SHA-256 copy shortcut with guards, Enter unbound)
+- [x] 09-07-PLAN.md — Keyboard (`/`, Esc + Restore your text, SHA-256 copy shortcut with guards, Enter unbound)
 
 **Wave 6** *(blocked on Wave 5 completion)*
 - [ ] 09-09-PLAN.md — Layout and release gate: skeleton measured and pinned (no CLS); 320px light/dark gate; full phase gate
@@ -141,5 +141,5 @@ Plans:
 | 6. Landing Page Card Navigation | v1.1 | 2/2 | Complete | 2026-07-25 |
 | 7. Production Domain Cutover | v1.1 | 1/1 | Complete | 2026-07-25 |
 | 8. Hash Core & Worker Runtime | v1.2 | 5/5 | Complete    | 2026-10-15 |
-| 9. Hash Tool Page & Text Hashing | v1.2 | 7/9 | In Progress | - |
+| 9. Hash Tool Page & Text Hashing | v1.2 | 8/9 | In Progress | - |
 | 10. File Hashing & Release Hardening | v1.2 | 0/TBD | Not started | - |

@@ -37,7 +37,7 @@
 
 ### Interaction
 
-- [ ] **INT-01**: User can press `/` to focus the input, `Esc` to cancel in-flight work and reset to the sample, and a copy shortcut for the primary (SHA-256) digest; `Enter` is never bound (it inserts newlines in the textarea)
+- [x] **INT-01**: User can press `/` to focus the input, `Esc` to cancel in-flight work and reset to the sample, and a copy shortcut for the primary (SHA-256) digest; `Enter` is never bound (it inserts newlines in the textarea)
 - [ ] **INT-02**: Every path that supersedes in-flight hashing (typing, paste, new file via picker or drop, mode switch, `Esc`, clear, unmount, `?text=` load) cancels its predecessor before starting
 - [ ] **INT-03**: User can use the tool at 320px width (long digests wrap, no horizontal scroll) in light and dark mode
 
@@ -90,7 +90,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | OUT-03 | Phase 9 | Complete |
 | OUT-04 | Phase 9 | Complete |
 | OUT-05 | Phase 9 | Complete |
-| INT-01 | Phase 9 | Pending |
+| INT-01 | Phase 9 | Complete |
 | INT-03 | Phase 9 | Pending |
 | INTG-01 | Phase 9 | Complete |
 | INTG-02 | Phase 9 | Complete |
