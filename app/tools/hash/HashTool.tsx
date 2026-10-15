@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, Info, Link as LinkIcon, TriangleAlert } from "lucide-react";
+import {
+  Check,
+  Info,
+  Link as LinkIcon,
+  TriangleAlert,
+  Undo2,
+} from "lucide-react";
 import { createHashClient, type HashClient } from "@/lib/hash/client";
 import { ALGORITHMS } from "@/lib/hash/algorithms";
 import { formatDigest, type DigestEncoding } from "@/lib/hash/format";
@@ -31,8 +37,14 @@ const SOFT_CAP_COPY =
 const LINK_TOO_LONG_COPY =
   "Text is too long for a link (over 2,000 encoded characters).";
 const LINK_UNENCODABLE_COPY = "This text can't be encoded into a link.";
+const RESET_NOTICE_COPY = "Reset to the sample.";
 const HASH_ERROR_COPY =
   "Couldn't compute digests in this browser. Reload the page and try again.";
+
+/** True while a Radix dialog (the mobile nav Sheet) is open: its Esc closes it. */
+function isDialogOpen(): boolean {
+  return document.querySelector('[role="dialog"][data-state="open"]') !== null;
+}
 
 /** Digests paired with the exact text they were computed from. */
 type Settled = { text: string; digests: Digests };
@@ -74,7 +86,12 @@ export function HashTool() {
   // The pasted expected checksum (OUT-04); compared only, never hashed.
   const [expected, setExpected] = useState("");
 
+  // The text Esc replaced, kept until the next edit so it can be restored.
+  const [restorable, setRestorable] = useState<string | null>(null);
+
   const linkCopy = useCopyToClipboard();
+  // Drives the SHA-256 row's "Copied!" when the keyboard shortcut copies it.
+  const primaryCopy = useCopyToClipboard();
 
   const clientRef = useRef<HashClient | null>(null);
   const seqRef = useRef(0);
@@ -136,6 +153,7 @@ export function HashTool() {
 
   function handleTextChange(value: string) {
     setText(value);
+    setRestorable(null);
     if (debounceRef.current !== null) {
       clearTimeout(debounceRef.current);
       debounceRef.current = null;
@@ -165,6 +183,9 @@ export function HashTool() {
    * error. The encoding and copy-all toggles are untouched.
    */
   function resetToSample() {
+    // Esc must never irrecoverably discard typed text: keep it for "Restore
+    // your text". A second Esc over the sample keeps the earlier stash.
+    if (text !== SAMPLE_TEXT) setRestorable(text);
     cancelPending();
     setText(SAMPLE_TEXT);
     setResult(sampleResult());
@@ -181,8 +202,29 @@ export function HashTool() {
       el.focus();
       el.select();
     },
-    escape: resetToSample,
+    escape: () => {
+      // Esc closes an open dialog (mobile nav); it must not also wipe the tool.
+      if (isDialogOpen()) return;
+      resetToSample();
+    },
+    copy: () => {
+      // Never clobber a native copy of a text selection, and never copy
+      // while no settled result exists (?text= restore still hashing).
+      if ((window.getSelection()?.toString() ?? "") !== "") return;
+      if (result === null) return;
+      void primaryCopy.copy(
+        formatDigest("sha256", result.digests.sha256, encoding),
+      );
+    },
   });
+
+  // The Copied! state belongs to one displayed SHA-256 string.
+  const displayedSha256 =
+    result === null ? "" : formatDigest("sha256", result.digests.sha256, encoding);
+  const resetPrimaryCopy = primaryCopy.reset;
+  useEffect(() => {
+    resetPrimaryCopy();
+  }, [displayedSha256, resetPrimaryCopy]);
 
   // Built from the CURRENT text (never result.text) at render; copied only on
   // an explicit click (D-20/D-21). The Copied! state belongs to one text.
@@ -363,6 +405,30 @@ export function HashTool() {
         </p>
       )}
 
+      {restorable !== null && (
+        <div
+          data-testid="hash-notice-restore"
+          className="flex items-start gap-2 text-[14px] leading-[1.4] text-muted-foreground"
+        >
+          <Undo2 aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          <span>{RESET_NOTICE_COPY}</span>
+          <Button
+            type="button"
+            variant="ghost"
+            data-testid="hash-restore"
+            className="h-11"
+            onClick={() => {
+              const stored = restorable;
+              setRestorable(null);
+              handleTextChange(stored);
+              textareaRef.current?.focus();
+            }}
+          >
+            Restore your text
+          </Button>
+        </div>
+      )}
+
       {hashError && (
         <p
           role="alert"
@@ -409,6 +475,8 @@ export function HashTool() {
               notForSecurity={algo.notForSecurity}
               alwaysHex={algo.id === "crc32" && encoding === "base64"}
               matched={matchedIds.includes(algo.id)}
+              // SHA-256 row only: externalCopied={primaryCopy.copied} mirrors the shortcut.
+              externalCopied={algo.id === "sha256" && primaryCopy.copied}
             />
           ))}
         </div>

@@ -22,6 +22,8 @@ type DigestRowProps = {
   alwaysHex: boolean;
   /** Verify (OUT-04): this row's digest equals the pasted expected checksum. */
   matched?: boolean;
+  /** The keyboard copy shortcut just copied this row: show the same confirmation. */
+  externalCopied?: boolean;
   /** A `?text=` restore is still hashing: placeholder value, copy disabled. */
   pending?: boolean;
   /** Characters of the settled hex digest, so the pending row is the same height. */
@@ -41,10 +43,12 @@ export function DigestRow({
   notForSecurity,
   alwaysHex,
   matched = false,
+  externalCopied = false,
   pending = false,
   placeholderLength,
 }: DigestRowProps) {
-  const { copy, copied, error, reset } = useCopyToClipboard();
+  const { copy, copied: ownCopied, error, reset } = useCopyToClipboard();
+  const copied = ownCopied || externalCopied;
 
   useEffect(() => {
     reset();

@@ -20,7 +20,8 @@ export type KeyboardShortcutHandlers = {
   escape?: () => void;
   /** Ctrl/Cmd+C — copy the primary result. Only fires when focus is NOT
    * inside an editable field, so native text-selection copy keeps working
-   * inside inputs/textareas/contenteditable elements. */
+   * inside inputs/textareas/contenteditable elements. Shift/Alt combinations
+   * (for example Ctrl+Shift+C, the DevTools inspector) never trigger it. */
   copy?: () => void;
 };
 
@@ -114,7 +115,10 @@ export function useKeyboardShortcut(handlers: KeyboardShortcutHandlers): void {
       }
 
       const isCopyChord =
-        (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c";
+        (event.ctrlKey || event.metaKey) &&
+        !event.shiftKey &&
+        !event.altKey &&
+        event.key.toLowerCase() === "c";
       if (isCopyChord && !editable) {
         current.copy?.();
       }
