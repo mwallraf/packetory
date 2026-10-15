@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Check, Copy, Info, ShieldAlert } from "lucide-react";
+import { Check, CircleCheck, Copy, Info, ShieldAlert } from "lucide-react";
 import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -20,6 +20,8 @@ type DigestRowProps = {
   notForSecurity: boolean;
   /** CRC32 while Base64 is selected: it stays hex, say so. */
   alwaysHex: boolean;
+  /** Verify (OUT-04): this row's digest equals the pasted expected checksum. */
+  matched?: boolean;
 };
 
 /**
@@ -34,6 +36,7 @@ export function DigestRow({
   primary,
   notForSecurity,
   alwaysHex,
+  matched = false,
 }: DigestRowProps) {
   const { copy, copied, error, reset } = useCopyToClipboard();
 
@@ -46,7 +49,10 @@ export function DigestRow({
     <div
       data-testid={"hash-row-" + id}
       className={cn(
-        "flex flex-col gap-1 rounded-md border border-border bg-secondary px-4 py-3",
+        "flex flex-col gap-1 rounded-md border px-4 py-3",
+        matched
+          ? "border-primary bg-primary/10"
+          : "border-border bg-secondary",
         primary && "border-l-4 border-l-primary",
       )}
     >
@@ -71,6 +77,16 @@ export function DigestRow({
                 Not for security
               </>
             )}
+          </Badge>
+        )}
+        {matched && (
+          <Badge
+            variant="outline"
+            data-testid={"hash-row-" + id + "-match"}
+            className="h-auto gap-1 border-primary px-2 py-1 text-[14px] leading-[1.4] font-semibold text-foreground"
+          >
+            <CircleCheck aria-hidden="true" className="size-4 text-primary" />
+            Match
           </Badge>
         )}
         {alwaysHex && (

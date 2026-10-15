@@ -7,12 +7,14 @@ import { ALGORITHMS } from "@/lib/hash/algorithms";
 import { formatDigest, type DigestEncoding } from "@/lib/hash/format";
 import { SAMPLE_TEXT, sampleDigests } from "@/lib/hash/sample";
 import { encodeText } from "@/lib/hash/source";
+import { matchExpected } from "@/lib/hash/verify";
 import type { Digests } from "@/lib/hash/types";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { DigestRow } from "./DigestRow";
 import { OutputToolbar } from "./OutputToolbar";
+import { VerifyBox } from "./VerifyBox";
 
 /** Soft cap on UTF-8 bytes (D-07): above it a notice shows; hashing still runs. */
 const TEXT_SOFT_CAP_BYTES = 1_048_576;
@@ -47,6 +49,8 @@ export function HashTool() {
   // Display-only (D-11): never an input to runHash; toggling re-formats the
   // stored digest bytes and never re-hashes.
   const [encoding, setEncoding] = useState<DigestEncoding>("hex");
+  // The pasted expected checksum (OUT-04); compared only, never hashed.
+  const [expected, setExpected] = useState("");
 
   const clientRef = useRef<HashClient | null>(null);
   const seqRef = useRef(0);
@@ -132,6 +136,18 @@ export function HashTool() {
   // The displayed digests belong to older text until the latest job lands.
   const stale = result.text !== text;
   const overSoftCap = byteLength > TEXT_SOFT_CAP_BYTES;
+
+  // Derived at render so it re-evaluates whenever the settled digests change
+  // (D-19). Never asserted against stale digests: pending until they settle.
+  const verifyMatch = useMemo(
+    () => matchExpected(expected, result.digests),
+    [expected, result.digests],
+  );
+  const verify =
+    verifyMatch.state !== "idle" && stale
+      ? ({ state: "pending" } as const)
+      : verifyMatch;
+  const matchedIds = verify.state === "match" ? verify.ids : [];
 
   return (
     <div data-testid="hash-tool" className="flex flex-col gap-8">
@@ -239,6 +255,8 @@ export function HashTool() {
         </p>
       )}
 
+      <VerifyBox value={expected} onChange={setExpected} result={verify} />
+
       <div className="flex flex-col gap-2">
         <h2 className="text-[20px] leading-[1.2] font-semibold text-foreground">
           Digests
@@ -265,6 +283,7 @@ export function HashTool() {
               primary={algo.id === "sha256"}
               notForSecurity={algo.notForSecurity}
               alwaysHex={algo.id === "crc32" && encoding === "base64"}
+              matched={matchedIds.includes(algo.id)}
             />
           ))}
         </div>
