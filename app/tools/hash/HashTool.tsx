@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { TriangleAlert } from "lucide-react";
 import { createHashClient, type HashClient } from "@/lib/hash/client";
 import { ALGORITHMS } from "@/lib/hash/algorithms";
 import { toHex } from "@/lib/hash/format";
@@ -8,6 +9,10 @@ import { SAMPLE_TEXT, sampleDigests } from "@/lib/hash/sample";
 import type { Digests } from "@/lib/hash/types";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+
+const HASH_ERROR_COPY =
+  "Couldn't compute digests in this browser. Reload the page and try again.";
 
 /** Digests paired with the exact text they were computed from. */
 type Settled = { text: string; digests: Digests };
@@ -27,6 +32,7 @@ function sampleResult(): Settled {
 export function HashTool() {
   const [text, setText] = useState(SAMPLE_TEXT);
   const [result, setResult] = useState<Settled>(sampleResult);
+  const [hashError, setHashError] = useState(false);
 
   const clientRef = useRef<HashClient | null>(null);
   const seqRef = useRef(0);
@@ -55,10 +61,15 @@ export function HashTool() {
         if (id !== seqRef.current) return;
         if (outcome.status === "done") {
           setResult({ text: value, digests: outcome.digests });
+          setHashError(false);
+        } else if (outcome.status === "error") {
+          setHashError(true);
         }
+        // "cancelled": a superseded job; never shown as an error.
       })
       .catch(() => {
         if (id !== seqRef.current) return;
+        setHashError(true);
       });
   }
 
@@ -72,6 +83,9 @@ export function HashTool() {
     }
     runHash(value);
   }
+
+  // The displayed digests belong to older text until the latest job lands.
+  const stale = result.text !== text;
 
   return (
     <div data-testid="hash-tool" className="flex flex-col gap-8">
@@ -101,11 +115,29 @@ export function HashTool() {
         />
       </div>
 
+      {hashError && (
+        <p
+          role="alert"
+          data-testid="hash-notice-error"
+          className="flex items-start gap-2 text-[14px] leading-[1.4] text-destructive"
+        >
+          <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          {HASH_ERROR_COPY}
+        </p>
+      )}
+
       <div className="flex flex-col gap-2">
         <h2 className="text-[20px] leading-[1.2] font-semibold text-foreground">
           Digests
         </h2>
-        <div data-testid="hash-rows" className="flex flex-col gap-2">
+        <div
+          data-testid="hash-rows"
+          aria-busy={stale}
+          className={cn(
+            "flex flex-col gap-2 transition-opacity",
+            stale && "opacity-60",
+          )}
+        >
           {ALGORITHMS.map((algo) => (
             <div
               key={algo.id}
