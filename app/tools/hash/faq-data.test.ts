@@ -1,6 +1,7 @@
 // @vitest-environment node
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { faqItems } from "./faq-data";
+import { ECHO_HELLO_WORLD_SHA256, faqItems } from "./faq-data";
 
 const FORBIDDEN_PHRASES = [
   "tracking",
@@ -71,5 +72,13 @@ describe("hash faqItems (INTG-02, D-26)", () => {
         expect(text, `"${phrase}" in "${item.question}"`).not.toContain(phrase);
       }
     }
+  });
+});
+
+describe("ECHO_HELLO_WORLD_SHA256 (INTG-02, D-26)", () => {
+  it("is the SHA-256 of 'hello world' plus a trailing newline", () => {
+    expect(ECHO_HELLO_WORLD_SHA256).toBe(
+      createHash("sha256").update("hello world\n").digest("hex")
+    );
   });
 });
