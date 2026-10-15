@@ -5,17 +5,17 @@ milestone_name: Hash Generator
 current_phase: 09
 current_phase_name: hash-tool-page-text-hashing
 status: executing
-stopped_at: Completed 09-04-PLAN.md
-last_updated: "2026-10-15T18:00:48.740Z"
+stopped_at: Completed 09-05-PLAN.md
+last_updated: "2026-10-15T18:06:12.701Z"
 last_activity: 2026-10-15
 last_activity_desc: Phase 09 execution started
-state_head: 56d9b76cc40eab0a7c17d409aeb04b5b56c44329
+state_head: 8263cafa79a9f099fb9d5973bc72517c216d7b91
 progress:
   total_phases: 3
   completed_phases: 8
   total_plans: 14
-  completed_plans: 9
-  percent: 64
+  completed_plans: 10
+  percent: 71
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 ## Current Position
 
 Phase: 09 (hash-tool-page-text-hashing) — EXECUTING
-Plan: 5 of 9
+Plan: 6 of 9
 Status: Ready to execute
 Last activity: 2026-10-15 — Phase 09 execution started
 
-Progress: [██████░░░░] 64%
+Progress: [███████░░░] 71%
 
 ## Performance Metrics
 
@@ -100,6 +100,7 @@ Progress: [██████░░░░] 64%
 | Phase 09 P02 | 3min | 1 tasks | 2 files |
 | Phase 09 P03 | 8 min | 2 tasks | 7 files |
 | Phase 09 P04 | 10 min | 3 tasks | 10 files |
+| Phase 09 P05 | 3 min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -123,6 +124,7 @@ Decisions are logged in PROJECT.md Key Decisions table. v1.2 locked decisions (u
 - [Phase 09]: 09-02: onmessageerror optional on WorkerLike; postMessage throw keeps worker, messageerror tears it down
 - [Phase 09]: Hash slug 'hash' registered as public sitemap URL (D-25); registry description limited to 'in your browser' privacy wording, guarded by unit test (D-27)
 - [Phase 09]: 09-04: Copy-all format state lives inside OutputToolbar; payloads joined with newline, no trailing newline; checksum lines always lowercase hex with two-space dash; encoding is display-only and never re-hashes (CRC32 stays hex under Base64)
+- [Phase 09]: 09-05: BSD tag parsed via lastIndexOf(')') + anchored tail regex (linear), 0x strip applied to hex candidate only, base64url folded to standard Base64
 
 ### Pending Todos
 
@@ -144,8 +146,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-15T18:00:48.717Z
-Stopped at: Completed 09-04-PLAN.md
+Last session: 2026-10-15T18:06:12.678Z
+Stopped at: Completed 09-05-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
