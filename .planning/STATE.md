@@ -5,17 +5,17 @@ milestone_name: Hash Generator
 current_phase: 09
 current_phase_name: hash-tool-page-text-hashing
 status: executing
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-10-15T17:51:56.943Z"
+stopped_at: Completed 09-02-PLAN.md
+last_updated: "2026-10-15T17:53:48.731Z"
 last_activity: 2026-10-15
 last_activity_desc: Phase 09 execution started
-state_head: b22cce51312584b22dffe229484048ae7807aba5
+state_head: eff2f65cd09b4cc1b3556b46e44c113ecac81cf5
 progress:
   total_phases: 3
   completed_phases: 8
   total_plans: 14
-  completed_plans: 6
-  percent: 43
+  completed_plans: 7
+  percent: 50
 ---
 
 # Project State
@@ -30,11 +30,11 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 ## Current Position
 
 Phase: 09 (hash-tool-page-text-hashing) — EXECUTING
-Plan: 2 of 9
+Plan: 3 of 9
 Status: Ready to execute
 Last activity: 2026-10-15 — Phase 09 execution started
 
-Progress: [████░░░░░░] 43%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -97,6 +97,7 @@ Progress: [████░░░░░░] 43%
 | Phase 08 P04 | 6 min | 2 tasks | 4 files |
 | Phase 08 P05 | 12 min | 2 tasks | 2 files |
 | Phase 09 P01 | 4 min | 3 tasks | 9 files |
+| Phase 09 P02 | 3min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -117,6 +118,7 @@ Decisions are logged in PROJECT.md Key Decisions table. v1.2 locked decisions (u
 - [Phase 08]: UAT: worker client returns raw `Uint8Array` digests — Phase 9 UI must hex/Base64 via `lib/hash/format.ts`; Firefox + Safari module-Worker smoke passed manually
 - [Phase 08]: 08-05: Production proof uses mandatory node:crypto/zlib oracles for all 10 algorithms; supersede bound stays 2000 ms; CI runs test:e2e:prod sequentially after test:e2e
 - [Phase 09]: 09-01: sample digests stored as hex constants; 150 ms debounce only above 1 MiB; soft-cap copy per D-07a; select-on-focus selects sync + rAF with mouseup guard
+- [Phase 09]: 09-02: onmessageerror optional on WorkerLike; postMessage throw keeps worker, messageerror tears it down
 
 ### Pending Todos
 
@@ -138,8 +140,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-15T17:51:56.921Z
-Stopped at: Completed 09-01-PLAN.md
+Last session: 2026-10-15T17:53:48.709Z
+Stopped at: Completed 09-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
