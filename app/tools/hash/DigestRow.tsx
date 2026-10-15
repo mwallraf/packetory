@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, Info, ShieldAlert } from "lucide-react";
 import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 /** Reused verbatim from the MAC/DNS/UUID tools. */
@@ -15,6 +16,10 @@ type DigestRowProps = {
   /** The digest exactly as displayed (current encoding); this is what is copied. */
   value: string;
   primary: boolean;
+  /** MD5, SHA-1 and CRC32 (OUT-05): an inline text badge, never a tooltip. */
+  notForSecurity: boolean;
+  /** CRC32 while Base64 is selected: it stays hex, say so. */
+  alwaysHex: boolean;
 };
 
 /**
@@ -22,7 +27,14 @@ type DigestRowProps = {
  * the digest value. Owns its own `useCopyToClipboard()` so confirmation never
  * bleeds between rows.
  */
-export function DigestRow({ id, label, value, primary }: DigestRowProps) {
+export function DigestRow({
+  id,
+  label,
+  value,
+  primary,
+  notForSecurity,
+  alwaysHex,
+}: DigestRowProps) {
   const { copy, copied, error, reset } = useCopyToClipboard();
 
   useEffect(() => {
@@ -33,12 +45,42 @@ export function DigestRow({ id, label, value, primary }: DigestRowProps) {
   return (
     <div
       data-testid={"hash-row-" + id}
-      className="flex flex-col gap-1 rounded-md border border-border bg-secondary px-4 py-3"
+      className={cn(
+        "flex flex-col gap-1 rounded-md border border-border bg-secondary px-4 py-3",
+        primary && "border-l-4 border-l-primary",
+      )}
     >
       <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="text-[14px] leading-[1.4] font-semibold text-muted-foreground">
           {label}
         </span>
+        {notForSecurity && (
+          <Badge
+            variant="outline"
+            data-testid={"hash-row-" + id + "-security"}
+            className="h-auto gap-1 px-2 py-1 text-[14px] leading-[1.4] font-semibold text-foreground"
+          >
+            {id === "crc32" ? (
+              <>
+                <Info aria-hidden="true" className="size-4" />
+                Error detection only
+              </>
+            ) : (
+              <>
+                <ShieldAlert aria-hidden="true" className="size-4" />
+                Not for security
+              </>
+            )}
+          </Badge>
+        )}
+        {alwaysHex && (
+          <span
+            data-testid={"hash-row-" + id + "-always-hex"}
+            className="text-[14px] leading-[1.4] font-normal text-muted-foreground"
+          >
+            Always hex
+          </span>
+        )}
         <button
           type="button"
           onClick={() => copy(value)}

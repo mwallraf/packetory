@@ -263,6 +263,8 @@ export function HashTool() {
               label={algo.label}
               value={formatDigest(algo.id, result.digests[algo.id], encoding)}
               primary={algo.id === "sha256"}
+              notForSecurity={algo.notForSecurity}
+              alwaysHex={algo.id === "crc32" && encoding === "base64"}
             />
           ))}
         </div>
