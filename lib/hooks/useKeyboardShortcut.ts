@@ -90,6 +90,9 @@ export function useKeyboardShortcut(handlers: KeyboardShortcutHandlers): void {
       const editable = isEditableTarget(event.target);
 
       if (event.key === "/") {
+        // Ctrl/Cmd/Alt + "/" belong to the browser, OS, screen readers and
+        // extensions. Shift stays allowed: "/" is Shift+7 on several EU layouts.
+        if (event.ctrlKey || event.metaKey || event.altKey) return;
         // Unbound-safe (D-03): no-op with no handler, never throws. Never
         // hijacks typing already in progress inside an editable field.
         if (!editable && current.slash) {

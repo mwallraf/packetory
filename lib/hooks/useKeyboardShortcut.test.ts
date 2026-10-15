@@ -27,6 +27,21 @@ describe("useKeyboardShortcut", () => {
     expect(event.defaultPrevented).toBe(true);
   });
 
+  it("WR-05: ignores Ctrl/Cmd/Alt + '/' without preventing default, but still fires for Shift + '/' (EU layouts)", () => {
+    const slash = vi.fn();
+    renderHook(() => useKeyboardShortcut({ slash }));
+
+    for (const init of [{ ctrlKey: true }, { metaKey: true }, { altKey: true }]) {
+      const event = dispatchKeydown({ key: "/", ...init });
+      expect(event.defaultPrevented).toBe(false);
+    }
+    expect(slash).not.toHaveBeenCalled();
+
+    const shifted = dispatchKeydown({ key: "/", shiftKey: true });
+    expect(slash).toHaveBeenCalledTimes(1);
+    expect(shifted.defaultPrevented).toBe(true);
+  });
+
   it("is unbound-safe: pressing '/' with no registered handler is a no-op that never throws (D-03)", () => {
     renderHook(() => useKeyboardShortcut({}));
 
