@@ -2,45 +2,45 @@
 gsd_state_version: "1.0"
 milestone: v1.2
 milestone_name: Hash Generator
-current_phase: 08
-current_phase_name: Hash Core & Worker Runtime
-status: verifying
-stopped_at: Completed 08-05-PLAN.md
-last_updated: "2026-10-14T19:25:42.757Z"
-last_activity: 2026-10-14
-last_activity_desc: Phase 08 execution started
-state_head: 6080d4c383175c22cb9db0f40e0fbee3be865ffa
+current_phase: 9
+current_phase_name: Hash Tool Page & Text Hashing
+status: planning
+stopped_at: Phase 08 complete, ready to plan Phase 9
+last_updated: "2026-10-15T16:15:13.709Z"
+last_activity: 2026-10-15
+last_activity_desc: Phase 08 complete, transitioned to Phase 9
+state_head: 4b1b4e6787406b54e16742a4377b575e6d545f1e
 progress:
   total_phases: 3
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 5
   completed_plans: 5
-  percent: 100
+  percent: 80
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-10-14)
+See: .planning/PROJECT.md (updated 2026-10-15)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Phase 08 — Hash Core & Worker Runtime
+**Current focus:** Phase 9 — Hash Tool Page & Text Hashing
 
 ## Current Position
 
-Phase: 08 (Hash Core & Worker Runtime) — EXECUTING
-Plan: 5 of 5
-Status: Phase complete — ready for verification
-Last activity: 2026-10-14 — Phase 08 execution started
+Phase: 9 — Hash Tool Page & Text Hashing
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-10-15 — Phase 08 complete, transitioned to Phase 9
 
-Progress: [██████████] 100%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 24
+- Total plans completed: 29
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -55,6 +55,7 @@ Progress: [██████████] 100%
 | 05 | 3 | - | - |
 | 06 | 2 | - | - |
 | 07 | 1 | - | - |
+| 08 | 5 | - | - |
 
 **Recent Trend:**
 
@@ -112,6 +113,7 @@ Decisions are logged in PROJECT.md Key Decisions table. v1.2 locked decisions (u
 - [Phase 08]: 08-02: single-use assertion accepts both noble messages (hash was destroyed for SHA2/MD family and CRC32; digest() was already called for Keccak-based SHA3)
 - [Phase 08]: 08-03: No production code changed; client/worker-core import sets untouched for 08-04 boundary guard
 - [Phase 08]: 08-04: boundary guard specifier regex covers from/bare/dynamic import()/require(); guard test excludes itself from the walk
+- [Phase 08]: UAT: worker client returns raw `Uint8Array` digests — Phase 9 UI must hex/Base64 via `lib/hash/format.ts`; Firefox + Safari module-Worker smoke passed manually
 - [Phase 08]: 08-05: Production proof uses mandatory node:crypto/zlib oracles for all 10 algorithms; supersede bound stays 2000 ms; CI runs test:e2e:prod sequentially after test:e2e
 
 ### Pending Todos
@@ -120,7 +122,6 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 8 entry checks: Worker `{ type: "module" }` smoke test on pinned Next 16.2.11; CI Node ≥22.2 for the `zlib.crc32` oracle; RIPEMD-160 `node:crypto` oracle availability (OpenSSL 3).
 - Phase 10: analytics `redactBeforeSend` passes events through untouched when there's no `?`, so URL-fragment state would bypass redaction — fixed under INTG-03.
 - Tech debt carried from v1.0: `/api/mac-vendor` interim API-proxy (build-time OUI dataset is the intended architecture); no rate limiting on it (AR-05-01); related-tool links and a per-tool accessibility re-audit still deferred.
 - Tech debt carried from v1.1: DOM-02 redirects and DOM-04 runbook deliberately descoped — revisit if duplicate-content SEO or the `www` TLS gap becomes a priority.
@@ -135,10 +136,10 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-14T19:25:42.742Z
-Stopped at: Completed 08-05-PLAN.md
+Last session: 2026-10-15T16:20:00Z
+Stopped at: Phase 08 complete, ready to plan Phase 9
 Resume file: None
 
 ## Operator Next Steps
 
-- Review and approve the v1.2 roadmap, then start Phase 8 with /gsd-discuss-phase 8 (or /gsd-plan-phase 8)
+- Start Phase 9 with /gsd-discuss-phase 9 (or /gsd-plan-phase 9)

@@ -37,7 +37,7 @@ Full phase details archived at `.planning/milestones/v1.1-ROADMAP.md`.
 
 **Locked decisions (do not reopen):** hash engine = `@noble/hashes@2.4.0` (imported only from `lib/hash/engine.ts`) + hand-rolled IEEE CRC32; URL state = read `?text=` on load, write only via an explicit "Copy link" action (never auto-written); extras included = paste-to-verify, `sha256sum` copy format, Base64 toggle; HMAC deferred; registry category = `encode`.
 
-- [ ] **Phase 8: Hash Core & Worker Runtime** - Correct, vector-verified digests for all 10 algorithms, computed incrementally inside a Web Worker (library + worker only, no tool route yet)
+- [x] **Phase 8: Hash Core & Worker Runtime** - Correct, vector-verified digests for all 10 algorithms, computed incrementally inside a Web Worker (library + worker only, no tool route yet) (completed 2026-10-15)
 - [ ] **Phase 9: Hash Tool Page & Text Hashing** - `/tools/hash` ships text-only: sample digests on load, live typing, copy/verify/format options, keyboard shortcuts, registry entry, SEO
 - [ ] **Phase 10: File Hashing & Release Hardening** - Local file hashing with progress, cancel, and clear errors; full supersede matrix; network-silence and analytics-redaction proof; production e2e and Lighthouse
 
@@ -56,7 +56,7 @@ Full phase details archived at `.planning/milestones/v1.1-ROADMAP.md`.
   4. Hashing the same bytes in one shot or split into arbitrary chunks gives identical digests for all 10 algorithms — proven by a fast-check chunk-split property and a differential check against `node:crypto` / `zlib.crc32`
   5. In a production build (`next build` + `next start`), a hash job runs inside a Web Worker and returns correct digests; `@noble/hashes` is imported only by `lib/hash/engine.ts` and lands in the worker chunk, never in initial client JS; starting a new job through the hash client always cancels the in-flight one first, and a superseded or disposed job never delivers a result (fake-Worker tests)
 
-**Plans:** 5/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 **Wave 1**
@@ -117,6 +117,6 @@ Plans:
 | 5. MAC Address Inspector | v1.0 | 3/3 | Complete | 2026-07-25 |
 | 6. Landing Page Card Navigation | v1.1 | 2/2 | Complete | 2026-07-25 |
 | 7. Production Domain Cutover | v1.1 | 1/1 | Complete | 2026-07-25 |
-| 8. Hash Core & Worker Runtime | v1.2 | 5/5 | In Progress | - |
+| 8. Hash Core & Worker Runtime | v1.2 | 5/5 | Complete    | 2026-10-15 |
 | 9. Hash Tool Page & Text Hashing | v1.2 | 0/TBD | Not started | - |
 | 10. File Hashing & Release Hardening | v1.2 | 0/TBD | Not started | - |

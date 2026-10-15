@@ -140,6 +140,7 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 | Every async-superseding path must cancel its predecessor (abort + sequence token) — carried forward from the Phase 4 lesson, now applied to MAC's vendor lookup | Phase 4 needed two review passes because the fix for DNS-04's race guard was applied to only the "obvious" invalid-input path first, missing the valid-input path that reached the same guarded state | ✓ Shipped correctly on the first pass (Phase 5) — `MacTool.tsx` audited all paths into vendor lookup (typing/debounce, new valid paste, demo-on-load, Esc-reset) up front, per the Phase 4 retrospective decision above |
 | Full-card click target via stretched-link (`Link` + `after:inset-0` inside `CardTitle`, `relative` on `Card`), no JS click handler | Makes the entire card — not just the title text — clickable and keyboard-focusable natively, reaching nav-menu parity for LP-01; `status:"planned"` cards stay inert by simply omitting the `Link` wrapper, no extra conditional needed | ✓ Shipped (Phase 6) — human-verified the ring geometrically encloses the full card at desktop and 320px |
 | Domain cutover redirects (DOM-02) and a registration runbook (DOM-04) deliberately descoped rather than implemented | User had already manually registered and configured `packetory.dev` in Vercel before Phase 7 execution began; after being shown live `curl`/TLS evidence, the user judged redirects and a runbook for an already-completed one-time action not worth building, accepting that `packetory.vercel.app` stays live as duplicate content and `www.packetory.dev` keeps failing TLS | ✓ Accepted (Phase 7) — revisit if duplicate-content SEO or the `www` TLS gap becomes a priority |
+| Hash worker client (`lib/hash/client.ts`) returns raw `Uint8Array` digests per algorithm; hex/Base64 formatting lives in the pure `lib/hash/format.ts` layer | Keeps the worker protocol format-agnostic so Phase 9's hex/Base64/`sha256sum` output options are pure presentation over one byte result, with no re-hash on format toggle | ✓ Shipped (Phase 8) — production Worker verified by Playwright (Chromium) plus manual Firefox + Safari smoke (sha256("abc") correct) |
 
 ## Evolution
 
@@ -159,4 +160,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-14 after starting v1.2 Hash Generator milestone*
+*Last updated: 2026-10-15 after Phase 8 (Hash Core & Worker Runtime)*
