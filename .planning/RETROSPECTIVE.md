@@ -82,6 +82,42 @@
 
 ---
 
+## Milestone: v1.2 — Hash Generator
+
+**Shipped:** 2026-10-17 (PR #16)
+**Phases:** 2 | **Plans:** 14 | **Tasks:** 26
+
+### What Was Built
+- `lib/hash/`: all 10 digests (MD5, SHA-1/224/256/384/512, SHA3-256/512, RIPEMD-160, CRC32) verified against published vectors, padding/rate boundaries, SHA3-not-Keccak negatives, exact UTF-8 bytes and chunk-split invariance, computed in a production-build module Web Worker with `@noble/hashes` guarded out of initial page JS (Phase 8)
+- `/tools/hash`: sample digests on load with a pinned no-CLS skeleton, live latest-wins hashing, copy/copy-all/checksum lines, hex/HEX/Base64 without re-hashing, tolerant paste-to-verify, `?text=` restore with an explicit capped Copy link, keyboard shortcuts, registry/nav/sitemap entry and full per-tool SEO (Phase 9)
+- Shipped alongside the externally contributed Config Syntax Highlighter (PRs #14/#15), merged in via quick task 261017-cnt — six live tools
+
+### What Worked
+- Building the correctness gate first (Phase 8: vectors, oracles, worker supersede protocol, import-boundary guards) meant Phase 9 was pure UI over a trusted engine — no hashing bug surfaced in UAT (5/5 passed).
+- Reproducing the CI-only failure in the exact Playwright Linux image (`mcr.microsoft.com/playwright:v1.61.1-noble`) and diffing per-element heights against macOS pinned the root cause (glyph-advance rounding) in minutes and let the fix be proven before committing.
+
+### What Was Inefficient
+- Scope misunderstanding: Phase 10 (file hashing + release hardening) was planned from a misread of the request and only caught at the end — a short "is this exactly what you want?" check at roadmap time would have saved planning effort.
+- The local branch drifted 107 commits from GitHub `main` while outside PRs landed there; it was only noticed during UAT, forcing a late merge and re-verification.
+- The branch was first pushed only at ship time, so a Linux-specific layout failure (macOS-measured skeleton pin) surfaced at the very end instead of on an early CI run.
+- Phase verifications went stale after late changes (merge + CSS fix), and the milestone closed as an override rather than a verified closeout.
+
+### Patterns Established
+- Pixel-pinned skeleton heights must be measured on, or made deterministic across, every CI platform — `text-rendering: geometricPrecision` removes Linux Chromium's glyph-advance rounding for monospace text.
+- Fetch and merge `origin/main` at the start of each phase; outside contributors can land work on GitHub independently of the GSD flow.
+- Push the working branch early so CI runs on Linux long before ship.
+
+### Key Lessons
+1. Confirm scope back to the user in their own terms before roadmapping — a whole phase was planned for a feature that was never wanted.
+2. A layout assertion that passes locally is only proven for the local OS; CI-platform text rendering differs (fractional vs rounded glyph advances).
+3. With the CI e2e job removed (Actions-minutes decision), browser-level regressions are caught only by local runs — make `test:e2e` + `test:e2e:prod` part of the pre-merge routine.
+
+### Cost Observations
+- Model mix this close-out session: planner on opus; executor/verifier on sonnet.
+- Notable: the CI failure fix itself was a one-class change; most effort went into reproducing it on Linux.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -90,15 +126,18 @@
 |-----------|----------|--------|------------|
 | v1.0 | — | 5 | First milestone — established the shared-shell/registry pattern, Server-shell+Client-island split, and framework-agnostic `lib/` convention now expected of every future tool. |
 | v1.1 | 1 (Phase 7) + prior (Phase 6) | 2 | Smallest milestone yet (2 phases, 3 plans) — first milestone with a deliberately descoped requirement set (DOM-02/DOM-04), and first to surface a "mark-complete tooling conflates descoped-with-complete" gap. |
+| v1.2 | multiple | 2 (+1 removed) | First milestone with an outside contribution merged mid-flight and a whole phase removed for scope misunderstanding; first override closeout; CI e2e job dropped to save Actions minutes. |
 
 ### Cumulative Quality
 
 | Milestone | Tests | Coverage | Zero-Dep Additions |
 |-----------|-------|----------|---------------------|
 | v1.0 | ~600+ unit + e2e (per-phase counts: 97 UUID, 169 Subnet, 72 DNS, 329+ MAC — approximate, not centrally tallied) | Not centrally measured | `ip-address`, `uuid`, DoH via native `fetch` (no new dependency) |
+| v1.2 | Unit suite green; 106 dev e2e + 7 prod e2e passing locally at ship | Not centrally measured | `@noble/hashes@2.4.0` (exact-pinned, worker-only) |
 | v1.1 | 268 unit tests (28 files) passing unchanged before/after; +2 new e2e for landing-page click nav | Not centrally measured | None — Phase 7 was docs-only, zero new code or dependencies |
 
 ### Top Lessons (Verified Across Milestones)
 
 1. Audit every path into a guarded async/state-transition condition before shipping a fix — established in v1.0 (DNS-04 → MAC vendor lookup), not yet cross-validated by a second milestone.
 2. Generic "mark complete" tooling doesn't understand domain-specific status nuance (e.g. descoped vs. delivered) — established in v1.1 (DOM-02/DOM-04 checkbox auto-check), not yet cross-validated by a second milestone.
+3. Skipping the milestone audit is a named trade-off, not a default — v1.1 skipped it by choice; v1.2 closed with stale verification by choice. Both were recorded explicitly.
