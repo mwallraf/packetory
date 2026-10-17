@@ -82,17 +82,17 @@ test.describe("Mobile nav drawer (320px, D-04, SHELL-06)", () => {
   });
 });
 
-test.describe("Desktop nav fits five tools at 640px (INTG-01, research A5)", () => {
+test.describe("Desktop nav fits six tools at 640px (INTG-01, research A5)", () => {
   test.use({ viewport: { width: 640, height: 800 } });
 
-  test("the five nav links are visible and neither the page nor the header overflows horizontally", async ({
+  test("the six nav links are visible and neither the page nor the header overflows horizontally", async ({
     page,
   }) => {
     await page.goto("/");
 
     const links = page.getByTestId("nav-link");
-    await expect(links).toHaveCount(5);
-    for (let i = 0; i < 5; i++) {
+    await expect(links).toHaveCount(6);
+    for (let i = 0; i < 6; i++) {
       await expect(links.nth(i)).toBeVisible();
     }
 
