@@ -6,10 +6,10 @@ current_phase: 09
 current_phase_name: hash-tool-page-text-hashing
 status: verifying
 stopped_at: Completed 09-09-PLAN.md
-last_updated: "2026-10-15T18:19:54.334Z"
-last_activity: 2026-10-15
+last_updated: "2026-10-17T07:15:50.281Z"
+last_activity: 2026-10-17
 last_activity_desc: Phase 09 execution started
-state_head: 9c0f07e2b0d9d4041510bd3db6759690145f205d
+state_head: 30baef9392f4b69359ead03f1ef6cb156833ae7d
 progress:
   total_phases: 3
   completed_phases: 8
@@ -32,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-10-15)
 Phase: 09 (hash-tool-page-text-hashing) — EXECUTING
 Plan: 9 of 9
 Status: Phase complete — ready for verification
-Last activity: 2026-10-15 — Phase 09 execution started
+Last activity: 2026-10-17 - Completed quick task 261017-cnt: Merge origin/main (PRs #14/#15 config highlighter) into phase branch, keep hash + config tools
 
 Progress: [██████████] 100%
 
@@ -144,6 +144,12 @@ None yet.
 - Phase 10: analytics `redactBeforeSend` passes events through untouched when there's no `?`, so URL-fragment state would bypass redaction — fixed under INTG-03.
 - Tech debt carried from v1.0: `/api/mac-vendor` interim API-proxy (build-time OUI dataset is the intended architecture); no rate limiting on it (AR-05-01); related-tool links and a per-tool accessibility re-audit still deferred.
 - Tech debt carried from v1.1: DOM-02 redirects and DOM-04 runbook deliberately descoped — revisit if duplicate-content SEO or the `www` TLS gap becomes a priority.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 261017-cnt | Merge origin/main (PRs #14/#15 config highlighter) into phase branch, keep hash + config tools | 2026-10-17 | 30baef9 | [261017-cnt-merge-origin-main-prs-14-15-config-highl](./quick/261017-cnt-merge-origin-main-prs-14-15-config-highl/) |
 
 ## Deferred Items
 
