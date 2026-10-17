@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { getSortedTools, getToolBySlug, tools } from "./registry";
 
 describe("tools/registry", () => {
-  it("contains exactly the five tool entries (uuid, subnet, dns, mac, hash — hash added in Phase 9 Plan 03)", () => {
-    expect(tools).toHaveLength(5);
+  it("contains the active tool entries", () => {
+    expect(tools).toHaveLength(6);
     const slugs = tools.map((t) => t.slug).sort();
-    expect(slugs).toEqual(["dns", "hash", "mac", "subnet", "uuid"]);
+    expect(slugs).toEqual(["config", "dns", "hash", "mac", "subnet", "uuid"]);
   });
 
   it("getSortedTools() sorts by featured desc, then name asc (case-insensitive)", () => {
@@ -13,6 +13,7 @@ describe("tools/registry", () => {
     expect(sorted.map((t) => t.slug)).toEqual([
       "subnet",
       "uuid",
+      "config",
       "dns",
       "hash",
       "mac",
@@ -21,7 +22,7 @@ describe("tools/registry", () => {
 
   it("ties within the same featured group break by case-insensitive name localeCompare", () => {
     // Featured group: IP Subnet Calculator vs UUID Generator -> "IP Subnet..." < "UUID..." asc
-    // Non-featured group: DNS Lookup, Hash Generator, MAC Address Inspector -> asc
+    // Non-featured tools sort alphabetically by their full names.
     const sorted = getSortedTools();
     const featured = sorted.filter((t) => t.featured);
     const notFeatured = sorted.filter((t) => !t.featured);
@@ -39,7 +40,7 @@ describe("tools/registry", () => {
     expect(notFeaturedNames).toEqual(sortedNotFeaturedNames);
   });
 
-  it("uuid, subnet, dns, mac, and hash are all 'active' (Phase 2 Plan 01, Phase 3 Plan 01, Phase 4 Plan 01, Phase 5 Plan 01, Phase 9 Plan 03)", () => {
+  it("all registered tools are active", () => {
     const statuses = Object.fromEntries(
       tools.map((tool) => [tool.slug, tool.status])
     );
@@ -49,6 +50,7 @@ describe("tools/registry", () => {
       dns: "active",
       mac: "active",
       hash: "active",
+      config: "active",
     });
   });
 
