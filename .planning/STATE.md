@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v1.2
 milestone_name: Hash Generator
-current_phase: 09
-current_phase_name: hash-tool-page-text-hashing
-status: planning
-stopped_at: All v1.2 phases complete, ready to complete milestone
-last_updated: "2026-10-17T09:02:42.706Z"
+status: Awaiting next milestone
+stopped_at: v1.2 milestone archived and tagged; awaiting /gsd-new-milestone
+last_updated: "2026-10-17T09:09:45.561Z"
 last_activity: 2026-10-17
-last_activity_desc: Quick 261017-f4s — CI hash-layout fix, e2e job dropped from CI
-state_head: ab869bc70b0ff7a8a05f35bfbd0373d3f74355c5
+last_activity_desc: Milestone v1.2 completed and archived
+state_head: 34995af9fad5c33a31d6b076f99678ebb588f610
 progress:
   total_phases: 2
   completed_phases: 9
   total_plans: 14
   completed_plans: 14
   percent: 100
+current_phase: 09
+current_phase_name: hash-tool-page-text-hashing
 ---
 
 # Project State
@@ -25,16 +25,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-17)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** v1.2 complete — ready for milestone close
+**Current focus:** Planning next milestone
 
 ## Current Position
 
-Phase: 09 (hash-tool-page-text-hashing) — last v1.2 phase, complete
-Plan: 9 of 9
-Status: Milestone complete — ready for /gsd-complete-milestone
-Last activity: 2026-10-17 - Completed quick task 261017-f4s: Fix PR #16 CI hash-layout failure and drop e2e job from CI
-
-Progress: [██████████] 100%
+Phase: Milestone v1.2 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-10-17 — Milestone v1.2 completed and archived
 
 ## Performance Metrics
 
@@ -111,36 +109,11 @@ Progress: [██████████] 100%
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table. v1.2 locked decisions (user-confirmed before roadmap, do not reopen):
+Full decision log lives in PROJECT.md Key Decisions; v1.2 phase-level decisions are archived with `.planning/milestones/v1.2-phases/`. Carried forward for the next milestone:
 
-- [v1.2]: Hash engine = `@noble/hashes@2.4.0` (imported only from `lib/hash/engine.ts`) + hand-rolled IEEE CRC32
-- [v1.2]: URL state = read `?text=` on load; write only via explicit "Copy link" (length-capped), never auto-written
-- [v1.2]: Extras in scope = paste-to-verify, `sha256sum` copy format, Base64 toggle; HMAC deferred to Future
-- [v1.2]: Registry category = `encode`
-- [v1.2 roadmap]: TEXT-04 ("Copy link") placed in Phase 9 with the rest of the text path (research had Copy link in the file phase) so Phase 9 ships a complete text-only tool
-- [Phase 08]: 08-01: job.ts derives algorithm ids from Object.keys(FACTORIES); algorithms.ts/format.ts deferred to 08-02
-- [Phase 08]: 08-01: HashSmoke ready flag uses useSyncExternalStore on window.__hashSmoke (lint forbids setState in effect)
-- [Phase 08]: 08-02: single-use assertion accepts both noble messages (hash was destroyed for SHA2/MD family and CRC32; digest() was already called for Keccak-based SHA3)
-- [Phase 08]: 08-03: No production code changed; client/worker-core import sets untouched for 08-04 boundary guard
-- [Phase 08]: 08-04: boundary guard specifier regex covers from/bare/dynamic import()/require(); guard test excludes itself from the walk
-- [Phase 08]: UAT: worker client returns raw `Uint8Array` digests — Phase 9 UI must hex/Base64 via `lib/hash/format.ts`; Firefox + Safari module-Worker smoke passed manually
-- [Phase 08]: 08-05: Production proof uses mandatory node:crypto/zlib oracles for all 10 algorithms; supersede bound stays 2000 ms; CI runs test:e2e:prod sequentially after test:e2e
-- [Phase 09]: Copy link is absolute and capped at 2,000 encoded chars (inclusive); disabled for empty text; URL never auto-written
-- [Phase 09]: Registry/FAQ privacy wording limited to "Hashing runs in your browser" + "The link contains your text" (D-27, unit-test enforced)
-- [Phase 09]: Esc restores the sample but stashes typed text for "Restore your text"; Esc ignores open dialogs and IME composition
-- [Phase 09]: Skeleton heights pinned (2240px @320, 1612px @1280) for zero CLS
-- [Quick 261017-cnt]: origin/main (Config Syntax Highlighter, PRs #14/#15) merged into the v1.2 branch; 6 active tools, six-link nav fits at 640px
-- [Phase 09]: 09-01: sample digests stored as hex constants; 150 ms debounce only above 1 MiB; soft-cap copy per D-07a; select-on-focus selects sync + rAF with mouseup guard
-- [Phase 09]: 09-02: onmessageerror optional on WorkerLike; postMessage throw keeps worker, messageerror tears it down
-- [Phase 09]: Hash slug 'hash' registered as public sitemap URL (D-25); registry description limited to 'in your browser' privacy wording, guarded by unit test (D-27)
-- [Phase 09]: 09-04: Copy-all format state lives inside OutputToolbar; payloads joined with newline, no trailing newline; checksum lines always lowercase hex with two-space dash; encoding is display-only and never re-hashes (CRC32 stays hex under Base64)
-- [Phase 09]: 09-05: BSD tag parsed via lastIndexOf(')') + anchored tail regex (linear), 0x strip applied to hex candidate only, base64url folded to standard Base64
-- [Phase 09]: 09-08: privacy-adjacent FAQ answer limited to the two approved D-27 statements, pinned by exact-equality test
-- [Phase 09]: 09-08: worked-example digest lines use whitespace-pre-wrap so the two-space sha256sum separator survives
-- [Phase 09]: 09-06: Copy link is absolute (origin + /tools/hash?text=), disabled for empty text, cap of 2,000 encoded chars is inclusive; ?text= is read once and never written
-- [Phase 09]: 09-07: copy-chord Shift/Alt guard lives in the shared useKeyboardShortcut hook; Esc ignores open dialogs; Restore your text stashes Esc-replaced text until next edit
-- [Phase 09]: Hash skeleton pinned to measured island heights 2240px/1612px (09-09)
-- [Quick 261017-f4s]: digests render with text-rendering:geometricPrecision so Linux Chromium wraps like macOS (skeleton pins hold cross-platform); CI e2e job removed by user decision to save Actions minutes — test:e2e and test:e2e:prod are local-only (supersedes 08-05 CI note)
+- CI merge gate = typecheck/lint/test/build only (e2e job removed 2026-10-17); run `npm run test:e2e` and `npm run test:e2e:prod` locally before merging
+- Hash skeleton pins (2240px @320, 1612px @1280) depend on `text-rendering: geometricPrecision` on digest rows — re-measure if digest typography changes
+- Outside contributions (e.g. KoffeePi's Config highlighter) can land on GitHub `main` independently — fetch and merge `origin/main` before starting new work
 
 ### Pending Todos
 
@@ -165,14 +138,15 @@ Items acknowledged and carried forward from previous milestone close:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| *(none)* | | | |
+| verification_gap | Phase 08 VERIFICATION.md stale at v1.2 close (override_closeout, user choice) | acknowledged | 2026-10-17 |
+| verification_gap | Phase 09 VERIFICATION.md stale at v1.2 close (override_closeout, user choice) | acknowledged | 2026-10-17 |
 
 ## Session Continuity
 
-Last session: 2026-10-15T18:19:54.310Z
-Stopped at: Phase 09 complete, ready to plan Phase 10
+Last session: 2026-10-17
+Stopped at: v1.2 milestone closed (override closeout), tagged v1.2
 Resume file: None
 
 ## Operator Next Steps
 
-- Start Phase 9 with /gsd-discuss-phase 9 (or /gsd-plan-phase 9)
+- Start the next milestone with /gsd-new-milestone

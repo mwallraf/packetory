@@ -1,5 +1,34 @@
 # Milestones
 
+## v1.2 Hash Generator (Shipped: 2026-10-17)
+
+**Phases completed:** 2 phases, 14 plans, 26 tasks
+**Delivered:** a sixth tool, the text-only Hash Generator at `/tools/hash` (10 algorithms, in-browser Web Worker), merged together with the externally contributed Config Syntax Highlighter (PRs #14/#15) via PR #16.
+**Git range:** v1.1..34995af — 126 commits, 80 non-planning files changed (+8,362 / −49)
+**Closeout:** override_closeout — Phase 8 and 9 VERIFICATION.md reports were stale at close (source changed after the last verifier run: the origin/main merge and quick task 261017-f4s). User chose to close without re-verifying; UAT 5/5 passed and all local checks were green on the merged code. No milestone audit was run.
+Known verification overrides: 2 newly acknowledged, 0 carried forward
+
+**Key accomplishments:**
+- All 10 hash digests (MD5 through CRC32) computed by a Turbopack-bundled module Web Worker in a Next 16.2.11 production build, with `@noble/hashes@2.4.0` provably absent from main-thread JS
+- Published-vector, padding-boundary, SHA3-not-Keccak, UTF-8, and chunk-split-invariance gate for all 10 hash algorithms against mandatory node:crypto / zlib.crc32 oracles, plus the noble-free `algorithms.ts` and `format.ts` modules Phase 9 renders from
+- Deterministic Node tests (FakeWorker plus a real-hashing loopback worker) proving "the latest request wins and nothing stale is ever delivered" for the hash client and worker handler, with the HASH-02 no-echo privacy sentinel
+- ESLint `no-restricted-imports` plus a source-walk import-graph test (with in-memory mutation proofs) keep @noble/hashes and the engine chain out of initial page JS, and unit plus dev-server tests prove /hash-smoke is 404 without HASH_SMOKE=1.
+- Production-build Playwright proof that the hash worker handles chunked Blobs against node oracles, abandons a superseded 96 MiB job in well under 2 s, treats dispose as final and stays same-origin (`npm run test:e2e:prod`; run locally since the CI e2e job was removed 2026-10-17).
+- `/tools/hash` paints the 10 digests of `hello world` from precomputed constants with zero worker calls, then hashes typed text live in the Phase 8 Web Worker with a latest-wins guard, exact UTF-8 byte count, newline hint, empty note and a 1 MiB soft cap debounced at 150 ms.
+- `createHashClient.start()` can no longer reject or hang: a throwing start `postMessage` resolves an error outcome, and a worker `messageerror` settles the job, terminates the worker and rebuilds on the next start (WR-01, WR-02).
+- Hash digest rows now have per-row copy with visible confirmation, a display-only hex / HEX / Base64 toggle (CRC32 stays hex), copy-all as a labeled list or sha256sum checksum lines, inline not-for-security badges and a primary SHA-256 row.
+- Paste-to-verify for the Hash Generator: a tolerant checksum normalizer (case, spaces, colons, alias prefixes, 0x, BSD tags, sha256sum lines, Base64/base64url) that highlights every equal digest row, hints neutrally on malformed input, and never asserts a match against stale digests.
+- `/tools/hash?text=...` restores its text with pending rows (never sample digests), typing never touches the address bar, and an explicit absolute 2,000-encoded-character-capped "Copy link" is the only way text enters a URL; analytics redaction of `text` is regression-tested.
+- Keyboard-first Hash Generator: '/' focuses and selects, Esc resets to the sample with a "Restore your text" safety net, Ctrl/Cmd+C copies the SHA-256 guarded against selections and Shift/Alt chords (shared hook fix), Enter left unbound for newlines.
+- /tools/hash gains a five-item FAQ with FAQPage JSON-LD generated from the same array, a worked example built from the pinned sample constants (including the echo-appends-newline digest), query-free canonical metadata e2e, and a root description listing the hash generator.
+
+**Scope changes:**
+- Phase 10 (File Hashing & Release Hardening) removed 2026-10-17 by user decision — file hashing was never wanted. FILE-01..05, INT-02, INTG-03 and INTG-04 moved to Out of Scope (not deferred).
+- Accepted: Lighthouse on `/tools/hash` unmeasured; analytics redaction still ignores `#fragments` (no tool uses them).
+- CI e2e job removed 2026-10-17 to save GitHub Actions minutes; the merge gate is typecheck/lint/test/build, and both Playwright suites are local-only.
+
+---
+
 ## v1.1 Production Domain & Landing Page Polish (Shipped: 2026-07-25)
 
 **Phases completed:** 2 phases, 3 plans, 7 tasks

@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Packetory is a single, fast, no-friction website (packetory.dev) hosting a growing collection of small, free network and infrastructure utilities — starting with a UUID generator, IP subnet calculator, DNS lookup, and MAC address inspector. Each tool lives on its own page but shares one consistent landing page and navigation, so switching tools is instant and obvious. It's built for network engineers, sysadmins, DevOps/SRE professionals, and developers who need a quick answer and want to leave the site open as a bookmark.
+Packetory is a single, fast, no-friction website (packetory.dev) hosting a growing collection of small, free network and infrastructure utilities — currently six: a UUID generator, IP subnet calculator, DNS lookup, MAC address inspector, hash generator, and Cisco config syntax highlighter. Each tool lives on its own page but shares one consistent landing page and navigation, so switching tools is instant and obvious. It's built for network engineers, sysadmins, DevOps/SRE professionals, and developers who need a quick answer and want to leave the site open as a bookmark.
 
 ## Core Value
 
@@ -17,13 +17,18 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 
 ## Current State
 
-**Shipped:** v1.1 Production Domain & Landing Page Polish (2026-07-25) — landing page tool cards are fully clickable with keyboard-nav parity to the top nav (LP-01), and the site is live in production at `https://packetory.dev` over valid HTTPS (DOM-01), with every canonical URL/OG tag/sitemap/robots.txt reference confirmed to derive from a single `SITE_URL` source of truth (DOM-03). Redirects from `packetory.vercel.app`/`www.packetory.dev` (DOM-02) and a domain/DNS runbook (DOM-04) were deliberately descoped after live-evidence review — see Active requirements below for the accepted consequences.
+**Shipped:** v1.2 Hash Generator (2026-10-17, PR #16) — `/tools/hash` computes MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-512, RIPEMD-160 and CRC32 of typed/pasted text live in a Web Worker, with sample digests on load, copy/copy-all/checksum lines, hex/HEX/Base64, paste-to-verify, a capped explicit Copy link, keyboard shortcuts and full per-tool SEO. Text-only by design (file hashing was never wanted). The same release carried the externally contributed Config Syntax Highlighter (`/tools/config`, PRs #14/#15), bringing the site to six tools. Closed as an override closeout: phase verification reports were stale at close (see MILESTONES.md).
 
-**Previously shipped:** v1.0 MVP (2026-07-25) — UUID Generator, IP Subnet Calculator, DNS Lookup, MAC Address Inspector. Full phase history archived at `.planning/milestones/v1.0-ROADMAP.md`.
+**Previously shipped:** v1.1 Production Domain & Landing Page Polish (2026-07-25) — clickable landing cards, live at `https://packetory.dev`; v1.0 MVP (2026-07-25) — UUID Generator, IP Subnet Calculator, DNS Lookup, MAC Address Inspector. Full phase history archived under `.planning/milestones/`.
 
-## Current Milestone: v1.2 Hash Generator
+## Next Milestone Goals
 
-**Goal:** Add a fifth tool, `/tools/hash`, that computes ~10 common hashes of text entirely in the browser — like sha1-online.com, but with Packetory's zero-effort, one-click-copy, keyboard-first UX.
+Not yet defined — start with `/gsd-new-milestone`. Candidates already tracked in Active below: Config Syntax Highlighter SEO + distinct icon, related-tool links, a per-tool accessibility re-audit, and the build-time OUI dataset replacing `/api/mac-vendor`.
+
+<details>
+<summary>v1.2 Hash Generator — planning detail (shipped 2026-10-17)</summary>
+
+**Goal:** Add a fifth tool (sixth after the Config Syntax Highlighter merge), `/tools/hash`, that computes ~10 common hashes of text entirely in the browser — like sha1-online.com, but with Packetory's zero-effort, one-click-copy, keyboard-first UX.
 
 **Target features:**
 - All supported algorithms computed at once, live as you type (proposed set, max ~10: MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-512, RIPEMD-160, CRC32)
@@ -33,6 +38,8 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 - Framework-agnostic `lib/hash/` core verified against published test vectors (Vitest) + Playwright e2e
 
 **Key context:** User scoped "as many common as possible, but around 10 max". Web Crypto lacks MD5/RIPEMD-160/SHA-224/SHA-3, so a small zero-dep library is needed. Fully local — no third-party requests.
+
+</details>
 
 <details>
 <summary>v1.1 Production Domain & Landing Page Polish — planning detail (shipped 2026-07-25)</summary>
@@ -69,8 +76,9 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 - ✓ Per-tool SEO — unique title/meta/canonical/OG tags, worked example, and content-matched FAQPage JSON-LD — shipped for all 4 v1 tools: UUID (Phase 2), Subnet (Phase 3), DNS (Phase 4, `app/tools/dns/faq-data.ts`), MAC (Phase 5, `app/tools/mac/faq-data.ts` — includes D-01/D-02 privacy disclosure and D-09 randomization-wording FAQ)
 - ✓ Light/dark mode, mobile usability down to 320px, CLS-free async states (loading/error/empty/success) — shell-level theme toggle and 320px CLS manually verified in Phase 1 UAT; Phase 3 user-confirmed 320px wrapping for subnet field values; Phase 5 user-confirmed 320px layout integrity for messy MAC input and long vendor-name wrap — re-verified per-tool across all 4 tool families (calculation-heavy, list-heavy, async-network, badge-heavy)
 
-- ✓ Hash Generator, text mode (TEXT-01..04, OUT-01..05, INT-01, INT-03, INTG-01, INTG-02) — `/tools/hash` paints sample digests for all 10 algorithms on load, hashes typed/pasted text live in a Web Worker, per-row copy + copy-all (labeled list or checksum lines), hex/HEX/Base64 without re-hashing, tolerant paste-to-verify, `?text=` restore with explicit capped Copy link (URL never written), `/`/Esc/SHA-256 copy shortcuts, registry/nav/sitemap/SEO with FAQPage JSON-LD, CLS-free pinned skeleton — Phase 9 (9 plans; 5/5 UAT items user-confirmed 2026-10-17; re-verified after the origin/main merge)
-- ✓ Config Syntax Highlighter (`/tools/config`) — Cisco IOS/IOS-XE/IOS-XR config highlighting with rich-text and plain-text copy, fully client-side; contributed outside GSD by KoffeePi via PRs #14/#15 (merged to `main` 2026-08-26/31), merged into the v1.2 branch by quick task 261017-cnt — no GSD phase, requirements or SEO/FAQ instance of its own yet
+- ✓ Hash core (HASH-01..04) — `lib/hash/`: all 10 digests verified against published vectors (padding boundaries, SHA3-not-Keccak, exact UTF-8 bytes, chunk-split invariance vs node:crypto/zlib oracles), computed in a production-build Web Worker with `@noble/hashes` kept out of initial page JS — v1.2 Phase 8 (5 plans)
+- ✓ Hash Generator, text mode (TEXT-01..04, OUT-01..05, INT-01, INT-03, INTG-01, INTG-02) — `/tools/hash` paints sample digests for all 10 algorithms on load, hashes typed/pasted text live in a Web Worker, per-row copy + copy-all (labeled list or checksum lines), hex/HEX/Base64 without re-hashing, tolerant paste-to-verify, `?text=` restore with explicit capped Copy link (URL never written), `/`/Esc/SHA-256 copy shortcuts, registry/nav/sitemap/SEO with FAQPage JSON-LD, CLS-free pinned skeleton — Phase 9 (9 plans; 5/5 UAT items user-confirmed 2026-10-17; re-verified after the origin/main merge; digest wrapping made cross-platform by quick task 261017-f4s) — v1.2
+- ✓ Config Syntax Highlighter (`/tools/config`) — Cisco IOS/IOS-XE/IOS-XR config highlighting with rich-text and plain-text copy, fully client-side; contributed outside GSD by KoffeePi via PRs #14/#15 (merged to `main` 2026-08-26/31), merged into the v1.2 branch by quick task 261017-cnt and shipped with v1.2 (PR #16) — no GSD phase, requirements or SEO/FAQ instance of its own yet
 
 ### Active
 
@@ -103,6 +111,7 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 - **v1.0 shipped** 2026-07-25: all 5 phases (Shared Shell, UUID, Subnet, DNS, MAC), 21 plans, 48/48 v1 requirements complete. ~12,500 LOC TypeScript across `app/`, `lib/`, `components/`. Live at packetory.vercel.app; CI-gated (`main` auto-deploys, PRs require tests/typecheck/lint/build/e2e). Every tool's core logic lives in a framework-agnostic `lib/` module with its own unit test suite; all 4 tools passed security review (0 open threats each) and user UAT with zero unresolved issues.
 - **Known tech debt carried into v1.1+**: `/api/mac-vendor` interim API-proxy (build-time OUI dataset is the intended permanent architecture per CLAUDE.md); no rate limiting on that same route (accepted risk); no related-tool links yet; no dedicated per-tool accessibility re-audit since Phase 1's shell-level pass.
 - **v1.1 progress**: Phase 6 (Landing Page Card Navigation, LP-01) shipped 2026-07-25. Phase 7 (Production Domain Cutover to packetory.dev) is now also complete, 2026-07-25 — its scope narrowed during discussion once the user reported having already manually registered `packetory.dev` and configured it in the Vercel dashboard. DOM-01 (live HTTPS) was verified live during that discussion: `curl -sI https://packetory.dev` returned `HTTP/2 200` with a valid TLS certificate (`CN=packetory.dev`, issued 2026-07-25). DOM-03 (canonical origin usage) was confirmed complete by a repo-wide audit — `SITE_URL` in `app/sitemap.ts` already derived every canonical URL, OG tag, sitemap entry, and robots.txt reference, so no code changes were needed. DOM-02 (redirects from `packetory.vercel.app`/`www.packetory.dev` to the apex) and DOM-04 (registration/DNS runbook) were both **deliberately descoped** by the user's explicit, live-evidence-informed decision, not left incomplete by oversight: the user chose not to add redirect config after being shown that neither `packetory.vercel.app` nor `www.packetory.dev` currently redirects, and did not want a runbook documenting manual steps they had already completed themselves. Accepted consequences, preserved here for future readers: `packetory.vercel.app` remains permanently live as a duplicate-content URL, and `www.packetory.dev` continues failing TLS (its certificate covers only the apex) — both indefinitely, unless a future phase revisits them. v1.1 milestone work is now complete (Phases 6 and 7 both shipped). Phase 6's code review flagged two pre-existing/adjacent, non-blocking accessibility items (`CardTitle` renders a `<div>` not a heading element; `status:"beta"` tools are visually indistinguishable from `"active"`) — folded into the existing "dedicated per-tool accessibility re-audit" tech debt line above rather than tracked separately.
+- **v1.2 shipped** 2026-10-17 (PR #16): Phases 8-9, 14 plans, 17/17 in-scope requirements; ~20,900 LOC TypeScript (app/lib/components/tools/tests). Six live tools. CI merge gate is now typecheck/lint/test/build only — the Playwright e2e job was removed 2026-10-17 to save GitHub Actions minutes, so `npm run test:e2e` and `npm run test:e2e:prod` must be run locally before merging. Accepted at close: Lighthouse on `/tools/hash` unmeasured; analytics redaction ignores `#fragments`.
 - **Source document**: `project-brief.md` at the repo root is a comprehensive, near-final brief (design principles, per-tool specs, tech stack, NFRs, ops model). The user confirmed it's accurate as-is — treat it as the authoritative detail reference; this PROJECT.md is the distilled/living version GSD workflows act on.
 - **Build order** (confirmed): UUID Generator → IP Subnet Calculator → DNS Lookup → MAC Address Inspector. UUID first because it's fully self-contained (no external data/services); DNS and MAC come later because they depend on external resolvers / vendor data.
 - **Open decisions deferred to relevant phases** (per brief §15, user confirmed defer-not-block): MAC vendor data source — API proxy at launch vs. locally maintained OUI dataset longer-term (resolve during MAC Inspector phase), ad slot placement (footer vs. sidebar — layout reserves space only, no v1 implementation), final logo/visual identity, and `@packetory` package-name registry availability (only matters once the public API/package is on the roadmap). Primary/fallback DNS-over-HTTPS resolver choice resolved in Phase 4 (Cloudflare primary, Google fallback).
@@ -147,6 +156,8 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 | Domain cutover redirects (DOM-02) and a registration runbook (DOM-04) deliberately descoped rather than implemented | User had already manually registered and configured `packetory.dev` in Vercel before Phase 7 execution began; after being shown live `curl`/TLS evidence, the user judged redirects and a runbook for an already-completed one-time action not worth building, accepting that `packetory.vercel.app` stays live as duplicate content and `www.packetory.dev` keeps failing TLS | ✓ Accepted (Phase 7) — revisit if duplicate-content SEO or the `www` TLS gap becomes a priority |
 | Hash worker client (`lib/hash/client.ts`) returns raw `Uint8Array` digests per algorithm; hex/Base64 formatting lives in the pure `lib/hash/format.ts` layer | Keeps the worker protocol format-agnostic so Phase 9's hex/Base64/`sha256sum` output options are pure presentation over one byte result, with no re-hash on format toggle | ✓ Shipped (Phase 8) — production Worker verified by Playwright (Chromium) plus manual Firefox + Safari smoke (sha256("abc") correct) |
 | Outside contributions merged into the v1.2 branch with a merge commit, not a rebase | PRs #14/#15 landed on GitHub `main` while v1.2 was being built locally (107 unpushed commits); a merge keeps the existing history intact and resolves the registry conflict once (both tools kept, 6 total) | ✓ Merged (quick task 261017-cnt, `30e5a1d`) — full CI green, six-link nav fits at 640px |
+| Hash digests render with `text-rendering: geometricPrecision` | Linux Chromium rounds Geist Mono advances (9.6→10px), wrapping 128-char digests onto an extra line at 320px and breaking the pinned no-CLS skeleton on CI; the property keeps fractional advances so wrapping matches macOS | ✓ Fixed (quick task 261017-f4s) — Linux island 2237.9px = macOS |
+| Playwright e2e removed from CI | User decision 2026-10-17 to save GitHub Actions minutes; the `protect-main` ruleset already required only typecheck/lint/test/build | ⚠️ Revisit — browser-level regressions (layout, keyboard, worker) are now caught only if someone runs the suites locally |
 | v1.2 Hash Generator ships text-only; Phase 10 (file hashing + release hardening) removed | User clarified on 2026-10-17 that file hashing was never wanted and the Phase 9 tool is exactly the intended functionality; release checks dropped along with it | ✓ Accepted — FILE-01..05, INT-02, INTG-03, INTG-04 moved to Out of Scope |
 
 ## Evolution
@@ -167,4 +178,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-17 after Phase 9 (Hash Tool Page & Text Hashing)*
+*Last updated: 2026-10-17 after v1.2 milestone*
