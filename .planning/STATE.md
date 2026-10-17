@@ -2,45 +2,45 @@
 gsd_state_version: "1.0"
 milestone: v1.2
 milestone_name: Hash Generator
-current_phase: 09
-current_phase_name: hash-tool-page-text-hashing
-status: verifying
-stopped_at: Completed 09-09-PLAN.md
-last_updated: "2026-10-17T07:15:50.281Z"
+current_phase: 10
+current_phase_name: File Hashing & Release Hardening
+status: planning
+stopped_at: Phase 09 complete, ready to plan Phase 10
+last_updated: "2026-10-17T07:29:22.834Z"
 last_activity: 2026-10-17
-last_activity_desc: Phase 09 execution started
-state_head: 30baef9392f4b69359ead03f1ef6cb156833ae7d
+last_activity_desc: Phase 09 complete, transitioned to Phase 10
+state_head: bbe3459ff555704a62f9b62954d3f73cfa95b376
 progress:
   total_phases: 3
-  completed_phases: 8
+  completed_phases: 9
   total_plans: 14
   completed_plans: 14
-  percent: 100
+  percent: 90
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-10-15)
+See: .planning/PROJECT.md (updated 2026-10-17)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Phase 09 — hash-tool-page-text-hashing
+**Current focus:** Phase 10 — file-hashing-&-release-hardening
 
 ## Current Position
 
-Phase: 09 (hash-tool-page-text-hashing) — EXECUTING
-Plan: 9 of 9
-Status: Phase complete — ready for verification
-Last activity: 2026-10-17 - Completed quick task 261017-cnt: Merge origin/main (PRs #14/#15 config highlighter) into phase branch, keep hash + config tools
+Phase: 10 — File Hashing & Release Hardening
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-10-17 — Phase 09 complete, transitioned to Phase 10
 
-Progress: [██████████] 100%
+Progress: [█████████░] 90%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 29
+- Total plans completed: 38
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -56,6 +56,7 @@ Progress: [██████████] 100%
 | 06 | 2 | - | - |
 | 07 | 1 | - | - |
 | 08 | 5 | - | - |
+| 09 | 9 | - | - |
 
 **Recent Trend:**
 
@@ -124,6 +125,11 @@ Decisions are logged in PROJECT.md Key Decisions table. v1.2 locked decisions (u
 - [Phase 08]: 08-04: boundary guard specifier regex covers from/bare/dynamic import()/require(); guard test excludes itself from the walk
 - [Phase 08]: UAT: worker client returns raw `Uint8Array` digests — Phase 9 UI must hex/Base64 via `lib/hash/format.ts`; Firefox + Safari module-Worker smoke passed manually
 - [Phase 08]: 08-05: Production proof uses mandatory node:crypto/zlib oracles for all 10 algorithms; supersede bound stays 2000 ms; CI runs test:e2e:prod sequentially after test:e2e
+- [Phase 09]: Copy link is absolute and capped at 2,000 encoded chars (inclusive); disabled for empty text; URL never auto-written
+- [Phase 09]: Registry/FAQ privacy wording limited to "Hashing runs in your browser" + "The link contains your text" (D-27, unit-test enforced)
+- [Phase 09]: Esc restores the sample but stashes typed text for "Restore your text"; Esc ignores open dialogs and IME composition
+- [Phase 09]: Skeleton heights pinned (2240px @320, 1612px @1280) for zero CLS
+- [Quick 261017-cnt]: origin/main (Config Syntax Highlighter, PRs #14/#15) merged into the v1.2 branch; 6 active tools, six-link nav fits at 640px
 - [Phase 09]: 09-01: sample digests stored as hex constants; 150 ms debounce only above 1 MiB; soft-cap copy per D-07a; select-on-focus selects sync + rAF with mouseup guard
 - [Phase 09]: 09-02: onmessageerror optional on WorkerLike; postMessage throw keeps worker, messageerror tears it down
 - [Phase 09]: Hash slug 'hash' registered as public sitemap URL (D-25); registry description limited to 'in your browser' privacy wording, guarded by unit test (D-27)
@@ -162,7 +168,7 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-10-15T18:19:54.310Z
-Stopped at: Completed 09-09-PLAN.md
+Stopped at: Phase 09 complete, ready to plan Phase 10
 Resume file: None
 
 ## Operator Next Steps

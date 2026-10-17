@@ -38,7 +38,7 @@ Full phase details archived at `.planning/milestones/v1.1-ROADMAP.md`.
 **Locked decisions (do not reopen):** hash engine = `@noble/hashes@2.4.0` (imported only from `lib/hash/engine.ts`) + hand-rolled IEEE CRC32; URL state = read `?text=` on load, write only via an explicit "Copy link" action (never auto-written); extras included = paste-to-verify, `sha256sum` copy format, Base64 toggle; HMAC deferred; registry category = `encode`.
 
 - [x] **Phase 8: Hash Core & Worker Runtime** - Correct, vector-verified digests for all 10 algorithms, computed incrementally inside a Web Worker (library + worker only, no tool route yet) (completed 2026-10-15)
-- [ ] **Phase 9: Hash Tool Page & Text Hashing** - `/tools/hash` ships text-only: sample digests on load, live typing, copy/verify/format options, keyboard shortcuts, registry entry, SEO
+- [x] **Phase 9: Hash Tool Page & Text Hashing** - `/tools/hash` ships text-only: sample digests on load, live typing, copy/verify/format options, keyboard shortcuts, registry entry, SEO (completed 2026-10-17)
 - [ ] **Phase 10: File Hashing & Release Hardening** - Local file hashing with progress, cancel, and clear errors; full supersede matrix; network-silence and analytics-redaction proof; production e2e and Lighthouse
 
 ## Phase Details
@@ -85,7 +85,7 @@ Plans:
   4. Opening `/tools/hash?text=…` restores that input on load, and the explicit, length-capped "Copy link" action is the only way text gets into a URL — the address bar never changes while typing and `text` never reaches analytics; `/` focuses the input, `Esc` cancels in-flight work and restores the sample, a copy shortcut copies the SHA-256 digest, and `Enter` inserts a newline (never bound)
   5. The page has a unique title, meta description, canonical URL, and OG tags, a worked example, and an FAQ (SHA3 vs Keccak, `echo` vs `echo -n`, MD5/SHA-1 security, a match ≠ authenticity) with content-matched FAQPage JSON-LD — and it is fully usable at 320px in light and dark mode, with long digests wrapping and no horizontal scroll
 
-**Plans:** 9/9 plans executed
+**Plans:** 9/9 plans complete
 
 Plans:
 **Wave 1**
@@ -141,5 +141,5 @@ Plans:
 | 6. Landing Page Card Navigation | v1.1 | 2/2 | Complete | 2026-07-25 |
 | 7. Production Domain Cutover | v1.1 | 1/1 | Complete | 2026-07-25 |
 | 8. Hash Core & Worker Runtime | v1.2 | 5/5 | Complete    | 2026-10-15 |
-| 9. Hash Tool Page & Text Hashing | v1.2 | 9/9 | In Progress | - |
+| 9. Hash Tool Page & Text Hashing | v1.2 | 9/9 | Complete    | 2026-10-17 |
 | 10. File Hashing & Release Hardening | v1.2 | 0/TBD | Not started | - |

@@ -69,9 +69,13 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 - ✓ Per-tool SEO — unique title/meta/canonical/OG tags, worked example, and content-matched FAQPage JSON-LD — shipped for all 4 v1 tools: UUID (Phase 2), Subnet (Phase 3), DNS (Phase 4, `app/tools/dns/faq-data.ts`), MAC (Phase 5, `app/tools/mac/faq-data.ts` — includes D-01/D-02 privacy disclosure and D-09 randomization-wording FAQ)
 - ✓ Light/dark mode, mobile usability down to 320px, CLS-free async states (loading/error/empty/success) — shell-level theme toggle and 320px CLS manually verified in Phase 1 UAT; Phase 3 user-confirmed 320px wrapping for subnet field values; Phase 5 user-confirmed 320px layout integrity for messy MAC input and long vendor-name wrap — re-verified per-tool across all 4 tool families (calculation-heavy, list-heavy, async-network, badge-heavy)
 
+- ✓ Hash Generator, text mode (TEXT-01..04, OUT-01..05, INT-01, INT-03, INTG-01, INTG-02) — `/tools/hash` paints sample digests for all 10 algorithms on load, hashes typed/pasted text live in a Web Worker, per-row copy + copy-all (labeled list or checksum lines), hex/HEX/Base64 without re-hashing, tolerant paste-to-verify, `?text=` restore with explicit capped Copy link (URL never written), `/`/Esc/SHA-256 copy shortcuts, registry/nav/sitemap/SEO with FAQPage JSON-LD, CLS-free pinned skeleton — Phase 9 (9 plans; 5/5 UAT items user-confirmed 2026-10-17; re-verified after the origin/main merge)
+- ✓ Config Syntax Highlighter (`/tools/config`) — Cisco IOS/IOS-XE/IOS-XR config highlighting with rich-text and plain-text copy, fully client-side; contributed outside GSD by KoffeePi via PRs #14/#15 (merged to `main` 2026-08-26/31), merged into the v1.2 branch by quick task 261017-cnt — no GSD phase, requirements or SEO/FAQ instance of its own yet
+
 ### Active
 
-- [ ] Hash Generator (`/tools/hash`) — v1.2 milestone; ~10 algorithms, text + file input, fully in-browser (see REQUIREMENTS.md)
+- [ ] Hash Generator (`/tools/hash`) — v1.2 milestone; text mode shipped in Phase 9 (see Validated); file hashing with progress/cancel, supersede matrix, fragment-safe analytics redaction (INTG-03) and release hardening remain for Phase 10 (see REQUIREMENTS.md)
+- [ ] Config Syntax Highlighter follow-up — decide whether it gets per-tool SEO (worked example + FAQPage JSON-LD) like the other tools, and a distinct icon (it currently reuses `Network`, same as Subnet)
 - [ ] Related-tool links (part of per-tool SEO) — not yet built on any tool page (UUID, Subnet, DNS, or MAC); candidate for v1.1
 - [ ] Accessibility: full keyboard nav, contrast, labels, logical focus order, screen-reader announcements — shell-level focus order and focus-ring visibility manually verified in Phase 1 UAT; Phase 2 added accessible names to the UUID tool's Version/Export-format toggle groups; not re-audited per-tool since; candidate for a dedicated a11y pass in v1.1
 - [ ] Public developer API (`@packetory/core` style package reusing the same `lib/` modules) — deferred to a post-v1 milestone per Business Context; no work started
@@ -141,6 +145,7 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 | Full-card click target via stretched-link (`Link` + `after:inset-0` inside `CardTitle`, `relative` on `Card`), no JS click handler | Makes the entire card — not just the title text — clickable and keyboard-focusable natively, reaching nav-menu parity for LP-01; `status:"planned"` cards stay inert by simply omitting the `Link` wrapper, no extra conditional needed | ✓ Shipped (Phase 6) — human-verified the ring geometrically encloses the full card at desktop and 320px |
 | Domain cutover redirects (DOM-02) and a registration runbook (DOM-04) deliberately descoped rather than implemented | User had already manually registered and configured `packetory.dev` in Vercel before Phase 7 execution began; after being shown live `curl`/TLS evidence, the user judged redirects and a runbook for an already-completed one-time action not worth building, accepting that `packetory.vercel.app` stays live as duplicate content and `www.packetory.dev` keeps failing TLS | ✓ Accepted (Phase 7) — revisit if duplicate-content SEO or the `www` TLS gap becomes a priority |
 | Hash worker client (`lib/hash/client.ts`) returns raw `Uint8Array` digests per algorithm; hex/Base64 formatting lives in the pure `lib/hash/format.ts` layer | Keeps the worker protocol format-agnostic so Phase 9's hex/Base64/`sha256sum` output options are pure presentation over one byte result, with no re-hash on format toggle | ✓ Shipped (Phase 8) — production Worker verified by Playwright (Chromium) plus manual Firefox + Safari smoke (sha256("abc") correct) |
+| Outside contributions merged into the v1.2 branch with a merge commit, not a rebase | PRs #14/#15 landed on GitHub `main` while v1.2 was being built locally (107 unpushed commits); a merge keeps the existing history intact and resolves the registry conflict once (both tools kept, 6 total) | ✓ Merged (quick task 261017-cnt, `30e5a1d`) — full CI green, six-link nav fits at 640px |
 
 ## Evolution
 
@@ -160,4 +165,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-15 after Phase 8 (Hash Core & Worker Runtime)*
+*Last updated: 2026-10-17 after Phase 9 (Hash Tool Page & Text Hashing)*
