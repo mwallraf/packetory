@@ -6,10 +6,10 @@ current_phase: 09
 current_phase_name: hash-tool-page-text-hashing
 status: planning
 stopped_at: All v1.2 phases complete, ready to complete milestone
-last_updated: "2026-10-17T07:29:22.834Z"
+last_updated: "2026-10-17T09:02:42.706Z"
 last_activity: 2026-10-17
-last_activity_desc: Phase 10 removed by user decision; v1.2 ready to complete
-state_head: bbe3459ff555704a62f9b62954d3f73cfa95b376
+last_activity_desc: Quick 261017-f4s — CI hash-layout fix, e2e job dropped from CI
+state_head: ab869bc70b0ff7a8a05f35bfbd0373d3f74355c5
 progress:
   total_phases: 2
   completed_phases: 9
@@ -32,7 +32,7 @@ See: .planning/PROJECT.md (updated 2026-10-17)
 Phase: 09 (hash-tool-page-text-hashing) — last v1.2 phase, complete
 Plan: 9 of 9
 Status: Milestone complete — ready for /gsd-complete-milestone
-Last activity: 2026-10-17 — Phase 10 removed (file hashing never wanted); all v1.2 phases complete
+Last activity: 2026-10-17 - Completed quick task 261017-f4s: Fix PR #16 CI hash-layout failure and drop e2e job from CI
 
 Progress: [██████████] 100%
 
@@ -140,6 +140,7 @@ Decisions are logged in PROJECT.md Key Decisions table. v1.2 locked decisions (u
 - [Phase 09]: 09-06: Copy link is absolute (origin + /tools/hash?text=), disabled for empty text, cap of 2,000 encoded chars is inclusive; ?text= is read once and never written
 - [Phase 09]: 09-07: copy-chord Shift/Alt guard lives in the shared useKeyboardShortcut hook; Esc ignores open dialogs; Restore your text stashes Esc-replaced text until next edit
 - [Phase 09]: Hash skeleton pinned to measured island heights 2240px/1612px (09-09)
+- [Quick 261017-f4s]: digests render with text-rendering:geometricPrecision so Linux Chromium wraps like macOS (skeleton pins hold cross-platform); CI e2e job removed by user decision to save Actions minutes — test:e2e and test:e2e:prod are local-only (supersedes 08-05 CI note)
 
 ### Pending Todos
 
@@ -156,6 +157,7 @@ None yet.
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 261017-cnt | Merge origin/main (PRs #14/#15 config highlighter) into phase branch, keep hash + config tools | 2026-10-17 | 30baef9 | [261017-cnt-merge-origin-main-prs-14-15-config-highl](./quick/261017-cnt-merge-origin-main-prs-14-15-config-highl/) |
+| 261017-f4s | Fix PR #16 CI hash-layout failure (geometricPrecision on digests) and drop e2e job from CI | 2026-10-17 | ab869bc | [261017-f4s-fix-pr-16-ci-hash-layout-failure-and-dro](./quick/261017-f4s-fix-pr-16-ci-hash-layout-failure-and-dro/) |
 
 ## Deferred Items
 
