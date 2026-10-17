@@ -20,13 +20,6 @@
 - [x] **TEXT-03**: User sees the input's UTF-8 byte count and a hint explaining trailing-newline / CRLF differences versus command-line tools
 - [x] **TEXT-04**: User can restore a shared input via `?text=` on load, and can create such a link only through an explicit "Copy link" action (length-capped); typed text is never auto-written to the URL and never reaches analytics
 
-### File Input
-
-- [ ] **FILE-01**: User can hash a file by drag-and-drop or a file picker; the file is processed locally and never uploaded
-- [ ] **FILE-02**: User can hash large files (hundreds of MB) via chunked streaming without loading the whole file into memory
-- [ ] **FILE-03**: User sees hashing progress for large files and can cancel it (Cancel button or `Esc`)
-- [ ] **FILE-04**: User sees a clear inline message for unreadable files, directory drops, or multi-file drops (single file only; a new drop replaces the current one), and a stray drop elsewhere on the page never navigates away
-
 ### Output
 
 - [x] **OUT-01**: User can copy any single digest with one click and visible confirmation
@@ -38,15 +31,12 @@
 ### Interaction
 
 - [x] **INT-01**: User can press `/` to focus the input, `Esc` to cancel in-flight work and reset to the sample, and a copy shortcut for the primary (SHA-256) digest; `Enter` is never bound (it inserts newlines in the textarea)
-- [ ] **INT-02**: Every path that supersedes in-flight hashing (typing, paste, new file via picker or drop, mode switch, `Esc`, clear, unmount, `?text=` load) cancels its predecessor before starting
 - [x] **INT-03**: User can use the tool at 320px width (long digests wrap, no horizontal scroll) in light and dark mode
 
 ### Integration & SEO
 
 - [x] **INTG-01**: Hash Generator appears in the nav, landing grid, and sitemap via a single `tools/registry.ts` entry (category `encode`, `Hash` icon), with hard-coded 4-tool tests updated to 5
 - [x] **INTG-02**: `/tools/hash` has unique title/meta/canonical/OG tags, a worked example, and FAQ content with matching FAQPage JSON-LD (covering SHA3 vs Keccak, `echo` vs `echo -n`, MD5/SHA-1 security, match ≠ authenticity)
-- [ ] **INTG-03**: The page makes zero third-party network requests (e2e-verified), and analytics redaction covers query strings and URL fragments (regression-tested)
-- [ ] **INTG-04**: Production-build e2e tests cover text hashing, file hashing, cancel, and copy flows; Lighthouse stays 90+
 
 ## Future Requirements
 
@@ -56,7 +46,6 @@ Deferred; tracked but not in this roadmap.
 - **ENC-01**: User can enter input as hex or Base64 bytes instead of UTF-8 text
 - **ENC-02**: User can toggle "append trailing newline" / CRLF line endings
 - **OUT-06**: User can copy an SRI-format (`sha384-…`) integrity string
-- **FILE-05**: User can hash multiple files in one batch
 
 ## Out of Scope
 
@@ -70,6 +59,9 @@ Deferred; tracked but not in this roadmap.
 | localStorage "remember input" | Persists potential secrets |
 | CSV export | Free-text filenames enable formula injection; sha256sum format covers the need |
 | Keccak-256 / CRC-32C rows | Not in the ~10 common set; avoided to prevent confusion |
+| File hashing — drag-and-drop/picker, chunked large-file streaming, progress/cancel, file error states, multi-file batches (FILE-01..05) | User decision 2026-10-17: file hashing was never wanted (misread during v1.2 scoping); the shipped text-only tool is the complete intended scope |
+| File/mode-switch supersede matrix (INT-02) | Existed for file input and text↔file mode switching; text-mode supersede is already covered by TEXT-02 and INT-01. User decision 2026-10-17 |
+| Release hardening — page-level zero-third-party-request e2e and URL-fragment analytics redaction (INTG-03), production e2e for file/cancel flows and a Lighthouse 90+ run on `/tools/hash` (INTG-04) | User decision 2026-10-17: deliberately dropped together with Phase 10. Accepted: Lighthouse on `/tools/hash` is unmeasured, and `redactBeforeSend` still ignores `#fragments` (no tool uses fragments today) |
 
 ## Traceability
 
@@ -94,20 +86,20 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INT-03 | Phase 9 | Complete |
 | INTG-01 | Phase 9 | Complete |
 | INTG-02 | Phase 9 | Complete |
-| FILE-01 | Phase 10 | Pending |
-| FILE-02 | Phase 10 | Pending |
-| FILE-03 | Phase 10 | Pending |
-| FILE-04 | Phase 10 | Pending |
-| INT-02 | Phase 10 | Pending |
-| INTG-03 | Phase 10 | Pending |
-| INTG-04 | Phase 10 | Pending |
+| FILE-01 | — | Out of Scope (2026-10-17) |
+| FILE-02 | — | Out of Scope (2026-10-17) |
+| FILE-03 | — | Out of Scope (2026-10-17) |
+| FILE-04 | — | Out of Scope (2026-10-17) |
+| INT-02 | — | Out of Scope (2026-10-17) |
+| INTG-03 | — | Out of Scope (2026-10-17) |
+| INTG-04 | — | Out of Scope (2026-10-17) |
 
 **Coverage:**
 
-- v1.2 requirements: 24 total (corrected from an earlier miscount of 23 — the list above has 4 HASH + 4 TEXT + 4 FILE + 5 OUT + 3 INT + 4 INTG)
-- Mapped to phases: 24
+- v1.2 requirements: 17 in scope (4 HASH + 4 TEXT + 5 OUT + 2 INT + 2 INTG), all complete; 7 originally listed (FILE-01..04, INT-02, INTG-03, INTG-04) moved to Out of Scope on 2026-10-17 when Phase 10 was removed
+- Mapped to phases: 17
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-10-14*
-*Last updated: 2026-10-14 after ROADMAP.md creation — 100% v1.2 coverage across Phase 8 (HASH-01..04), Phase 9 (TEXT-01..04, OUT-01..05, INT-01, INT-03, INTG-01, INTG-02), and Phase 10 (FILE-01..04, INT-02, INTG-03, INTG-04)*
+*Last updated: 2026-10-17 — Phase 10 removed; FILE-01..05, INT-02, INTG-03, INTG-04 moved to Out of Scope by user decision. Previously: 2026-10-14 after ROADMAP.md creation — 100% v1.2 coverage across Phase 8 (HASH-01..04), Phase 9 (TEXT-01..04, OUT-01..05, INT-01, INT-03, INTG-01, INTG-02), and Phase 10 (FILE-01..04, INT-02, INTG-03, INTG-04)*

@@ -2,20 +2,20 @@
 gsd_state_version: "1.0"
 milestone: v1.2
 milestone_name: Hash Generator
-current_phase: 10
-current_phase_name: File Hashing & Release Hardening
+current_phase: 09
+current_phase_name: hash-tool-page-text-hashing
 status: planning
-stopped_at: Phase 09 complete, ready to plan Phase 10
+stopped_at: All v1.2 phases complete, ready to complete milestone
 last_updated: "2026-10-17T07:29:22.834Z"
 last_activity: 2026-10-17
-last_activity_desc: Phase 09 complete, transitioned to Phase 10
+last_activity_desc: Phase 10 removed by user decision; v1.2 ready to complete
 state_head: bbe3459ff555704a62f9b62954d3f73cfa95b376
 progress:
-  total_phases: 3
+  total_phases: 2
   completed_phases: 9
   total_plans: 14
   completed_plans: 14
-  percent: 90
+  percent: 100
 ---
 
 # Project State
@@ -25,16 +25,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-10-17)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Phase 10 — file-hashing-&-release-hardening
+**Current focus:** v1.2 complete — ready for milestone close
 
 ## Current Position
 
-Phase: 10 — File Hashing & Release Hardening
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-10-17 — Phase 09 complete, transitioned to Phase 10
+Phase: 09 (hash-tool-page-text-hashing) — last v1.2 phase, complete
+Plan: 9 of 9
+Status: Milestone complete — ready for /gsd-complete-milestone
+Last activity: 2026-10-17 — Phase 10 removed (file hashing never wanted); all v1.2 phases complete
 
-Progress: [█████████░] 90%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -147,7 +147,7 @@ None yet.
 
 ### Blockers/Concerns
 
-- Phase 10: analytics `redactBeforeSend` passes events through untouched when there's no `?`, so URL-fragment state would bypass redaction — fixed under INTG-03.
+- Accepted (2026-10-17): analytics `redactBeforeSend` passes events through untouched when there's no `?`, so URL-fragment state would bypass redaction — no tool uses fragments today; INTG-03 descoped with Phase 10.
 - Tech debt carried from v1.0: `/api/mac-vendor` interim API-proxy (build-time OUI dataset is the intended architecture); no rate limiting on it (AR-05-01); related-tool links and a per-tool accessibility re-audit still deferred.
 - Tech debt carried from v1.1: DOM-02 redirects and DOM-04 runbook deliberately descoped — revisit if duplicate-content SEO or the `www` TLS gap becomes a priority.
 
