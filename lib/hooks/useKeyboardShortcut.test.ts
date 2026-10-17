@@ -27,6 +27,21 @@ describe("useKeyboardShortcut", () => {
     expect(event.defaultPrevented).toBe(true);
   });
 
+  it("WR-05: ignores Ctrl/Cmd/Alt + '/' without preventing default, but still fires for Shift + '/' (EU layouts)", () => {
+    const slash = vi.fn();
+    renderHook(() => useKeyboardShortcut({ slash }));
+
+    for (const init of [{ ctrlKey: true }, { metaKey: true }, { altKey: true }]) {
+      const event = dispatchKeydown({ key: "/", ...init });
+      expect(event.defaultPrevented).toBe(false);
+    }
+    expect(slash).not.toHaveBeenCalled();
+
+    const shifted = dispatchKeydown({ key: "/", shiftKey: true });
+    expect(slash).toHaveBeenCalledTimes(1);
+    expect(shifted.defaultPrevented).toBe(true);
+  });
+
   it("is unbound-safe: pressing '/' with no registered handler is a no-op that never throws (D-03)", () => {
     renderHook(() => useKeyboardShortcut({}));
 
@@ -73,6 +88,19 @@ describe("useKeyboardShortcut", () => {
     editableDiv.remove();
   });
 
+  it("does NOT fire the copy handler on Shift or Alt chords (Ctrl+Shift+C opens DevTools) (INT-01)", () => {
+    const copy = vi.fn();
+    renderHook(() => useKeyboardShortcut({ copy }));
+
+    dispatchKeydown({ key: "C", ctrlKey: true, shiftKey: true });
+    dispatchKeydown({ key: "c", metaKey: true, shiftKey: true });
+    dispatchKeydown({ key: "c", ctrlKey: true, altKey: true });
+    expect(copy).not.toHaveBeenCalled();
+
+    dispatchKeydown({ key: "c", ctrlKey: true });
+    expect(copy).toHaveBeenCalledTimes(1);
+  });
+
   it("fires the escape and enter handlers when registered", () => {
     const escape = vi.fn();
     const enter = vi.fn();
@@ -83,6 +111,18 @@ describe("useKeyboardShortcut", () => {
 
     expect(escape).toHaveBeenCalledTimes(1);
     expect(enter).toHaveBeenCalledTimes(1);
+  });
+
+  it("WR-02: Escape during IME composition does not fire the escape handler", () => {
+    const escape = vi.fn();
+    renderHook(() => useKeyboardShortcut({ escape }));
+
+    dispatchKeydown({ key: "Escape", isComposing: true });
+    dispatchKeydown({ key: "Escape", keyCode: 229 });
+    expect(escape).not.toHaveBeenCalled();
+
+    dispatchKeydown({ key: "Escape" });
+    expect(escape).toHaveBeenCalledTimes(1);
   });
 
   it("fires the enter handler while focus is inside a plain text input (04-02 regression: DNS-03/Subnet Enter must work while typing, since no form wraps these inputs)", () => {

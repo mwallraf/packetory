@@ -3,6 +3,7 @@ import {
   Cpu,
   Fingerprint,
   Globe,
+  Hash,
   Network,
   type LucideIcon,
 } from "lucide-react";
@@ -27,6 +28,7 @@ const ICONS: Record<string, LucideIcon> = {
   Network,
   Globe,
   Cpu,
+  Hash,
 };
 
 const CATEGORY_LABELS: Record<ToolDefinition["category"], string> = {

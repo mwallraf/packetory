@@ -11,7 +11,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Packetory — Instant network tools for engineers",
   description:
-    "Packetory is a fast, no-friction collection of network and infrastructure utilities: UUID generator, IP subnet calculator, DNS lookup, and MAC address inspector.",
+    "Packetory is a fast, no-friction collection of network and infrastructure utilities: UUID generator, IP subnet calculator, DNS lookup, MAC address inspector, and hash generator.",
 };
 
 export default function RootLayout({

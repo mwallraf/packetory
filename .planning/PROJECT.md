@@ -21,9 +21,18 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 
 **Previously shipped:** v1.0 MVP (2026-07-25) — UUID Generator, IP Subnet Calculator, DNS Lookup, MAC Address Inspector. Full phase history archived at `.planning/milestones/v1.0-ROADMAP.md`.
 
-## Next Milestone Goals
+## Current Milestone: v1.2 Hash Generator
 
-Not yet defined — run `/gsd-new-milestone` to scope the next milestone.
+**Goal:** Add a fifth tool, `/tools/hash`, that computes ~10 common hashes of text entirely in the browser — like sha1-online.com, but with Packetory's zero-effort, one-click-copy, keyboard-first UX.
+
+**Target features:**
+- All supported algorithms computed at once, live as you type (proposed set, max ~10: MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-512, RIPEMD-160, CRC32)
+- Text input only (file hashing descoped 2026-10-17 — never wanted; see Out of Scope)
+- Default result on load, per-hash copy + copy-all, bookmarkable text state
+- Registered in `tools/registry.ts` (nav/landing card/sitemap automatic) with per-tool SEO (metadata, worked example, FAQ + JSON-LD)
+- Framework-agnostic `lib/hash/` core verified against published test vectors (Vitest) + Playwright e2e
+
+**Key context:** User scoped "as many common as possible, but around 10 max". Web Crypto lacks MD5/RIPEMD-160/SHA-224/SHA-3, so a small zero-dep library is needed. Fully local — no third-party requests.
 
 <details>
 <summary>v1.1 Production Domain & Landing Page Polish — planning detail (shipped 2026-07-25)</summary>
@@ -60,8 +69,12 @@ Not yet defined — run `/gsd-new-milestone` to scope the next milestone.
 - ✓ Per-tool SEO — unique title/meta/canonical/OG tags, worked example, and content-matched FAQPage JSON-LD — shipped for all 4 v1 tools: UUID (Phase 2), Subnet (Phase 3), DNS (Phase 4, `app/tools/dns/faq-data.ts`), MAC (Phase 5, `app/tools/mac/faq-data.ts` — includes D-01/D-02 privacy disclosure and D-09 randomization-wording FAQ)
 - ✓ Light/dark mode, mobile usability down to 320px, CLS-free async states (loading/error/empty/success) — shell-level theme toggle and 320px CLS manually verified in Phase 1 UAT; Phase 3 user-confirmed 320px wrapping for subnet field values; Phase 5 user-confirmed 320px layout integrity for messy MAC input and long vendor-name wrap — re-verified per-tool across all 4 tool families (calculation-heavy, list-heavy, async-network, badge-heavy)
 
+- ✓ Hash Generator, text mode (TEXT-01..04, OUT-01..05, INT-01, INT-03, INTG-01, INTG-02) — `/tools/hash` paints sample digests for all 10 algorithms on load, hashes typed/pasted text live in a Web Worker, per-row copy + copy-all (labeled list or checksum lines), hex/HEX/Base64 without re-hashing, tolerant paste-to-verify, `?text=` restore with explicit capped Copy link (URL never written), `/`/Esc/SHA-256 copy shortcuts, registry/nav/sitemap/SEO with FAQPage JSON-LD, CLS-free pinned skeleton — Phase 9 (9 plans; 5/5 UAT items user-confirmed 2026-10-17; re-verified after the origin/main merge)
+- ✓ Config Syntax Highlighter (`/tools/config`) — Cisco IOS/IOS-XE/IOS-XR config highlighting with rich-text and plain-text copy, fully client-side; contributed outside GSD by KoffeePi via PRs #14/#15 (merged to `main` 2026-08-26/31), merged into the v1.2 branch by quick task 261017-cnt — no GSD phase, requirements or SEO/FAQ instance of its own yet
+
 ### Active
 
+- [ ] Config Syntax Highlighter follow-up — decide whether it gets per-tool SEO (worked example + FAQPage JSON-LD) like the other tools, and a distinct icon (it currently reuses `Network`, same as Subnet)
 - [ ] Related-tool links (part of per-tool SEO) — not yet built on any tool page (UUID, Subnet, DNS, or MAC); candidate for v1.1
 - [ ] Accessibility: full keyboard nav, contrast, labels, logical focus order, screen-reader announcements — shell-level focus order and focus-ring visibility manually verified in Phase 1 UAT; Phase 2 added accessible names to the UUID tool's Version/Export-format toggle groups; not re-audited per-tool since; candidate for a dedicated a11y pass in v1.1
 - [ ] Public developer API (`@packetory/core` style package reusing the same `lib/` modules) — deferred to a post-v1 milestone per Business Context; no work started
@@ -82,6 +95,8 @@ Not yet defined — run `/gsd-new-milestone` to scope the next milestone.
 - Public API authentication, billing, metering — API is a post-v1 milestone once traffic justifies it
 - UUID v1 — only v4/v7 supported unless later demand justifies it
 - DNSSEC inspection, authoritative-path analysis — later DNS enhancement
+- Hash Generator file hashing (drop/picker, large-file streaming, progress/cancel, multi-file) — user decision 2026-10-17: never wanted, a misread during v1.2 scoping; the shipped text-only tool is the complete intended scope. Phase 10 removed
+- Hash Generator release hardening (Lighthouse run on `/tools/hash`, page-level network-silence e2e, `#fragment` analytics redaction) — dropped with Phase 10 by user decision 2026-10-17; accepted that Lighthouse on `/tools/hash` is unmeasured and `redactBeforeSend` ignores URL fragments (no tool uses them today)
 
 ## Context
 
@@ -130,6 +145,9 @@ Not yet defined — run `/gsd-new-milestone` to scope the next milestone.
 | Every async-superseding path must cancel its predecessor (abort + sequence token) — carried forward from the Phase 4 lesson, now applied to MAC's vendor lookup | Phase 4 needed two review passes because the fix for DNS-04's race guard was applied to only the "obvious" invalid-input path first, missing the valid-input path that reached the same guarded state | ✓ Shipped correctly on the first pass (Phase 5) — `MacTool.tsx` audited all paths into vendor lookup (typing/debounce, new valid paste, demo-on-load, Esc-reset) up front, per the Phase 4 retrospective decision above |
 | Full-card click target via stretched-link (`Link` + `after:inset-0` inside `CardTitle`, `relative` on `Card`), no JS click handler | Makes the entire card — not just the title text — clickable and keyboard-focusable natively, reaching nav-menu parity for LP-01; `status:"planned"` cards stay inert by simply omitting the `Link` wrapper, no extra conditional needed | ✓ Shipped (Phase 6) — human-verified the ring geometrically encloses the full card at desktop and 320px |
 | Domain cutover redirects (DOM-02) and a registration runbook (DOM-04) deliberately descoped rather than implemented | User had already manually registered and configured `packetory.dev` in Vercel before Phase 7 execution began; after being shown live `curl`/TLS evidence, the user judged redirects and a runbook for an already-completed one-time action not worth building, accepting that `packetory.vercel.app` stays live as duplicate content and `www.packetory.dev` keeps failing TLS | ✓ Accepted (Phase 7) — revisit if duplicate-content SEO or the `www` TLS gap becomes a priority |
+| Hash worker client (`lib/hash/client.ts`) returns raw `Uint8Array` digests per algorithm; hex/Base64 formatting lives in the pure `lib/hash/format.ts` layer | Keeps the worker protocol format-agnostic so Phase 9's hex/Base64/`sha256sum` output options are pure presentation over one byte result, with no re-hash on format toggle | ✓ Shipped (Phase 8) — production Worker verified by Playwright (Chromium) plus manual Firefox + Safari smoke (sha256("abc") correct) |
+| Outside contributions merged into the v1.2 branch with a merge commit, not a rebase | PRs #14/#15 landed on GitHub `main` while v1.2 was being built locally (107 unpushed commits); a merge keeps the existing history intact and resolves the registry conflict once (both tools kept, 6 total) | ✓ Merged (quick task 261017-cnt, `30e5a1d`) — full CI green, six-link nav fits at 640px |
+| v1.2 Hash Generator ships text-only; Phase 10 (file hashing + release hardening) removed | User clarified on 2026-10-17 that file hashing was never wanted and the Phase 9 tool is exactly the intended functionality; release checks dropped along with it | ✓ Accepted — FILE-01..05, INT-02, INTG-03, INTG-04 moved to Out of Scope |
 
 ## Evolution
 
@@ -149,4 +167,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-25 after v1.1 milestone completed*
+*Last updated: 2026-10-17 after Phase 9 (Hash Tool Page & Text Hashing)*

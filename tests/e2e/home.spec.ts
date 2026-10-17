@@ -7,9 +7,9 @@ test.describe("Landing page — tool registry grid", () => {
     await page.goto("/");
 
     const cards = page.getByTestId("tool-card");
-    await expect(cards).toHaveCount(5);
+    await expect(cards).toHaveCount(6);
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       const card = cards.nth(i);
       await expect(card.getByTestId("tool-card-name")).toBeVisible();
       await expect(card.getByTestId("tool-card-description")).toBeVisible();
@@ -31,6 +31,7 @@ test.describe("Landing page — tool registry grid", () => {
       "UUID Generator",
       "Config Syntax Highlighter",
       "DNS Lookup",
+      "Hash Generator",
       "MAC Address Inspector",
     ]);
   });
@@ -41,9 +42,9 @@ test.describe("Landing page — tool registry grid", () => {
     await page.goto("/");
 
     const cards = page.getByTestId("tool-card");
-    await expect(cards).toHaveCount(5);
+    await expect(cards).toHaveCount(6);
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       const card = cards.nth(i);
       await expect(card.getByText("Coming soon")).toHaveCount(0);
       // Each active card renders exactly one stretched-link anchor (LP-01).
@@ -76,6 +77,31 @@ test.describe("Landing page — tool registry grid", () => {
     await page.keyboard.press("Enter");
 
     await expect(page).toHaveURL(/\/tools\//);
+  });
+});
+
+test.describe("Hash Generator integration (INTG-01)", () => {
+  test("the Hash Generator card opens /tools/hash (INTG-01)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const card = page
+      .getByTestId("tool-card")
+      .filter({ has: page.getByTestId("tool-card-name").getByText("Hash Generator", { exact: true }) });
+    await expect(card).toHaveCount(1);
+    await card.click({ position: { x: 10, y: 10 } });
+
+    await expect(page).toHaveURL(/\/tools\/hash$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Hash Generator" })
+    ).toBeVisible();
+  });
+
+  test("sitemap.xml lists /tools/hash (INTG-01)", async ({ page }) => {
+    const response = await page.request.get("/sitemap.xml");
+    expect(response.status()).toBe(200);
+    expect(await response.text()).toContain("https://packetory.dev/tools/hash");
   });
 });
 

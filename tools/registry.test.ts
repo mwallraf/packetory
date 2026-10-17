@@ -3,9 +3,9 @@ import { getSortedTools, getToolBySlug, tools } from "./registry";
 
 describe("tools/registry", () => {
   it("contains the active tool entries", () => {
-    expect(tools).toHaveLength(5);
+    expect(tools).toHaveLength(6);
     const slugs = tools.map((t) => t.slug).sort();
-    expect(slugs).toEqual(["config", "dns", "mac", "subnet", "uuid"]);
+    expect(slugs).toEqual(["config", "dns", "hash", "mac", "subnet", "uuid"]);
   });
 
   it("getSortedTools() sorts by featured desc, then name asc (case-insensitive)", () => {
@@ -15,6 +15,7 @@ describe("tools/registry", () => {
       "uuid",
       "config",
       "dns",
+      "hash",
       "mac",
     ]);
   });
@@ -48,12 +49,29 @@ describe("tools/registry", () => {
       subnet: "active",
       dns: "active",
       mac: "active",
+      hash: "active",
       config: "active",
     });
   });
 
   it("getToolBySlug() returns the matching entry or undefined", () => {
     expect(getToolBySlug("uuid")?.name).toBe("UUID Generator");
+    expect(getToolBySlug("hash")?.name).toBe("Hash Generator");
     expect(getToolBySlug("does-not-exist")).toBeUndefined();
+  });
+
+  it("hash description makes no privacy claim beyond 'in your browser' (D-27, T-09-25)", () => {
+    const description = getToolBySlug("hash")?.description.toLowerCase() ?? "";
+    expect(description).toContain("in your browser");
+    for (const forbidden of [
+      "tracking",
+      "never leaves",
+      "never stored",
+      "never sent",
+      "private",
+      "100%",
+    ]) {
+      expect(description).not.toContain(forbidden);
+    }
   });
 });

@@ -20,7 +20,8 @@ export type KeyboardShortcutHandlers = {
   escape?: () => void;
   /** Ctrl/Cmd+C — copy the primary result. Only fires when focus is NOT
    * inside an editable field, so native text-selection copy keeps working
-   * inside inputs/textareas/contenteditable elements. */
+   * inside inputs/textareas/contenteditable elements. Shift/Alt combinations
+   * (for example Ctrl+Shift+C, the DevTools inspector) never trigger it. */
   copy?: () => void;
 };
 
@@ -89,6 +90,9 @@ export function useKeyboardShortcut(handlers: KeyboardShortcutHandlers): void {
       const editable = isEditableTarget(event.target);
 
       if (event.key === "/") {
+        // Ctrl/Cmd/Alt + "/" belong to the browser, OS, screen readers and
+        // extensions. Shift stays allowed: "/" is Shift+7 on several EU layouts.
+        if (event.ctrlKey || event.metaKey || event.altKey) return;
         // Unbound-safe (D-03): no-op with no handler, never throws. Never
         // hijacks typing already in progress inside an editable field.
         if (!editable && current.slash) {
@@ -109,12 +113,18 @@ export function useKeyboardShortcut(handlers: KeyboardShortcutHandlers): void {
       }
 
       if (event.key === "Escape") {
+        // The Esc that cancels an IME composition must not reach the handler
+        // (keyCode 229 covers Safari, where isComposing is already false).
+        if (event.isComposing || event.keyCode === 229) return;
         current.escape?.();
         return;
       }
 
       const isCopyChord =
-        (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c";
+        (event.ctrlKey || event.metaKey) &&
+        !event.shiftKey &&
+        !event.altKey &&
+        event.key.toLowerCase() === "c";
       if (isCopyChord && !editable) {
         current.copy?.();
       }

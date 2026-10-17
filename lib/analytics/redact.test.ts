@@ -89,4 +89,12 @@ describe("redactParams", () => {
     );
     expect(result).toEqual({});
   });
+
+  it("HASH-TEXT regression: ?text= is stripped and 'text' is never allow-listed (TEXT-04, D-22)", () => {
+    expect(DEFAULT_ALLOW_LIST).not.toContain("text");
+    expect(
+      redactParams("?text=hunter2%0Asecret", DEFAULT_ALLOW_LIST)
+    ).toEqual({});
+    expect(redactParams("?text=a&type=A", DEFAULT_ALLOW_LIST)).toEqual({});
+  });
 });

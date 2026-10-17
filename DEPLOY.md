@@ -30,10 +30,9 @@ gets its own preview deployment URL posted as a PR check/comment.
    - `lint`
    - `test`
    - `build`
-3. `e2e` (the Playwright job) also runs as a non-skippable gating job in CI
-   (no `continue-on-error`) and is recommended as a required check too once
-   the suite is stable enough to avoid flaky blocks; it is not one of the
-   four checks the plan's merge-gate spec names explicitly.
+3. The Playwright e2e suites (`test:e2e`, `test:e2e:prod`) are **not** run
+   in CI — the job was removed on 2026-10-17 to save GitHub Actions minutes.
+   Run both locally (see §4) before merging.
 4. Do **not** require the CI workflow's job names loosely — require the
    exact job names above so a renamed/removed job can't silently stop being
    gating.
@@ -45,7 +44,7 @@ status or the order they finish in (QUAL-09).
 ## 3. What the CI workflow does
 
 `.github/workflows/ci.yml` runs on every `pull_request` and every `push` to
-`main`. It runs five independent jobs in parallel:
+`main`. It runs four independent jobs in parallel:
 
 | Job | Command | Gating? |
 |-----|---------|---------|
@@ -53,7 +52,6 @@ status or the order they finish in (QUAL-09).
 | `lint` | `npm run lint` | Yes |
 | `test` | `npm run test` | Yes |
 | `build` | `npm run build` | Yes |
-| `e2e` | `npx playwright install --with-deps && npm run test:e2e` | Yes (in CI; optional in branch protection — see §2) |
 
 None of these steps use `continue-on-error` — if any step fails, its job
 fails, and the job's required-check status turns red, blocking merge. There
@@ -71,13 +69,14 @@ into a green build (threat mitigation T-05-SC).
 npm run dev
 ```
 
-Starts the Next.js dev server at `http://localhost:3000`. To run the same
-checks CI runs, locally:
+Starts the Next.js dev server at `http://localhost:3000`. To run the CI
+checks plus the local-only e2e suites:
 
 ```bash
 npm run typecheck
 npm run lint
 npm run test
 npm run build
-npm run test:e2e   # requires: npx playwright install (one-time)
+npm run test:e2e        # requires: npx playwright install (one-time)
+npm run test:e2e:prod   # builds and serves the production build on port 3101
 ```

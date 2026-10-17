@@ -243,4 +243,37 @@ describe("SubnetTool", () => {
     render(<SubnetTool />);
     expect(screen.queryByTestId("subnet-subdivision-section")).toBeNull();
   });
+  it("Ctrl/Cmd+Shift+C does not trigger the copy shortcut (INT-01)", () => {
+    const previous = Object.getOwnPropertyDescriptor(navigator, "clipboard");
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    try {
+      render(<SubnetTool />);
+      fireEvent.keyDown(document.body, {
+        key: "C",
+        ctrlKey: true,
+        shiftKey: true,
+      });
+      fireEvent.keyDown(document.body, {
+        key: "C",
+        metaKey: true,
+        shiftKey: true,
+      });
+      expect(writeText).not.toHaveBeenCalled();
+
+      // Positive control: the plain chord still copies, so the negative above
+      // is not vacuous.
+      fireEvent.keyDown(document.body, { key: "c", ctrlKey: true });
+      expect(writeText).toHaveBeenCalledTimes(1);
+    } finally {
+      if (previous) {
+        Object.defineProperty(navigator, "clipboard", previous);
+      } else {
+        delete (navigator as unknown as { clipboard?: unknown }).clipboard;
+      }
+    }
+  });
 });

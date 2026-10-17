@@ -1,43 +1,46 @@
 ---
-gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Production Domain & Landing Page Polish
-status: Awaiting next milestone
-stopped_at: Completed 07-01-PLAN.md
-last_updated: "2026-07-25T20:39:02.894Z"
-last_activity: 2026-07-25
-last_activity_desc: Milestone v1.1 completed and archived
+gsd_state_version: "1.0"
+milestone: v1.2
+milestone_name: Hash Generator
+current_phase: 09
+current_phase_name: hash-tool-page-text-hashing
+status: planning
+stopped_at: All v1.2 phases complete, ready to complete milestone
+last_updated: "2026-10-17T09:02:42.706Z"
+last_activity: 2026-10-17
+last_activity_desc: Quick 261017-f4s — CI hash-layout fix, e2e job dropped from CI
+state_head: ab869bc70b0ff7a8a05f35bfbd0373d3f74355c5
 progress:
   total_phases: 2
-  completed_phases: 2
-  total_plans: 3
-  completed_plans: 3
+  completed_phases: 9
+  total_plans: 14
+  completed_plans: 14
   percent: 100
-current_phase: 07
-current_phase_name: production-domain-cutover-packetory-dev
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-25)
+See: .planning/PROJECT.md (updated 2026-10-17)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Planning next milestone
+**Current focus:** v1.2 complete — ready for milestone close
 
 ## Current Position
 
-Phase: Milestone v1.1 complete
-Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-25 — Milestone v1.1 completed and archived
+Phase: 09 (hash-tool-page-text-hashing) — last v1.2 phase, complete
+Plan: 9 of 9
+Status: Milestone complete — ready for /gsd-complete-milestone
+Last activity: 2026-10-17 - Completed quick task 261017-f4s: Fix PR #16 CI hash-layout failure and drop e2e job from CI
+
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 24
+- Total plans completed: 38
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -52,6 +55,8 @@ Last activity: 2026-07-25 — Milestone v1.1 completed and archived
 | 05 | 3 | - | - |
 | 06 | 2 | - | - |
 | 07 | 1 | - | - |
+| 08 | 5 | - | - |
+| 09 | 9 | - | - |
 
 **Recent Trend:**
 
@@ -87,12 +92,55 @@ Last activity: 2026-07-25 — Milestone v1.1 completed and archived
 | Phase 06 P01 | 25min | 3 tasks | 3 files |
 | Phase 06 P02 | 5min | 1 tasks | 0 files |
 | Phase 07 P01 | 20min | 3 tasks | 3 files |
+| Phase 08 P01 | 7min | 1 tasks | 14 files |
+| Phase 08 P02 | 2 min | 3 tasks | 8 files |
+| Phase 08 P03 | 3 min | 2 tasks | 2 files |
+| Phase 08 P04 | 6 min | 2 tasks | 4 files |
+| Phase 08 P05 | 12 min | 2 tasks | 2 files |
+| Phase 09 P01 | 4 min | 3 tasks | 9 files |
+| Phase 09 P02 | 3min | 1 tasks | 2 files |
+| Phase 09 P03 | 8 min | 2 tasks | 7 files |
+| Phase 09 P04 | 10 min | 3 tasks | 10 files |
+| Phase 09 P05 | 3 min | 2 tasks | 7 files |
+| Phase 09 P08 | 8 min | 2 tasks | 5 files |
+| Phase 09 P06 | 12 min | 3 tasks | 8 files |
+| Phase 09 P07 | 6 min | 2 tasks | 7 files |
+| Phase 09 P09 | 20 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table (v1.1 entries added at milestone close: stretched-link full-card pattern, DOM-02/DOM-04 descope rationale).
+Decisions are logged in PROJECT.md Key Decisions table. v1.2 locked decisions (user-confirmed before roadmap, do not reopen):
+
+- [v1.2]: Hash engine = `@noble/hashes@2.4.0` (imported only from `lib/hash/engine.ts`) + hand-rolled IEEE CRC32
+- [v1.2]: URL state = read `?text=` on load; write only via explicit "Copy link" (length-capped), never auto-written
+- [v1.2]: Extras in scope = paste-to-verify, `sha256sum` copy format, Base64 toggle; HMAC deferred to Future
+- [v1.2]: Registry category = `encode`
+- [v1.2 roadmap]: TEXT-04 ("Copy link") placed in Phase 9 with the rest of the text path (research had Copy link in the file phase) so Phase 9 ships a complete text-only tool
+- [Phase 08]: 08-01: job.ts derives algorithm ids from Object.keys(FACTORIES); algorithms.ts/format.ts deferred to 08-02
+- [Phase 08]: 08-01: HashSmoke ready flag uses useSyncExternalStore on window.__hashSmoke (lint forbids setState in effect)
+- [Phase 08]: 08-02: single-use assertion accepts both noble messages (hash was destroyed for SHA2/MD family and CRC32; digest() was already called for Keccak-based SHA3)
+- [Phase 08]: 08-03: No production code changed; client/worker-core import sets untouched for 08-04 boundary guard
+- [Phase 08]: 08-04: boundary guard specifier regex covers from/bare/dynamic import()/require(); guard test excludes itself from the walk
+- [Phase 08]: UAT: worker client returns raw `Uint8Array` digests — Phase 9 UI must hex/Base64 via `lib/hash/format.ts`; Firefox + Safari module-Worker smoke passed manually
+- [Phase 08]: 08-05: Production proof uses mandatory node:crypto/zlib oracles for all 10 algorithms; supersede bound stays 2000 ms; CI runs test:e2e:prod sequentially after test:e2e
+- [Phase 09]: Copy link is absolute and capped at 2,000 encoded chars (inclusive); disabled for empty text; URL never auto-written
+- [Phase 09]: Registry/FAQ privacy wording limited to "Hashing runs in your browser" + "The link contains your text" (D-27, unit-test enforced)
+- [Phase 09]: Esc restores the sample but stashes typed text for "Restore your text"; Esc ignores open dialogs and IME composition
+- [Phase 09]: Skeleton heights pinned (2240px @320, 1612px @1280) for zero CLS
+- [Quick 261017-cnt]: origin/main (Config Syntax Highlighter, PRs #14/#15) merged into the v1.2 branch; 6 active tools, six-link nav fits at 640px
+- [Phase 09]: 09-01: sample digests stored as hex constants; 150 ms debounce only above 1 MiB; soft-cap copy per D-07a; select-on-focus selects sync + rAF with mouseup guard
+- [Phase 09]: 09-02: onmessageerror optional on WorkerLike; postMessage throw keeps worker, messageerror tears it down
+- [Phase 09]: Hash slug 'hash' registered as public sitemap URL (D-25); registry description limited to 'in your browser' privacy wording, guarded by unit test (D-27)
+- [Phase 09]: 09-04: Copy-all format state lives inside OutputToolbar; payloads joined with newline, no trailing newline; checksum lines always lowercase hex with two-space dash; encoding is display-only and never re-hashes (CRC32 stays hex under Base64)
+- [Phase 09]: 09-05: BSD tag parsed via lastIndexOf(')') + anchored tail regex (linear), 0x strip applied to hex candidate only, base64url folded to standard Base64
+- [Phase 09]: 09-08: privacy-adjacent FAQ answer limited to the two approved D-27 statements, pinned by exact-equality test
+- [Phase 09]: 09-08: worked-example digest lines use whitespace-pre-wrap so the two-space sha256sum separator survives
+- [Phase 09]: 09-06: Copy link is absolute (origin + /tools/hash?text=), disabled for empty text, cap of 2,000 encoded chars is inclusive; ?text= is read once and never written
+- [Phase 09]: 09-07: copy-chord Shift/Alt guard lives in the shared useKeyboardShortcut hook; Esc ignores open dialogs; Restore your text stashes Esc-replaced text until next edit
+- [Phase 09]: Hash skeleton pinned to measured island heights 2240px/1612px (09-09)
+- [Quick 261017-f4s]: digests render with text-rendering:geometricPrecision so Linux Chromium wraps like macOS (skeleton pins hold cross-platform); CI e2e job removed by user decision to save Actions minutes — test:e2e and test:e2e:prod are local-only (supersedes 08-05 CI note)
 
 ### Pending Todos
 
@@ -100,8 +148,16 @@ None yet.
 
 ### Blockers/Concerns
 
-- Tech debt carried from v1.0, not in v1.1 scope: `/api/mac-vendor`'s interim API-proxy architecture should migrate to a build-time-compacted local OUI dataset per CLAUDE.md; no rate limiting on `/api/mac-vendor` (accepted risk, AR-05-01) — revisit if production traffic warrants it. Related-tool links and a dedicated per-tool accessibility re-audit also remain deferred.
-- Tech debt carried from v1.1: `packetory.vercel.app`/`www.packetory.dev` → apex redirects (DOM-02) and a domain/DNS runbook (DOM-04) were deliberately descoped — revisit if duplicate-content SEO or the `www` TLS gap becomes a priority.
+- Accepted (2026-10-17): analytics `redactBeforeSend` passes events through untouched when there's no `?`, so URL-fragment state would bypass redaction — no tool uses fragments today; INTG-03 descoped with Phase 10.
+- Tech debt carried from v1.0: `/api/mac-vendor` interim API-proxy (build-time OUI dataset is the intended architecture); no rate limiting on it (AR-05-01); related-tool links and a per-tool accessibility re-audit still deferred.
+- Tech debt carried from v1.1: DOM-02 redirects and DOM-04 runbook deliberately descoped — revisit if duplicate-content SEO or the `www` TLS gap becomes a priority.
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 261017-cnt | Merge origin/main (PRs #14/#15 config highlighter) into phase branch, keep hash + config tools | 2026-10-17 | 30baef9 | [261017-cnt-merge-origin-main-prs-14-15-config-highl](./quick/261017-cnt-merge-origin-main-prs-14-15-config-highl/) |
+| 261017-f4s | Fix PR #16 CI hash-layout failure (geometricPrecision on digests) and drop e2e job from CI | 2026-10-17 | ab869bc | [261017-f4s-fix-pr-16-ci-hash-layout-failure-and-dro](./quick/261017-f4s-fix-pr-16-ci-hash-layout-failure-and-dro/) |
 
 ## Deferred Items
 
@@ -113,10 +169,10 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-07-25T20:26:26.905Z
-Stopped at: Completed 07-01-PLAN.md
+Last session: 2026-10-15T18:19:54.310Z
+Stopped at: Phase 09 complete, ready to plan Phase 10
 Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Start Phase 9 with /gsd-discuss-phase 9 (or /gsd-plan-phase 9)

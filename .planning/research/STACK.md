@@ -1,150 +1,150 @@
-# Technology Stack
+# Technology Stack — v1.2 Hash Generator (additions only)
 
 **Project:** Packetory
-**Domain:** Network/infrastructure engineer utility site (UUID generator, IP subnet calculator, DNS lookup, MAC address inspector) — Next.js App Router + TypeScript + Tailwind, Vercel hosting (already confirmed, not relitigated below)
-**Researched:** 2026-07-21
-**Confidence:** HIGH — every recommendation below was cross-checked against a primary source: npm registry metadata (`registry.npmjs.org`), GitHub repo metadata (stars/last-push via the GitHub API), or a live `curl` against the actual production endpoint (Cloudflare/Google DoH, IEEE OUI registry). Where a claim rests on web search alone without that cross-check, it is marked MEDIUM inline.
+**Milestone:** v1.2 Hash Generator (`/tools/hash`)
+**Researched:** 2026-10-14
+**Overall confidence:** HIGH (versions from npm registry; sizes and throughput measured locally; Worker bundling verified by a real Next 16.2.11 production build driven in Chrome)
+
+Scope: only what is NEW. Next 16.2.11 / React 19.2.8 / Tailwind 4 / Vitest / fast-check / Playwright / the shared shell, `useCopyToClipboard`, `useKeyboardShortcut` and `history.replaceState` URL state are already validated and not re-researched.
+
+## Recommendation (one line)
+
+**Add exactly one runtime dependency: `hash-wasm@4.12.0` (exact pin).** It implements all ten target algorithms, including CRC32, behind one streaming API, with no other packages. Run it in a lazily created Web Worker for files and on the main thread for text. Use **no** other hashing library. Test with `node:crypto` and `node:zlib` as oracles, so there are no new dev dependencies.
 
 ## Recommended Stack
 
-### Already Confirmed (context only — not open for reconsideration)
+### New runtime dependency
 
-| Technology | Latest observed version (2026-07-21) | Notes |
-|------------|---------------------------------------|-------|
-| Next.js (App Router) | 16.2.11 | Confirmed in PROJECT.md |
-| React / React DOM | 19.2.8 | Ships with Next 16 |
-| TypeScript | 7.0.2 | Confirmed |
-| Tailwind CSS | 4.3.3 | Confirmed |
-| ESLint | 10.7.0 | Use Next's built-in `eslint-config-next` on top of this |
+| Technology | Version | Purpose | Why |
+|------------|---------|---------|-----|
+| `hash-wasm` | **4.12.0** (pin exact, no caret) | MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-512, RIPEMD-160, CRC32 for text and files | The only candidate that covers all 10 algorithms (CRC32 included) in one zero-dependency package. It has an incremental `createX()` / `update()` / `digest()` API for chunked file hashing. It is MIT, ships its own `.d.ts`, has `"sideEffects": false` and per-algorithm ESM exports that tree-shake. WASM is embedded as base64 in the JS, so there is no separate `.wasm` request and no third-party request. It is about 5x faster than pure-JS noble on large files (table below), which matters for the ISO/image-checksum use case. |
 
-These are listed only so the domain-specific choices below have a known baseline — do not re-derive them.
+Installation:
 
-### Core Domain Libraries
+```bash
+npm install --save-exact hash-wasm@4.12.0
+```
 
-| Library | Version | Purpose | Why Recommended |
-|---------|---------|---------|------------------|
-| `ip-address` | 10.2.0 | IPv4 + IPv6 parsing, subnet math | GitHub: 612 stars, actively maintained (pushed 2026-06-28), **zero runtime dependencies**, 270KB unpacked, explicitly documented as browser-safe with no Node-only APIs. Its API maps almost 1:1 onto the brief's required subnet-calculator output fields: `startAddress()`/`endAddress()` (network/broadcast or first/last usable), `subnetMaskAddress()`, `wildcardMask()`, `reverseForm()` (reverse-DNS zone), `canonicalForm()` (IPv6 expanded) vs. default compressed `::` output. This is the single biggest reason it beats the alternatives below — it needs almost no glue code. |
-| `uuid` | 14.0.1 | UUID v4 + v7 generation, formatting, validation | RFC 9562–compliant, 15.3k GitHub stars, 265M weekly downloads, **zero runtime dependencies**, browser-safe (uses `crypto.getRandomValues` under the hood, no Node `crypto` module import in the browser build), 66KB unpacked. One import gives you v4 *and* v7 plus `validate()`/`version()`/`parse()`/`stringify()` — one code path for the whole UUID tool instead of mixing a native API with a separate v7 package. |
-| Native `crypto.randomUUID()` | — (built into the browser, no install) | NOT recommended as the primary generator — see "What NOT to Use" | Zero-byte, but v4-only (no v7 support), so using it would force a second dependency for v7 anyway. Keep it in mind only as a fallback/polyfill trigger check, not as the tool's core implementation. |
+No dev dependencies are added. Test oracles come from Node itself:
 
-**Confidence:** HIGH for `ip-address` and `uuid` (npm registry + GitHub cross-checked). MEDIUM for the native-API tradeoff analysis (web search only, but the underlying MDN behavior — v4-only, no v7 — is well established and low-risk to state as fact).
+- `node:crypto` `createHash('md5' | 'sha1' | 'sha224' | 'sha256' | 'sha384' | 'sha512' | 'sha3-256' | 'sha3-512' | 'ripemd160')`
+- `node:zlib` `crc32()` (Node >= 22.2; CI pins Node 22)
 
-### DNS-over-HTTPS Resolver Strategy
+### Verified facts about hash-wasm 4.12.0
 
-| Choice | Endpoint | Verified Behavior |
-|--------|----------|--------------------|
-| **Primary: Cloudflare** | `GET https://cloudflare-dns.com/dns-query?name=<name>&type=<type>` with header `accept: application/dns-json` | Live-`curl`-verified (2026-07-21): returns `access-control-allow-origin: *` — directly callable from browser `fetch()`, no proxy/CORS workaround needed. JSON schema: `Status` (standard DNS RCODE, `0`=NOERROR, `3`=NXDOMAIN — confirmed via a live NXDOMAIN test), `Answer[]` with `name`/`type`/`TTL`/`data`. Cloudflare's documented indicative rate limit is ~1000 req/hour/IP — generous for a client-driven, human-paced lookup tool. |
-| **Fallback: Google** | `GET https://dns.google/resolve?name=<name>&type=<type>` (no special header required) | Live-`curl`-verified: also returns `access-control-allow-origin: *`. Same de-facto JSON shape as Cloudflare (`Status`/`Answer[]`/`TTL`), so the DNS Lookup tool's response-parsing code can share one shape/type between both resolvers with no provider-specific branching for the common fields. |
+- **Maintenance:** last published 2024-11-19. About 1.9M weekly downloads. GitHub: 1,160 stars, 13 open issues, not archived. It is quiet but stable. The hash algorithms are frozen standards and the WASM blobs are static, so staleness is a low risk. Mitigation: exact pin, and wrap it behind `lib/hash` so swapping to `@noble/hashes` is a one-file change (see Alternatives).
+- **License:** MIT. The LICENSE notes "embedded C implementations might use other, similarly permissive licenses". This is acceptable, but it belongs in a NOTICE/credits line if the project keeps one.
+- **Correctness (verified locally):** across 5 inputs (empty, `abc`, `123456789`, a multi-byte UTF-8 string with emoji and CJK, and 1000 x `a`), all 9 digests matched `node:crypto` and CRC32 matched `zlib.crc32`, with 0 mismatches. `crc32("123456789")` is `cbf43926`, the standard IEEE check value. Streaming 1,000,003 random bytes in odd 65,537-byte chunks matched one-shot results for SHA3-512 and CRC32.
+- **Input handling:** strings are UTF-8 encoded internally. Typed arrays are detected with `ArrayBuffer.isView`, which is cross-realm safe, so it behaves under Vitest/jsdom. Output is lowercase hex. CRC32 output is 8-char hex, big-endian presentation of the standard value.
+- **Statefulness gotchas:**
+  - `digest()` flips the instance to uninitialized. Call `init()` before reuse, or create a fresh set per file.
+  - `createX()` instances are stateful and must not be shared across concurrent files.
+  - The one-shot functions (`md5(str)`, `sha3(str, 256)`, …) are fine to call concurrently from the main thread: after their one `await`, the work is synchronous.
 
-**Recommendation:** Cloudflare primary, Google fallback — exactly the "select one primary and one explicit fallback" requirement from the brief (§5.3). Both are directly browser-callable (no serverless proxy required for CORS reasons, though you may still want an API route wrapper purely to normalize errors/timeouts and to keep the resolver choice server-controlled if you need to change it without a client redeploy).
+### Bundle size (measured with esbuild `--minify`, tree-shaken, WASM base64 included)
 
-**Important caveat:** There is no formal RFC for the DoH *JSON* format (only DNS wireformat is RFC 8484-standardized) — Cloudflare's and Google's JSON responses happen to match today, but treat this as a MEDIUM-confidence assumption for long-term stability and add a schema-tolerant parser (don't assume every field is always present).
+| Algorithm set | Raw | gzip |
+|---|---|---|
+| hash-wasm, all 10 (`createMD5 … createCRC32`) | 67.1 KB | **24.5 KB** (br 19.9 KB) |
+| hash-wasm per algorithm: MD5 / SHA-1 / SHA-256 (= SHA-224) / SHA-512 (= SHA-384) / RIPEMD-160 / SHA3 / CRC32 | 10.2 / 13.0 / 18.5 / 23.6 / 14.6 / 11.1 / 7.4 KB | 4.7 / 5.6 / 7.1 / 8.3 / 6.1 / 4.9 / 3.3 KB |
+| @noble/hashes, 9 algorithms (no CRC32) | 18.8 KB | 7.9 KB (br 6.8 KB) |
+| crypto-js, whole library (not tree-shakeable in practice) | 72.8 KB | 27.0 KB |
+| spark-md5 / js-md5 (MD5 only) | 9.1 / 10.1 KB | 3.0 / 3.5 KB |
+| crc-32 | 2.6 KB | 1.2 KB |
 
-**Not selected for primary/fallback:** Quad9's DoH JSON endpoint did not respond on the standard `dns-query` GET path during a live test — would need further verification of its exact JSON endpoint URL before considering it as a third option. NextDNS and other providers were not tested; revisit only if Cloudflare+Google reliability becomes a problem in production.
+Sizes are per tree-shaken algorithm, so adding or removing a row in the algorithm registry changes the chunk size predictably. All of it sits in a lazily loaded client chunk behind the existing `next/dynamic(..., { ssr: false })` island, or in the worker chunk. The roughly 16 KB gzip premium over noble does not touch the server-rendered shell, and the Lighthouse impact is expected to be negligible. **Re-measure with `next build` and Lighthouse in the phase.**
 
-**Confidence:** HIGH (live-verified against production endpoints, not secondhand documentation).
+### Throughput (measured: Node 22.13, macOS, V8, 128 MiB, 1 MiB chunks, single thread)
 
-### MAC/OUI Vendor Data
+| Algorithm | @noble/hashes 2.4.0 (pure JS) | hash-wasm 4.12.0 (WASM) | node:crypto (native reference) |
+|---|---|---|---|
+| MD5 | 116 MB/s | 644 | 750 |
+| SHA-1 | 431 | 971 | 3369 |
+| SHA-224 / SHA-256 | 335 / 326 | 568 / 560 | n/a / 3375 |
+| SHA-384 / SHA-512 | 156 / 156 | 877 / 931 | n/a / 1911 |
+| SHA3-256 | 75 | 784 | 1120 |
+| SHA3-512 | **39** | 423 | n/a |
+| RIPEMD-160 | 311 | 628 | 597 |
+| CRC32 | n/a (crc-32 pkg: 2452) | 2596 | n/a |
+| **All 10 serially (what the tool needs)** | **about 14 MB/s** | **about 72 MB/s** | n/a |
+| **Time for 100 MB / 1 GiB** | about 7 s / **about 74 s** | about 1.4 s / **about 14 s** | n/a |
 
-| Approach | Verdict | Details |
-|----------|---------|---------|
-| **Build-time OUI compaction (recommended)** | Use this | Live-verified: `https://standards-oui.ieee.org/oui/oui.csv` (MA-L / 24-bit registry, the classic "OUI") is public, unauthenticated, returns `Registry,Assignment,Organization Name,Organization Address` CSV, ~3.8MB raw, and its `Last-Modified` header shows same-day updates — IEEE refreshes it roughly daily. `MA-M` (28-bit, `oui28/mam.csv`) and `MA-S`/`OUI-36` (36-bit, `oui36/oui36.csv`) extend coverage for organizations that bought smaller blocks. Write a small Node script (run in CI on a schedule, e.g. weekly GitHub Action) that downloads these CSVs, normalizes/dedupes them, and emits a **compact integer-keyed lookup** (e.g. a `Map<number, string>`/typed array keyed by the numeric 24-bit prefix, JSON or a small binary format) checked into the repo or published as a build artifact. |
-| **`mac-oui-lookup` npm package (v1.1.4)** | Reference only, don't ship raw | Zero deps, but **1.75MB unpacked** — bundles ~50K OUI entries as plain JSON. Fine as inspiration for parsing logic, too large to import directly into a client bundle without code-splitting. |
-| **`oui-data` npm package (v1.1.571)** | Reference only, don't ship raw | The raw IEEE database as JSON, **4.06MB unpacked / ~1.2MB gzip**. Same bundle-size problem — good as an input source for your own build script (or study its normalization approach), bad as a runtime dependency. |
-| **External API proxy (`/api/mac-vendor`)** | Acceptable for launch only | Brief explicitly allows this as an initial/interim step (§5.4) but flags it as **not the permanent architecture** — treat it as a stopgap only if the compaction script isn't ready in time for the MAC Inspector phase. |
+- hash-wasm throughput is insensitive to chunk size: 578 / 595 / 596 MB/s for SHA-256 at 64 KiB / 1 MiB / 4 MiB. Browser-chosen `File.stream()` chunk sizes are therefore fine.
+- Confidence: MEDIUM for absolute numbers in browsers. Node/V8 results transfer well to Chrome/Edge. Safari (JSC) and Firefox will differ, so treat the 5x ratio as the planning figure, not the absolute MB/s.
+- Native `node:crypto` is not available in the browser. It is shown only as a ceiling.
 
-**Serving strategy:** Whichever compaction format you pick, do **not** import the full dataset into a client component. Either (a) serve lookups from a server-only API route reading the compacted file (keeps 0 bytes of OUI data in the client JS bundle), or (b) lazy-load a single code-split chunk only on the MAC Inspector page if you want the lookup to run fully client-side/offline. Given the project's "local-first processing" principle (project-brief §3, §10.1: "third-party requests are forbidden for tools that can operate locally"), option (b) — a lazy-loaded local dataset — better matches the stated architecture principle than a live external API call on every lookup, and avoids the "no third-party requests" NFR entirely once the initial build is done.
+### Integration (new files only)
 
-**Update cadence:** Rebuild the compacted dataset on a schedule (weekly is more than sufffient given OUI assignments don't churn meaningfully faster than that) via a scheduled GitHub Action that re-downloads the IEEE CSVs, regenerates the compact file, and opens a PR (or auto-commits) if the content changed — mirrors the "dependency-update pull requests" automation pattern already endorsed in the brief's ops model (§14).
-
-**Confidence:** HIGH (live-verified IEEE endpoint + npm registry size data).
-
-### Testing Stack
-
-| Tool | Version | Purpose | Notes |
-|------|---------|---------|-------|
-| Vitest | 4.1.10 | Unit tests for framework-agnostic `lib/` modules + sync client components | Official Next.js docs (nextjs.org/docs/app/guides/testing/vitest) recommend it for App Router. Install: `vitest @vitejs/plugin-react jsdom @testing-library/react @testing-library/dom vite-tsconfig-paths`; config with `environment: 'jsdom'` + `tsconfigPaths()` + `react()` plugins. |
-| `@testing-library/react` | 16.3.2 | Component-level tests where needed | Pairs with Vitest + jsdom. |
-| `fast-check` | 4.9.0 | Property-based testing for subnet/address/MAC math | 5073 GitHub stars, actively maintained (pushed 2026-07-20), TypeScript-native, QuickCheck-style. This directly satisfies the brief's NFR: "subnet and address logic uses boundary and property-based tests where practical" (§10.2). |
-| `@fast-check/vitest` | 0.4.1 | Official fast-check ↔ Vitest integration | Adds `test.prop()`/`it.prop()` extending Vitest's `test`/`it` with arbitraries; supports sync and async properties; integrates `beforeEach`/`afterEach` per generated run. Install alongside `fast-check`. |
-| `@playwright/test` | 1.61.1 | End-to-end tests for full user flows | Use for anything Vitest structurally can't cover: async Server Components (a known current Vitest/React-ecosystem limitation, not Next-specific), full keyboard-interaction flows (`/` focus, `Enter` execute, `Esc` clear), and real DNS-lookup round trips through the debounce/`AbortController` logic. Can auto-start the Next dev/start server via its `webServer` config. |
-
-**Recommended split (matches the brief's `lib/` vs `app/` split directly):**
-- **Vitest + fast-check** own all of `lib/uuid`, `lib/subnet`, `lib/dns` (pure parsing/formatting logic), `lib/mac` — this is where nearly all business-logic risk lives, and it's 100% framework-agnostic so tests run fast with no DOM/browser needed for the math itself.
-- **Vitest + Testing Library** own client components with meaningful conditional rendering (copy-confirmation states, loading/error/empty states).
-- **Playwright** owns the small number of true end-to-end flows: keyboard shortcuts working across a real page, debounced DNS lookup not racing itself, bookmarkable URL state (`?cidr=`, `?name=&type=`) actually restoring tool state on load.
-
-**Confidence:** MEDIUM-HIGH (Next.js's own docs recommend Vitest; version numbers cross-checked against npm registry; fast-check/Vitest integration confirmed via its own package description, not deeply hands-on verified in this research pass).
+| Piece | Recommendation |
+|-------|----------------|
+| `lib/hash/` core (framework-agnostic, matches the `lib/uuid`, `lib/subnet`, `lib/mac` pattern) | An `algorithms.ts` registry (id, label, bit length, one-shot fn, `create` fn), a text API (`hashText(str)` returning all 10 hex digests via `Promise.all` of the one-shot functions), and a streaming API `hashStream(chunks: AsyncIterable<Uint8Array>, { signal, onProgress })`. Taking an `AsyncIterable` rather than a `File` keeps it unit-testable in Vitest without a browser. It creates fresh `createX()` instances per call, feeds every chunk to all 10, and returns the digests. |
+| Worker | A thin `hash.worker.ts` wraps `hashStream` and posts throttled progress (about 10 Hz) and the final result. Use a plain `postMessage` protocol of about 40 lines. **Cancel = `worker.terminate()`**, which also satisfies `Esc` and starting a new file. Create the worker lazily on first file drop, and terminate it after completion or cancel. |
+| Reading files | `file.stream().getReader()`, with `file.slice(i, i + 4 MiB).arrayBuffer()` as a simple alternative. Both stream with bounded memory and have no 2 GB ArrayBuffer ceiling. |
+| Text path | Main thread, async, debounced as DNS/MAC are. Reuse the sequence-token and cancel-on-supersede discipline from the Key Decisions table, because one-shot hashing is `async`. Above a threshold of about 1 MiB of pasted text, route to the worker instead of blocking the main thread. |
+| Default result on load | The default sample's ten digests are build-time constants. Consider rendering them in the server shell (no JS needed) and hydrating the live input afterwards. This is an optimization the phase can decide on. |
+| Vitest | Put `// @vitest-environment node` at the top of `lib/hash/*.test.ts` (the repo default is jsdom). This is zero-risk, since hash-wasm is realm-safe anyway. Add published vectors (NIST/RFC 1321/RIPEMD-160 paper, CRC `123456789 -> cbf43926`) as the primary assertions, and `fast-check` properties against `node:crypto`/`zlib.crc32` as differential tests. Include a chunk-boundary property: hashing a buffer split at arbitrary points must equal the one-shot hash. Guard the RIPEMD-160 oracle (`try { createHash('ripemd160') }`), because some OpenSSL 3 builds disable it. The hard-coded vectors still cover it. |
+| Playwright | Cover typing, drop/picker of a small fixture file, `Esc` cancel of a large generated file, and URL-state restore. The worker path needs a real browser, so it belongs here. |
+| Worker bundling (verified) | `new Worker(new URL("./hash.worker.ts", import.meta.url), { type: "module" })` works on **Next 16.2.11 with Turbopack production build**. A scratch app with this exact Next/React/TS pin produced a bundled `turbopack-worker-*.js` entry plus chunk, and Chrome ran it: `sha256("x")` and `@noble` MD5 worked inside the worker, with no `.wasm` fetch. See Pitfalls below. |
 
 ## Alternatives Considered
 
-| Recommended | Alternative | When to Use Alternative |
-|--------------|-------------|--------------------------|
-| `ip-address` | `ip-num` (v1.6.1, 175 GH stars, zero-dep, TS-native `IPv4CidrRange`/`IPv6CidrRange` with `.split()`) | If you specifically need programmatic subnet-splitting/VLSM-style range division as a first-class primitive — relevant for the *v2* "full VLSM planner" feature explicitly deferred in the brief. Revisit `ip-num` (or use it alongside `ip-address`) when that v2 feature is scheduled, since its `.split()` semantics are closer to what a VLSM planner needs. For v1's single-CIDR breakdown, `ip-address` requires less glue code. |
-| `ip-address` | `netmask` (v2.1.1, 253 GH stars, 26KB, now supports both IPv4 and IPv6) | If you want the smallest possible footprint and don't need reverse-DNS-zone generation or IPv6 canonical/compressed dual output — `netmask`'s API is simpler but doesn't cover the brief's full IPv6 output list (compressed *and* expanded notation, reverse DNS zone) out of the box. |
-| `uuid` package for both v4 and v7 | Native `crypto.randomUUID()` for v4 + a small dedicated `uuidv7` package (v1.2.1) for v7 | If minimizing bytes is critical (e.g. you're chasing the last few KB of a 90+ Lighthouse performance budget) and you're comfortable maintaining two separate code paths with slightly different APIs. Not recommended for v1: the complexity cost outweighs the marginal byte savings for a single small tool page. |
-| Cloudflare primary / Google fallback for DoH | Any single resolver only | Never — the brief explicitly requires primary + fallback (§5.3), and single-resolver dependency is a real availability risk for a "leave-it-open bookmark" tool. |
-| Build-time OUI compaction | Live external MAC-vendor API (e.g. macvendors.com's API, `maclookup-nodejs`/macaddress.io) | Only as a temporary stopgap if the compaction script can't ship in time for the MAC Inspector phase — the brief is explicit that this must not become the permanent architecture (§5.4), and it also conflicts with the "no third-party requests for tools that can operate locally" NFR (§10.1) once a local dataset is feasible. |
-| Vitest + Playwright | Jest + Testing Library only (no Playwright) | If the team wants to avoid maintaining two test runners and is willing to accept weaker coverage of true browser-only behavior (async Server Components, real keyboard-flow E2E). Not recommended given the brief's explicit CI requirement for tests as a PR gate and the amount of keyboard-interaction behavior specified (§6). |
+| Category | Recommended | Alternative | Why Not |
+|----------|-------------|-------------|---------|
+| Engine | `hash-wasm` | `@noble/hashes@2.4.0` (MIT, audited, actively maintained: last push 2026-09-08, about 97M weekly downloads, zero deps, `sideEffects:false`, sync API, `legacy.js` has MD5/SHA-1/RIPEMD-160, `sha2.js`, `sha3.js`) | **The strongest runner-up and the documented fallback.** Smaller (7.9 KB gz for 9 algorithms), sync (no async races for live typing), audited. But it is about 5x slower: all-10 on 1 GiB takes about 74 s (SHA3-512 at 39 MB/s is the bottleneck), 4 GiB ISOs take about 5 min, and it has **no CRC32**, so you would still need a CRC32 source. Choose it if hash-wasm turns out to have a browser compat or maintenance problem, or if you decide file speed does not matter. It is the same `Hash` shape (`create().update().digest()`), so the swap stays inside `lib/hash`. |
+| Engine | `hash-wasm` | **Hybrid:** noble for text on the main thread plus hash-wasm in the file worker | Rejected for v1.2. Two engines means two APIs, two bundles and a bigger test matrix, for about 16 KB gz saved on a lazily loaded island. Do it later only if Lighthouse shows a real problem. |
+| Engine | `hash-wasm` | Native Web Crypto `SubtleCrypto.digest` | Only SHA-1/256/384/512. It is **one-shot with no streaming**: it needs the entire file as one `ArrayBuffer` (RAM equal to file size, hard failure around 2 GB) and has no MD5, SHA-224, SHA-3, RIPEMD-160 or CRC32. Its speed advantage is moot when the other six algorithms need a library anyway and every hash must be computed in the same pass. Not worth a second code path. |
+| CRC32 | `hash-wasm` `crc32` (2.6 GB/s measured) | `crc-32@1.2.2` (Apache-2.0, zero deps, 1.2 KB gz, 53M weekly downloads, last published 2022) | Equivalent speed (2.45 GB/s) and correct, but redundant once hash-wasm is present. It adds a dependency and a second license for nothing. Use it only if you pick the noble path. |
+| CRC32 | `hash-wasm` | Hand-rolled 256-entry table (about 12 lines) | Measured at about 580 MB/s and bit-exact against `zlib.crc32`. A fine zero-dependency fallback on the noble path, but 4x slower than slice-by-N, and there is no reason to hand-roll when it comes free. |
+| MD5 | `hash-wasm` | `js-md5@0.9.2` (MIT, maintained, 3.5 KB gz), `spark-md5@3.0.2` (WTFPL-or-MIT, 3 KB gz, last push 2023) | Single-algorithm libraries. They would mean adding up to 3 more packages with inconsistent APIs to match one that already does everything. spark-md5 has a nice incremental `ArrayBuffer` API but no other algorithm. |
+| Everything | `hash-wasm` | `crypto-js@4.2.0` | **Discontinued by its own README** ("no longer maintained"). Not tree-shakeable (27 KB gz for everything), `WordArray`-based so it is slow and awkward for `Uint8Array` streaming, and has no CRC32. |
+| Everything | `hash-wasm` | `sha.js`, `ripemd160`, `hash.js`, `md5` (npm) | Node/browserify polyfill lineage with transitive deps (`inherits`, `safe-buffer`, `to-buffer`, `hash-base`, `is-buffer`, `crypt`, `charenc`). They need `Buffer` shims, are slow, and give no unified streaming API. |
+| Worker RPC | Hand-written `postMessage` protocol | `comlink` | Not needed for a one-shot job-and-progress protocol. Skip the dependency. |
+| File input UI | Native drag/drop events plus hidden `<input type="file">` | `react-dropzone` | A drop zone needs about 40 lines of React. Do not add a dependency. |
 
-## What NOT to Use
+## What NOT to Add
 
 | Avoid | Why | Use Instead |
-|-------|-----|--------------|
-| Node.js `net`/`dns` core modules for subnet math or MAC parsing | Not available in the browser at all, and mixing Node-only logic into `lib/` breaks the brief's "framework-agnostic, independently testable, shared by pages and future API routes" requirement (the whole point is these modules must run client-side in a static-first app) | `ip-address` (pure JS/TS math, no Node APIs) |
-| DNS resolution via a Node-only library (e.g. `dns.promises` or `dns2`) inside a client component or anything expected to run in the browser | Node-only APIs; would force every DNS lookup through a server round-trip even though DoH is designed to be called directly from the browser, adding latency and defeating the "instant" UX goal | Direct browser `fetch()` to Cloudflare/Google DoH JSON endpoints (both CORS-open, verified above) |
-| Shipping `oui-data` or `mac-oui-lookup` as direct dependencies imported into a client component | 1.2–4MB of JSON in the client bundle destroys the "minimal JS per page" NFR and the 90+ Lighthouse target instantly | A build-time-compacted, size-minimized custom dataset (see MAC/OUI section above) |
-| Relying on `crypto.randomUUID()` alone for the whole UUID tool | It only produces v4 — the tool explicitly requires v4 *and* v7 with unified output formatting (case, hyphens, batch, CSV/JSON) | The `uuid` npm package, which covers both versions with one API |
-| A single DNS resolver with silent failover | The brief explicitly forbids silently switching resolvers when the result could differ (§5.3) — a user needs to know when a fallback was used | Explicit primary/fallback with the "resolver used" and "whether a fallback resolver was used" fields surfaced in the UI, as already scoped |
-| An unauthenticated/uncapped scheduled job hitting `standards-oui.ieee.org` on every request or every deploy | Unnecessary load on a public registry and slower builds; the file only changes roughly daily | A time-boxed scheduled rebuild (e.g. weekly GitHub Action), not a per-request or per-deploy fetch |
+|-------|-----|-------------|
+| `crypto-js` | Discontinued, large, no CRC32, not tree-shakeable | `hash-wasm` |
+| `crc-32`, `spark-md5`, `js-md5` alongside hash-wasm | Redundant, extra deps and licenses (Apache-2.0 for crc-32) | hash-wasm's own `crc32` / `md5` |
+| Both `@noble/hashes` and `hash-wasm` in production | Two engines, two APIs, double the test surface | Pick one. `hash-wasm` now, noble as the contingency swap. |
+| `file.arrayBuffer()` / `FileReader.readAsArrayBuffer()` on the whole file | Memory equal to file size; fails or OOMs in the GB range | Chunked `file.stream()` reader or `slice().arrayBuffer()` |
+| Whole-file hashing on the main thread | Freezes UI for seconds to a minute (about 14 s/GiB even with WASM) and breaks `Esc` | Worker plus `terminate()` |
+| `Buffer` / Node `crypto` polyfills (`crypto-browserify`, `stream-browserify`, webpack/Turbopack fallbacks) | Pull in huge shims. Not needed, since hash-wasm uses `TextEncoder`/typed arrays. | Nothing |
+| Any CDN-hosted hash lib or WASM file | Violates "no third-party requests" | hash-wasm embeds its WASM in the JS bundle |
+| A server API route for hashing | Violates local-first and privacy (files must never leave the browser) | In-browser only |
+| `next.config` `experimental` worker or WASM flags, or `output: export` changes | Unnecessary, since the default Turbopack build bundles the worker | Leave `next.config.ts` untouched |
 
-## Installation
+## Pitfalls specific to this stack choice (feed PITFALLS.md and phase planning)
 
-```bash
-# Core domain libraries
-npm install ip-address uuid
-
-# Testing
-npm install -D vitest @vitejs/plugin-react jsdom @testing-library/react @testing-library/dom vite-tsconfig-paths
-npm install -D fast-check @fast-check/vitest
-npm install -D @playwright/test
-npx playwright install --with-deps chromium   # add firefox/webkit if you want broader E2E coverage later
-```
-
-No install needed for DNS-over-HTTPS — it's called via native `fetch()` from the browser or an API route, not an SDK.
-
-No install needed for MAC/OUI data at runtime if you go with the build-time-compaction approach — the IEEE CSVs are fetched by a build/CI script, not a runtime dependency. If a temporary API-proxy stopgap is used at launch, no new dependency is required either (`fetch()` from an API route is enough).
-
-## Stack Patterns by Variant
-
-**If the MAC Inspector phase ships before the OUI compaction script is ready:**
-- Use a minimal `/api/mac-vendor` route calling a public/free MAC-vendor API as an interim measure (explicitly sanctioned by the brief, §5.4).
-- Treat this as technical debt with a tracked follow-up to replace it with the local dataset — don't let the interim become permanent, since it also violates the "no third-party requests for tools that can operate locally" NFR once a local dataset is feasible.
-
-**If Lighthouse performance work later needs to shave bytes from the UUID tool specifically:**
-- Consider splitting to native `crypto.randomUUID()` (v4) + `uuidv7` (v7) only if profiling shows the `uuid` package's footprint is actually a measurable problem — don't pre-optimize for this in v1.
-
-**If a future VLSM/subnet-splitting feature (flagged v2 in the brief) gets scheduled:**
-- Re-evaluate `ip-num`'s `.split()`-based range API alongside `ip-address` — the two aren't mutually exclusive; `ip-address` can stay for the core single-CIDR breakdown while `ip-num` (or hand-rolled logic on top of `ip-address`'s BigInt-friendly address representation) handles the splitting/planning UI.
+1. **Turbopack worker regression risk (MEDIUM, verify in CI).** Public reports say `new Worker(new URL(...))` regressed in Next 16.2.4 and 16.3.0-canary.8, with a fix landing in the 16.3 canaries (about 2026-07-28). I verified the pattern works on the **pinned 16.2.11** production build (worker chunk emitted, executed in Chrome). Mitigations:
+   - Keep Next pinned.
+   - Add the Playwright worker e2e as the guard against a future bump.
+   - Keep `hashStream` worker-agnostic, so a fallback to a main-thread loop that yields via `setTimeout` between chunks is trivial.
+   - Cosmetic: the build also emits an unreferenced copy of the worker `.ts` source under `.next/static/media/`. It is harmless but publicly fetchable (no secrets in it).
+2. **CSP (LOW, future).** There is no CSP today (`next.config.ts` is empty). Instantiating WASM requires `'wasm-unsafe-eval'` in `script-src` (and `worker-src 'self'`) if a CSP is ever added. Note this in the analytics/privacy hardening backlog.
+3. **Async text path means race conditions.** `hash-wasm` one-shots return Promises. Apply the project's "every superseding path cancels its predecessor" rule (sequence token) to typing, paste, example load, and `Esc` reset.
+4. **Stateful hasher reuse.** `digest()` invalidates a hasher, and instances are not shareable across concurrent files. Always create a fresh set per file and per cancel/restart.
+5. **Absolute speeds are browser-dependent.** Plan the progress UI (bytes/total, throttled, cancel) for all files above about 50 MB regardless. At about 72 MB/s, 500 MB takes about 7 s.
+6. **CRC32 display.** The tool shows the standard IEEE CRC-32 (zip/PNG) as 8 hex chars. Offer the decimal form only if the Features research asks for it.
 
 ## Version Compatibility
 
 | Package | Compatible With | Notes |
-|---------|------------------|-------|
-| `ip-address@10.2.0` | TypeScript 7.x, Next.js 16.x (App Router, both server and client components) | Zero deps — no transitive version conflicts to track. |
-| `uuid@14.0.1` | Browser (via Web Crypto) and Node/Edge runtimes alike | Zero deps — safe to import in both client and server code paths, including Vercel Edge functions if a future API route needs UUIDs server-side. |
-| `vitest@4.1.10` + `@vitejs/plugin-react` + `jsdom` | Next.js 16.x App Router unit tests | Cannot test async Server Components directly (current React-ecosystem-wide limitation) — route those to Playwright instead, not a version-compatibility bug to try to work around. |
-| `fast-check@4.9.0` + `@fast-check/vitest@0.4.1` | `vitest@4.x` | Official integration package, versions here are both current-as-of-research — recheck compatibility if bumping either independently later. |
-| `@playwright/test@1.61.1` | Next.js 16.x dev/start server via `webServer` config | No known conflicts; browsers must be installed separately via `npx playwright install`. |
+|---------|-----------------|-------|
+| `hash-wasm@4.12.0` | Next 16.2.11 (Turbopack and webpack), React 19.2.8, TS 6.0.3 | Own types at `dist/lib/index.d.ts`. ESM with `sideEffects:false`. Zero dependencies. Runs in Node 22 (Vitest) and modern browsers with WebAssembly. |
+| Web Worker (`type: "module"`) | Chromium, Firefox, Safari 15+ | Module workers are baseline-supported. Verified end-to-end in Chrome only. Add Firefox/WebKit to the e2e matrix if the project's Playwright config includes them. |
 
 ## Sources
 
-- npm registry (`registry.npmjs.org`) — direct API queries for latest version, unpacked size, and dependency count of: `ip-address`, `ip-num`, `netmask`, `uuid`, `uuidv7`, `mac-oui-lookup`, `oui-data`, `vitest`, `fast-check`, `@fast-check/vitest`, `@testing-library/react`, `playwright`, `@playwright/test`, `next`, `react`, `typescript`, `tailwindcss`, `eslint` — HIGH confidence (primary source).
-- GitHub REST API — direct queries for stars/last-push date of: `beaugunderson/ip-address`, `ip-num/ip-num`, `rs/node-netmask`, `silverwind/oui`, `dubzzz/fast-check`, `uuidjs/uuid` — HIGH confidence (primary source).
-- Live `curl` against `https://cloudflare-dns.com/dns-query`, `https://dns.google/resolve`, and `https://standards-oui.ieee.org/oui/oui.csv` (2026-07-21) — HIGH confidence (empirical, production endpoints).
-- Web search (via built-in WebSearch tool) — general context on `crypto.randomUUID()` browser support, DoH rate-limit documentation, Vitest/fast-check integration patterns, and Next.js App Router testing conventions — MEDIUM confidence, cross-referenced against the primary-source checks above wherever a specific factual claim mattered.
-- `nextjs.org/docs/app/guides/testing/vitest` (official Next.js docs, referenced via search results) — MEDIUM confidence.
-
----
-*Stack research for: Packetory (network/infrastructure utility site)*
-*Researched: 2026-07-21*
+- npm registry (`npm view`), 2026-10-14. HIGH.
+  - `@noble/hashes` 2.4.0 (MIT, 691 KB unpacked, engines node >=20.19, modified 2026-08-27)
+  - `hash-wasm` 4.12.0 (MIT, 1.8 MB unpacked, modified 2024-11-19)
+  - `crc-32` 1.2.2 (Apache-2.0, 31 KB, 2022-06-14)
+  - `js-md5` 0.9.2, `spark-md5` 3.0.2, `crypto-js` 4.2.0, `ripemd160` 2.0.3, `sha.js` 2.4.12, `hash.js` 1.1.7, `md5` 2.3.0, `js-sha3` 0.13.0
+  - `@aws-crypto/crc32` 5.2.0
+- npm downloads API (weekly): hash-wasm 1.94M, @noble/hashes 97.1M, crc-32 53.1M. HIGH.
+- GitHub API: Daninet/hash-wasm (last push 2024-11-19, 1,160 stars, 13 open issues); paulmillr/noble-hashes (last push 2026-09-08, 930 stars, 4 open issues). HIGH.
+- Local measurements (esbuild bundles; Node 22.13 throughput; correctness vs `node:crypto` and `zlib.crc32`; real Next 16.2.11 production build with Worker driven in Chrome). HIGH for the relative comparisons, MEDIUM for absolute browser throughput.
+- crypto-js README ("Discontinued" notice), read from the installed package. HIGH.
+- Next.js/Turbopack worker-URL regression and fix: [Next.js 16.2 Turbopack blog](https://nextjs.org/blog/next-16-2-turbopack), [Next.js 16.3 Turbopack blog](https://nextjs.org/blog/next-16-3-turbopack), plus commit and release-note aggregators surfaced by web search (PR #93432 / #96307). MEDIUM, secondary sources, corroborated by the local build test on 16.2.11.

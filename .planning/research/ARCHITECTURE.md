@@ -1,392 +1,500 @@
-# Architecture Research
+# Architecture Research — v1.2 Hash Generator
 
-**Domain:** Multi-tool Next.js App Router utility site (network/infra engineering tools)
-**Researched:** 2026-07-21
-**Confidence:** MEDIUM — Next.js official docs are authoritative for framework mechanics (rendering, searchParams, metadata); the "tool registry" composition pattern itself is not an official Next.js pattern but a well-established community convention validated against the brief's own proposal and cross-checked across multiple independent sources.
+**Domain:** Browser-side hashing tool added to an existing Next.js 16 App Router utility site
+**Researched:** 2026-10-14
+**Confidence:** HIGH (codebase inspected directly; worker pattern, bundle size, throughput, test vectors, and jsdom behavior all verified empirically in a throwaway copy of the repo — see "Verification Evidence")
+
+Scope: only what the NEW `/tools/hash` feature needs. Existing shell, registry, hooks, analytics and test conventions are described only where the new tool touches them.
+
+---
+
+## TL;DR Decisions
+
+| Question | Decision | Confidence |
+|----------|----------|------------|
+| Hash library | `@noble/hashes@2.4.0` (exact pin), zero deps, ESM, `sideEffects:false`, incremental `.create().update().digest()` for every algorithm needed except CRC32 | HIGH |
+| CRC32 | Hand-rolled ~20 LOC table-based incremental implementation in `lib/hash/crc32.ts` (noble has none; `crc-32` package not worth a dependency) | HIGH |
+| Where hashing runs | **Always in a dedicated Web Worker** (one code path for text and files). Main thread never imports a hash library | HIGH |
+| Worker pattern | `new Worker(new URL("./hash.worker.ts", import.meta.url))` with the literal inside `lib/hash/client.ts` — **verified working on the repo's Next 16.2.11** in both `next build && next start` and `next dev` | HIGH |
+| Lazy loading | Falls out of the worker boundary: noble lives in a separate worker chunk (18.9 KB raw / 7.8 KB gzip for 9 algorithms), never in the page's JS | HIGH |
+| File reading | `blob.slice(a,b).arrayBuffer()` loop, 1 MiB chunks (NOT `file.stream()` — jsdom's `File` has no `.stream()`, so it is untestable; `arrayBuffer()` exists in jsdom) | HIGH |
+| Cancellation | Three layers: client-side sequence token (UI correctness) + worker-side `AbortController` checked between chunks with an explicit event-loop yield (resource correctness) + `dispose()` terminates the worker on unmount | HIGH |
+| URL state for text | Read `?text=` on load; **do NOT live-sync keystrokes into the URL**. Expose an explicit "Copy link" action. Never add `text` to the analytics allow-list | MEDIUM (conflicts with milestone wording "bookmarkable text state" — needs user confirmation; see below) |
+| Registry category | `"encode"` (input-derived transform; groups with future base64/URL/JWT tools). No type change needed — already in the union | MEDIUM (low-cost to flip) |
+| Default result | Precomputed sample digests as constants in `faq-data.ts` (same pattern as MAC's `sampleFormats`), used for BOTH the server-rendered worked example and the client's initial state → instant, CLS-free first paint, worker not needed until first edit | HIGH |
+| Phases | 3 phases: core+worker runtime → tool page with text path → file input/progress/cancel/URL-share/e2e hardening | MEDIUM |
+
+---
 
 ## Standard Architecture
 
 ### System Overview
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                        REGISTRY (data layer)                         │
-│  tools/registry.ts — single typed array, no framework imports        │
-└───────────────────────────────┬────────────────────────────────────-┘
-                                 │ imported by (read-only, one direction)
-        ┌────────────────────────┼─────────────────────────┬───────────────┐
-        ▼                        ▼                          ▼               ▼
-┌───────────────┐      ┌──────────────────┐      ┌──────────────────┐  ┌───────────┐
-│  Site Shell    │      │   Tool Pages      │      │  Generated Assets │  │  Search/  │
-│ (nav, footer,  │      │  app/tools/[x]/   │      │ sitemap.xml,       │  │  cmd-K    │
-│  landing cards)│      │  page.tsx         │      │ robots.txt          │  │ (future)  │
-└───────────────┘      └────────┬─────────┘      └──────────────────┘  └───────────┘
-                                 │ renders
-                                 ▼
-                    ┌────────────────────────┐
-                    │  Server Component shell │  ← static, no searchParams read here
-                    │  (explanatory copy, FAQ,│
-                    │   related links, layout)│
-                    └───────────┬─────────────┘
-                                 │ composes (children/props)
-                                 ▼
-                    ┌────────────────────────┐
-                    │  Client Component       │  ← 'use client', owns interaction
-                    │  (input, controls,      │
-                    │   nuqs URL state)       │
-                    └───────────┬─────────────┘
-                                 │ calls
-                                 ▼
-                    ┌────────────────────────┐
-                    │  lib/<tool>/ core logic │  ← framework-agnostic, pure TS
-                    │  (pure functions,       │
-                    │   unit-tested)          │
-                    └───────────┬─────────────┘
-                                 │ (DNS/MAC tools only) may call
-                                 ▼
-                    ┌────────────────────────┐
-                    │  External data source   │  DoH resolver / OUI dataset /
-                    │  or app/api/* route     │  vendor API proxy
-                    └────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────┐
+│ SERVER (static prerender)                                           │
+│  app/tools/hash/page.tsx   metadata + FAQ JSON-LD + worked example  │
+│        │ imports: faq-data.ts, lib/hash/algorithms.ts (metadata)    │
+│        │ NEVER imports: engine.ts / @noble/hashes                   │
+├────────┼────────────────────────────────────────────────────────────┤
+│ MAIN THREAD (client island, next/dynamic ssr:false)                 │
+│  HashToolLoader.tsx ──▶ HashTool.tsx ──▶ useHashJob.ts              │
+│        UI state, textarea/dropzone, rows, copy, shortcuts           │
+│                              │                                      │
+│                              ▼                                      │
+│  lib/hash/client.ts   createHashClient()                            │
+│        seq token · cancel() · dispose() · result/progress callbacks │
+│        (fallback: in-thread client using dynamic import("./engine"))│
+├──────────────────────────────┼──────────────────────────────────────┤
+│ WORKER THREAD (separate chunk, loaded when Worker is constructed)   │
+│  lib/hash/hash.worker.ts  (thin: message ⇄ job runner)              │
+│        │                                                            │
+│        ▼                                                            │
+│  lib/hash/job.ts  runHashJob(source, algos, {signal, onProgress})   │
+│        │ iterates AsyncIterable<Uint8Array>, yields to event loop,  │
+│        │ checks signal between chunks                               │
+│        ▼                                                            │
+│  lib/hash/engine.ts  FACTORIES: Record<AlgorithmId, () => Hasher>   │
+│        ├─ @noble/hashes/{sha2,sha3,legacy}.js                       │
+│        └─ lib/hash/crc32.ts                                         │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Component Responsibilities
 
-| Component | Responsibility | Typical Implementation |
-|-----------|----------------|-------------------------|
-| `tools/registry.ts` | Single source of truth for every tool's metadata (slug, name, description, category, keywords, status, icon) | Plain typed TS array/object, zero React/Next imports, importable from server or client code |
-| Site shell (`components/nav`, `components/landing`) | Global nav, footer, landing-page tool cards, category grouping | Server Components that `.map()` over the registry at build/request time — no manual per-tool JSX |
-| `app/sitemap.ts`, `app/robots.ts` | Generate `sitemap.xml`/`robots.txt` from the registry | Next.js file-convention route handlers, iterate registry entries |
-| Tool page shell (`app/tools/<slug>/page.tsx`) | Route entry, SEO metadata, static explanatory content, composes the interactive island | Server Component by default; `generateMetadata` sourced from the matching registry entry, not from `searchParams` |
-| Tool interactive island (`app/tools/<slug>/*-client.tsx` or `components/tools/<slug>/`) | Owns user input, local UI state, URL sync, triggers core logic | `'use client'`, smallest possible subtree, uses `nuqs` for bookmarkable state |
-| `lib/<tool>/*.ts` | Pure, framework-agnostic domain logic (UUID gen, subnet math, MAC parsing, DNS response shaping) | Plain TypeScript modules, typed inputs/outputs, no Next.js/React imports, unit-testable in isolation |
-| `app/api/<tool>/route.ts` (only where needed) | Thin Route Handler adapter over `lib/` for server-only concerns (CORS-restricted vendor APIs, future public API) | Calls the same `lib/` functions the client calls directly for local-first tools |
-| External services (DoH resolver, MAC vendor source) | Supply data the browser cannot derive locally | Called directly from the client for DNS (CORS-friendly DoH JSON API); proxied through `app/api/mac-vendor` only if the vendor source requires a server-side key/CORS workaround |
+| Component | Responsibility | Framework imports? |
+|-----------|----------------|--------------------|
+| `lib/hash/types.ts` | `AlgorithmId` union, `Digest` types, worker message discriminated unions | none |
+| `lib/hash/algorithms.ts` | **Metadata only**: ordered `ALGORITHMS` array (id, label, digest bits, hex length, `notForSecurity` flag for MD5/SHA-1/CRC32). Safe to import from server `page.tsx` and main thread | none |
+| `lib/hash/crc32.ts` | Incremental CRC-32 (IEEE 802.3, poly 0xEDB88320) with the same `{update, digest}` shape as noble hashers | none |
+| `lib/hash/engine.ts` | The ONLY file importing `@noble/hashes`. `FACTORIES: Record<AlgorithmId, () => Hasher>` — `Record` typing makes "added an algorithm to metadata but forgot the factory" a compile error | none (only noble) |
+| `lib/hash/format.ts` | `bytesToHex(bytes, {uppercase})`, `formatCopyAll(digests, opts)`; pure | none |
+| `lib/hash/source.ts` | Adapters producing `AsyncIterable<Uint8Array>`: `textChunks(str)` (UTF-8 via `TextEncoder`, sliced), `fileChunks(blob, chunkSize)` (`slice().arrayBuffer()` loop) | none |
+| `lib/hash/job.ts` | `runHashJob(...)`: create hashers, loop chunks, `await yieldToEventLoop()` each chunk, throw/return on `signal.aborted`, throttled `onProgress(bytes, total)`, return digests | none |
+| `lib/hash/hash.worker.ts` | Thin message adapter: `start`/`cancel` in; `progress`/`result`/`error` out, all tagged with `jobId`. One `AbortController` per job | none (DOM worker globals) |
+| `lib/hash/client.ts` | Owns the `Worker`; the single funnel `start(req)` which **always** cancels the predecessor first; seq-token stale discard; `cancel()`; `dispose()`. Contains the only `new Worker(new URL(...))` literal. Also exports `createInThreadClient()` (dynamic `import("./engine")`) used as unsupported-Worker fallback AND as the unit-test double | none (uses `Worker` global, injectable factory) |
+| `app/tools/hash/useHashJob.ts` | React glue: creates the client in an effect, exposes `{state, hashText, hashFile, cancel, reset}`; guards `setState` with the seq token; `dispose()` on unmount | React |
+| `app/tools/hash/HashTool.tsx` | UI: textarea, dropzone/picker, 10 `HashRow`s, copy-all, case toggle, progress + Cancel, shortcuts | React |
+| `app/tools/hash/HashToolLoader.tsx` | `next/dynamic(..., {ssr:false})` + fixed-height skeleton (copy of `MacToolLoader.tsx`) | React |
+| `app/tools/hash/page.tsx` | Server shell: metadata, JSON-LD, H1, loader, worked example, FAQ | Next |
+| `app/tools/hash/faq-data.ts` | `faqItems`, `sampleText`, `sampleDigests` (precomputed, verified by unit test against `engine`) | none |
 
-## Recommended Project Structure
+### Recommended File Layout
 
 ```
-app/
-├── layout.tsx                 # root layout: theme, NuqsAdapter, global shell
-├── page.tsx                   # landing page: reads tools/registry.ts, renders cards
-├── sitemap.ts                 # generates sitemap.xml from registry
-├── robots.ts                  # generates robots.txt
-├── tools/
-│   ├── uuid/
-│   │   ├── page.tsx            # Server Component: metadata + static copy + <UuidTool/>
-│   │   └── uuid-tool.tsx        # 'use client': generation controls, nuqs state
-│   ├── subnet/
-│   │   ├── page.tsx
-│   │   └── subnet-tool.tsx      # 'use client': ?cidr= via nuqs, calls lib/subnet
-│   ├── dns/
-│   │   ├── page.tsx
-│   │   └── dns-tool.tsx         # 'use client': ?name=&type=, debounce, AbortController
-│   └── mac/
-│       ├── page.tsx
-│       └── mac-tool.tsx         # 'use client': as-you-type normalize, calls lib/mac
-├── api/
-│   └── mac-vendor/
-│       └── route.ts            # only if vendor source needs a server-side proxy
-components/
-├── shell/                     # header, nav, footer — all registry-driven
-├── landing/                   # tool-card grid, category sections
-├── tools/                     # shared tool-page chrome: CopyButton, ResultPanel,
-│                               # ExampleBlock, FaqSection, RelatedTools, KeyboardHints
-└── ui/                        # generic primitives (Button, Input, Badge) — no tool logic
-lib/
-├── uuid/
-│   ├── generate.ts             # pure v4/v7 generation, formatting
-│   └── generate.test.ts
-├── subnet/
-│   ├── ipv4.ts                 # pure CIDR math
-│   ├── ipv6.ts
-│   └── *.test.ts
-├── dns/
-│   ├── resolvers.ts            # DoH endpoint config, primary/fallback selection
-│   ├── query.ts                # fetch + response normalization (framework-agnostic;
-│   │                           # takes a fetch impl so it's testable + reusable)
-│   └── *.test.ts
-├── mac/
-│   ├── parse.ts                # normalization, OUI extraction, bit flags
-│   ├── vendor.ts                # vendor lookup (local dataset or adapter interface)
-│   └── *.test.ts
-└── shared/
-    ├── analytics.ts             # query-param redaction rules (§8.2 of brief)
-    └── clipboard.ts              # copy-with-confirmation helper
-tools/
-└── registry.ts                 # ToolDefinition[] — the single source of truth
+lib/hash/
+├── types.ts            (new)
+├── algorithms.ts       (new)  + algorithms.test.ts
+├── crc32.ts            (new)  + crc32.test.ts
+├── engine.ts           (new)  + engine.test.ts      (published test vectors)
+├── format.ts           (new)  + format.test.ts
+├── source.ts           (new)  + source.test.ts
+├── job.ts              (new)  + job.test.ts         (abort, progress, chunk-invariance property tests)
+├── client.ts           (new)  + client.test.ts      (fake worker: seq token, supersede, dispose)
+└── hash.worker.ts      (new)                         (thin; covered by e2e, not unit tests)
+app/tools/hash/
+├── page.tsx            (new)
+├── HashToolLoader.tsx  (new)
+├── HashTool.tsx        (new)  + HashTool.test.tsx   (in-thread client injected)
+├── useHashJob.ts       (new)
+└── faq-data.ts         (new)  + faq-data.test.ts    (sampleDigests === engine output)
+tests/e2e/
+├── hash.spec.ts        (new)  walking skeleton, text, copy, case, keyboard, 320px
+├── hash-file.spec.ts   (new)  picker, drop, progress, cancel, supersede matrix
+└── hash-seo.spec.ts    (new)  metadata, canonical, FAQ + JSON-LD parity
 ```
 
-### Structure Rationale
+Naming follows existing precedent (`lib/mac/{types,parse,format,classify,vendor}.ts`, `app/tools/mac/{page,MacTool,MacToolLoader,faq-data}.tsx`, `tests/e2e/{mac-lookup,*-seo}.spec.ts`).
 
-- **`tools/registry.ts` lives outside `app/`:** it is data, not routing. Keeping it framework-agnostic means it can be imported by `app/sitemap.ts`, `app/page.tsx`, nav components, and (later) a `@packetory/core` package without pulling in Next.js-specific code. This is exactly what the brief proposes in §8 — the research confirms rather than changes it.
-- **`lib/<tool>/` mirrors `app/tools/<tool>/`:** 1:1 naming makes the boundary obvious and keeps future API-route extraction mechanical — a new `app/api/<tool>/route.ts` just imports the same `lib/<tool>/*` functions the page's client component already calls.
-- **Each tool page splits into `page.tsx` (server) + `<tool>-tool.tsx` (client):** this is the load-bearing pattern for satisfying "static-first, client components only where interaction requires them" (brief §8/constraints) while still supporting bookmarkable URL state — see Pattern 1 below.
-- **`components/tools/` holds cross-tool chrome** (CopyButton, ResultPanel, FAQ, RelatedTools) so every new tool reuses the same building blocks instead of re-implementing copy/confirm/keyboard behavior per tool.
-- **`lib/shared/analytics.ts` is a dedicated module**, not inline per-tool code, because the redaction rule (never send MACs/private IPs/hostnames to analytics) is a cross-cutting policy that every tool's client component must call through the same choke point — centralizing it means a single audit point rather than four ad-hoc implementations.
+---
 
-## Architectural Patterns
+## New vs Modified — Exact File Inventory
 
-### Pattern 1: Server shell / Client island split for URL-bookmarkable tools
+### New (create)
 
-**What:** The route's `page.tsx` stays a Server Component that does *not* declare a `searchParams` prop and does *not* read `useSearchParams`. It renders static SEO content (title context, worked examples, FAQ) plus a single Client Component "island" that owns all interactivity, including reading/writing the URL query string.
+All files in the layout above, plus `@noble/hashes` in `package.json`/`package-lock.json` (see Modified).
 
-**When to use:** Every tool in this project (UUID, Subnet, DNS, MAC) — all four need zero-effort default results on load (static-renderable) *and* bookmarkable state (`?cidr=`, `?name=&type=`), which is exactly the combination that breaks if `searchParams` is read at the page level.
+### Modified (existing files that MUST change)
 
-**Trade-offs:** Keeps the route statically generated (fast TTFB, cacheable, good Lighthouse) and avoids the "any `searchParams` read forces the whole route dynamic" trap. Cost: the island must handle the "no query param yet" case client-side (i.e., the *default* UUID/CIDR/example is computed in the client component on mount, not baked into server HTML) — acceptable here because generation is inherently a client action anyway (crypto RNG, or trivially reproducible IP math), and a one-line skeleton avoids CLS.
+| File | Change | Why / what breaks if forgotten |
+|------|--------|-------------------------------|
+| `tools/registry.ts` | Add one `ToolDefinition`: `slug:"hash"`, `name:"Hash Generator"`, `shortName:"Hash"`, `category:"encode"`, `icon:"Hash"`, `status:"active"`, `clientOnly:true`, `featured:false`, keywords `["hash","md5","sha1","sha256","sha3","crc32","checksum","ripemd160"]` | Nav (`SiteHeader`, `MobileNav`), landing grid and sitemap derive from this automatically — **no edits to those files** |
+| `components/ToolCard.tsx` | Add `Hash` to the lucide import and the `ICONS` map | `ICONS[tool.icon] ?? Fingerprint` **silently falls back** to the UUID icon — a missing entry produces no error. Add a unit assertion that every registry `icon` has an `ICONS` entry |
+| `tools/registry.test.ts` | "exactly four" → five; slugs list; sorted order becomes `["subnet","uuid","dns","hash","mac"]` (alphabetical in the non-featured group: DNS Lookup, Hash Generator, MAC Address Inspector); status map | Hard-coded counts/order — will fail |
+| `app/sitemap.test.ts` | Expected `/tools/*` URL list +`hash`; `registrySlugs` array in the "no hardcoded slug" test +`"hash"` | Hard-coded |
+| `tests/e2e/home.spec.ts` | `toHaveCount(4)` ×2 and loop bound `4` → 5; order test "Subnet, UUID, DNS, MAC" → "Subnet, UUID, DNS, Hash, MAC" | Hard-coded |
+| `tests/e2e/navigation.spec.ts` | Mobile drawer: `shortName` list +`"Hash"`, `drawer.locator("a")` `toHaveCount(4)` → 5, add `getByText("Hash")` assertion | Hard-coded |
+| `package.json` / `package-lock.json` | `"@noble/hashes": "2.4.0"` (exact pin, matching how `uuid`, `next`, `react` are pinned) | — |
+| `lib/analytics/redact.test.ts` | Add a regression test: `redactParams("?text=secret")` → `{}` with `DEFAULT_ALLOW_LIST` | Locks in the privacy decision; **`redact.ts` itself does not change** |
+| `app/layout.tsx` | Site `<meta description>` lists the four tools by name — add "hash generator". Optional, SEO nicety | Not test-asserted (grep found no test) |
+| `eslint.config.mjs` | Optional: `no-restricted-imports` for `@noble/hashes*` everywhere except `lib/hash/engine.ts` | Enforces the lazy-load boundary mechanically (alternative: a Vitest test that greps imports) |
 
-**Example:**
-```tsx
-// app/tools/subnet/page.tsx — Server Component, static
-import { getToolBySlug } from "@/tools/registry";
-import { SubnetTool } from "./subnet-tool";
+### Explicitly NOT modified
 
-export async function generateMetadata() {
-  const tool = getToolBySlug("subnet");
-  return { title: tool.name, description: tool.description /* ... */ };
-}
+- `components/SiteHeader.tsx`, `MobileNav.tsx`, `app/page.tsx`, `app/sitemap.ts`, `app/robots.ts` — registry-derived (SHELL-04); `sitemap.ts` has the guard test against hardcoding.
+- `lib/analytics/redact.ts` / `PacketoryAnalytics.tsx` — `DEFAULT_ALLOW_LIST` is `[]`, so every query param incl. `?text=` is already stripped. Do **not** add `text`.
+- `lib/hooks/*` — reuse `useCopyToClipboard` (one instance per row + one for copy-all, like `FormatRow`/`CopyAllButton` in `MacTool.tsx`) and `useKeyboardShortcut` unchanged.
+- `app/privacy/page.tsx` — already states "Every tool runs entirely in your browser unless a result inherently requires an external lookup"; Hash is consistent with it. **Per PROJECT.md automation model, any legal/privacy text change needs human approval — do not edit it as part of this milestone.** The "files never leave your browser" promise lives in the tool's FAQ instead.
+- `next.config.ts` — no config needed (verified; no `turbopack.rules`, no `serverExternalPackages`, no headers).
+- `vercel.json`, `playwright.config.ts`, `vitest.config.ts` — unchanged.
 
-export default function SubnetPage() {
-  return (
-    <article>
-      <h1>IP Subnet Calculator</h1>
-      <SubnetTool />           {/* client island, no searchParams here */}
-      <RelatedTools slug="subnet" />
-      <FaqSection slug="subnet" />
-    </article>
-  );
-}
-```
-```tsx
-// app/tools/subnet/subnet-tool.tsx
-"use client";
-import { useQueryState } from "nuqs";
-import { calculateSubnet } from "@/lib/subnet/ipv4";
+---
 
-export function SubnetTool() {
-  const [cidr, setCidr] = useQueryState("cidr", { defaultValue: "10.20.0.0/20" });
-  const result = calculateSubnet(cidr); // pure lib/ call, no network
-  // ...render input + result, setCidr() on change (shallow, no server round trip)
-}
-```
+## Design: `lib/hash/` Module Boundaries
 
-### Pattern 2: Registry-driven derived UI (nav, cards, sitemap, related-tools)
+### 1. Algorithm registry (metadata/implementation split)
 
-**What:** `tools/registry.ts` exports one typed array. Every place that currently would need per-tool hand-editing (nav links, landing-page cards, `sitemap.ts`, "related tools" widget, future search/command-palette) instead imports the registry and derives its UI via `.map()`/`.filter()`.
+Two files on purpose, so the server page and main thread can list algorithms without pulling in noble:
 
-**When to use:** Always, from the first tool onward — this is the mechanism that makes "adding a tool = new module + one registry entry" actually true. If any shared component hardcodes a tool's slug/name/href, the registry pattern is broken for that surface.
-
-**Trade-offs:** Slightly more indirection for a 1-tool site; pays off immediately at 2 tools and compounds at 4+. The registry itself has zero framework imports, so it doubles as the shape the future `@packetory/core` package (brief §12.1) would also expose.
-
-**Example:**
 ```ts
-// tools/registry.ts
-export type ToolDefinition = {
-  slug: string; name: string; shortName: string; description: string;
-  category: "network" | "dns" | "web" | "encode" | "generate";
-  keywords: string[]; icon: string; status: "active" | "beta" | "planned";
-  clientOnly: boolean; featured: boolean;
+// lib/hash/types.ts
+export type AlgorithmId =
+  | "md5" | "sha1" | "sha224" | "sha256" | "sha384" | "sha512"
+  | "sha3-256" | "sha3-512" | "ripemd160" | "crc32";
+
+export type Hasher = { update(chunk: Uint8Array): void; digest(): Uint8Array };
+
+// lib/hash/algorithms.ts  — NO noble import
+export const ALGORITHMS = [
+  { id: "md5",       label: "MD5",        bits: 128, notForSecurity: true  },
+  { id: "sha1",      label: "SHA-1",      bits: 160, notForSecurity: true  },
+  { id: "sha224",    label: "SHA-224",    bits: 224, notForSecurity: false },
+  { id: "sha256",    label: "SHA-256",    bits: 256, notForSecurity: false },
+  { id: "sha384",    label: "SHA-384",    bits: 384, notForSecurity: false },
+  { id: "sha512",    label: "SHA-512",    bits: 512, notForSecurity: false },
+  { id: "sha3-256",  label: "SHA3-256",   bits: 256, notForSecurity: false },
+  { id: "sha3-512",  label: "SHA3-512",   bits: 512, notForSecurity: false },
+  { id: "ripemd160", label: "RIPEMD-160", bits: 160, notForSecurity: false },
+  { id: "crc32",     label: "CRC32",      bits: 32,  notForSecurity: true  },
+] as const satisfies readonly { id: AlgorithmId; label: string; bits: number; notForSecurity: boolean }[];
+
+// lib/hash/engine.ts — the only noble importer
+import { sha224, sha256, sha384, sha512 } from "@noble/hashes/sha2.js";
+import { sha3_256, sha3_512 } from "@noble/hashes/sha3.js";
+import { md5, sha1, ripemd160 } from "@noble/hashes/legacy.js";
+import { createCrc32 } from "./crc32";
+
+export const FACTORIES: Record<AlgorithmId, () => Hasher> = {
+  md5: () => md5.create(), /* … */ crc32: createCrc32,
 };
-
-export const tools: ToolDefinition[] = [
-  { slug: "uuid", name: "UUID Generator", shortName: "UUID", /* ... */ status: "active" },
-];
-
-export const getToolBySlug = (slug: string) => tools.find(t => t.slug === slug);
-export const relatedTools = (slug: string, n = 3) =>
-  tools.filter(t => t.slug !== slug && t.status === "active").slice(0, n);
 ```
+
+Notes:
+- noble v2 exposes **only** `.js`-suffixed subpath exports (`./sha2.js`, `./sha3.js`, `./legacy.js`); MD5, SHA-1 and RIPEMD-160 live in `legacy.js`. Resolves fine under `moduleResolution: "bundler"` (verified with tsc via `next build`, Turbopack, and Vitest).
+- Order in `ALGORITHMS` is the display order; the UI iterates it (no hardcoded rows), mirroring the registry-derived philosophy. Adding an 11th algorithm = one metadata line + one factory line + one test vector.
+- The job takes `algos: AlgorithmId[]` (default = all). The UI always passes all ten today, but the parameter keeps per-algorithm toggles and multi-worker parallelism (see Scalability) possible without a protocol change.
+- `notForSecurity` drives a small non-color-alone "not for security" label (QUAL-05 precedent: carry meaning with text).
+
+### 2. Text hashing
+
+`textChunks(str)` → `TextEncoder().encode(str)` (UTF-8, the only sensible default; document it in the UI/FAQ), then yield 1 MiB subarrays. Small strings are a single chunk. Same `runHashJob` path as files — no special-cased "fast path" on the main thread.
+
+Pitfall baked into the design: `textarea.value` normalizes line endings to `\n`, and `echo "x" | sha256sum` hashes a trailing newline. The FAQ and a hint line must say so; do not silently append/strip.
+
+### 3. Incremental file hashing
+
 ```ts
-// app/sitemap.ts
-import { tools } from "@/tools/registry";
-export default function sitemap() {
-  return tools
-    .filter(t => t.status === "active")
-    .map(t => ({ url: `https://packetory.dev/tools/${t.slug}`, changeFrequency: "monthly" }));
+// lib/hash/source.ts
+export async function* fileChunks(blob: Blob, chunkSize = 1 << 20) {
+  for (let off = 0; off < blob.size; off += chunkSize) {
+    yield new Uint8Array(await blob.slice(off, off + chunkSize).arrayBuffer());
+  }
 }
 ```
 
-### Pattern 3: Framework-agnostic `lib/` core, called identically from client, server, and future API
+Why `slice().arrayBuffer()` instead of `file.stream()`:
+- **Verified**: jsdom (the repo's Vitest environment) has `Blob.arrayBuffer()` but `Blob.stream` is `undefined` → a stream-based source cannot be unit tested without polyfills. Browsers support both equally.
+- Explicit, deterministic chunk size → predictable cancel latency and progress granularity; no reader/lock to release on abort.
+- 1 MiB at the measured combined ~14 MB/s (all 10 algorithms) is ~70 ms of CPU per chunk — fine cancel latency.
 
-**What:** Every tool's domain logic (`lib/<tool>/*.ts`) is plain TypeScript with typed inputs/outputs and no `next/*` or `react` imports. Client components call it directly (UUID gen, subnet math, MAC parsing — pure, synchronous, in-browser). Where a Route Handler is needed (MAC vendor proxy today; a future public API), the route handler imports the *same* function rather than reimplementing it.
-
-**When to use:** Every tool, from day one — this is a stated hard requirement in both the brief (§8, §12.1) and PROJECT.md ("website and API stay one codebase"). Retrofitting it later means an extraction/refactor pass across every tool.
-
-**Trade-offs:** Requires slight discipline (no `fetch` calls hardcoded to browser-only APIs inside `lib/` — pass a fetch implementation or keep DoH-calling code isolated so it also runs in a Route Handler/edge function later). Payoff: unit tests run without spinning up Next.js, and the eventual `@packetory/core` extraction (brief §12.1) is a copy, not a rewrite.
-
-**Example:**
 ```ts
-// lib/uuid/generate.ts — no Next.js/React imports anywhere
-export type UuidVersion = "v4" | "v7";
-export function generateUuid(version: UuidVersion = "v4"): string { /* ... */ }
-export function generateBatch(count: number, version: UuidVersion): string[] { /* ... */ }
-```
-```ts
-// app/api/uuid/route.ts — thin adapter, only needed once a public API ships
-import { generateBatch } from "@/lib/uuid/generate";
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  return Response.json(generateBatch(Number(searchParams.get("count") ?? 1), "v4"));
+// lib/hash/job.ts (shape)
+export async function runHashJob(
+  source: AsyncIterable<Uint8Array>, total: number, algos: AlgorithmId[],
+  opts: { signal: AbortSignal; onProgress?: (done: number, total: number) => void },
+): Promise<Record<AlgorithmId, Uint8Array>> {
+  const hashers = algos.map((id) => [id, FACTORIES[id]()] as const);
+  let done = 0, lastReport = 0;
+  for await (const chunk of source) {
+    if (opts.signal.aborted) throw new DOMException("aborted", "AbortError");
+    for (const [, h] of hashers) h.update(chunk);
+    done += chunk.length;
+    // throttle progress (~10 Hz); always emit final
+    await yieldToEventLoop();      // setTimeout(0) / MessageChannel / scheduler.yield?.()
+  }
+  if (opts.signal.aborted) throw new DOMException("aborted", "AbortError");
+  return Object.fromEntries(hashers.map(([id, h]) => [id, h.digest()])) as Record<AlgorithmId, Uint8Array>;
 }
 ```
+
+**The explicit yield is required**, not decoration: a `cancel` message is a macrotask. A loop that only awaits already-resolved promises/microtasks can starve the worker's `onmessage`, so the abort flag would never be set while the job runs. Yielding each chunk guarantees the cancel message is delivered within one chunk's compute time.
+
+### 4. Formatting (hex / case)
+
+- Engines return `Uint8Array`; **state stores bytes (or lowercase hex)**, and `format.ts` renders. The uppercase toggle is a **pure display transform**: it must neither re-hash nor cancel an in-flight job nor reset the input. (Contrast with UUID's case toggle which reformats existing values — same idea.)
+- CRC32: output the 4-byte big-endian value as 8 hex chars, zero-padded (`00000000`-style leading zeros are a classic bug — test with an input whose CRC starts with `0`).
+- Optional differentiator (not required): Base64 output as a second format; the bytes-in-state design makes it a one-function addition.
+- `formatCopyAll`: one `LABEL: value` per line in `ALGORITHMS` order (mirrors `CopyAllButton` in `MacTool.tsx`), honoring the current case.
+
+### 5. Test strategy (Vitest + fast-check, per project convention)
+
+- **Published vectors** per algorithm: empty string, `"abc"`, `"The quick brown fox jumps over the lazy dog"`, and `"123456789"` (CRC32 → `cbf43926`). Verified during research: `abc` → MD5 `900150983cd24fb0d6963f7d28e17f72`, SHA-1 `a9993e36…d89d`, SHA-256 `ba7816bf…15ad`, SHA3-256 `3a985da7…1532`, RIPEMD-160 `8eb208f7e05d987a9b044a8e98c6b087f15a0bfc`.
+- **Property tests (fast-check)** — the high-value ones for this feature: (a) *chunk invariance*: for every algorithm and any byte array split at arbitrary boundaries, incremental `update` calls equal one-shot; (b) *source invariance*: `fileChunks(blob, n)` for random `n` equals one-shot; (c) hex length === `bits/4` for every algorithm.
+- **Cross-check against Web Crypto** in a test only: `crypto.subtle.digest` for SHA-1/256/384/512 on random inputs must equal engine output (independent oracle).
+- `job.test.ts`: abort before start, abort mid-stream (async-generator source that awaits a latch), progress monotonic and ends at `total`, empty input.
+- `client.test.ts` with a **fake Worker** (class with `postMessage`/`onmessage`/`terminate`): superseded job never resolves as success; `cancel()` posts cancel; `dispose()` terminates; stale `result` for old `jobId` ignored.
+- Env note (verified): noble works under Vitest jsdom with `TextEncoder` output; `jsdom` `File`/`Blob` lack `.stream()` (hence `arrayBuffer` design).
+
+---
+
+## Web Worker vs Main Thread
+
+**Decision: Worker for everything, including small text.**
+
+| Option | Verdict | Reason |
+|--------|---------|--------|
+| Main thread for small text, Worker for files | Reject | Two code paths, noble in the main bundle (defeats lazy loading), and a large *pasted* text blob blocks typing |
+| Main thread only (async chunking) | Reject | ~14 MB/s combined throughput on 10 algorithms = a 200 MB file freezes the UI for ~15 s even with chunking jank |
+| **Worker for all** | **Use** | One path, library isolated in its own chunk, main thread stays responsive, cancel semantics identical for text and file |
+| `crypto.subtle.digest` for SHA-2 | Reject | One-shot only (no incremental API) → must buffer the whole file in memory; and it covers only 4 of 10 algorithms |
+
+**Next 16 + Turbopack pattern — verified on this repo's exact version (16.2.11):**
+
+```ts
+// lib/hash/client.ts — the literal must be inline in this module
+const worker = new Worker(new URL("./hash.worker.ts", import.meta.url));
+```
+
+- Spike result: `.ts` worker with noble imports built with `next build` (Turbopack), emitted a separate worker chunk plus `turbopack-worker-*.js` bootstrap, ran in real Chrome against `next start` **and** `next dev`, all 9 noble digests correct. Playwright's `webServer` uses `npm run dev`, so e2e exercises the dev path — also verified.
+- Don't pass `{ type: "module" }` (untested; unnecessary because Turbopack bundles the worker). Don't wrap `new URL(...)` in a variable or helper — bundlers need the static `new Worker(new URL(literal, import.meta.url))` shape.
+- Known regression to be aware of (not hit here): vercel/next.js#93427 — relative worker URLs failing in 16.2.4/16.3.0-canary were for **Node `worker_threads`**, fixed in #93432; browser Web Worker bootstrapping was reworked in 16.2 (blob URL → real origin, #88602). Re-run the worker smoke test on any Next version bump.
+- Worker TypeScript typing: the repo's `tsconfig` has `lib: ["dom", ...]` and no `webworker` lib; plain `self.onmessage = …` / `self.postMessage(msg)` type-checks (verified in `next build`'s TS pass). Route outbound messages through one typed `post(msg: WorkerResponse)` helper.
+- Instantiate lazily from a `useEffect` (never during render/module import) so SSR prerender and Vitest import never touch `Worker`. The client factory is injectable.
+- Fallback: if `typeof Worker === "undefined"` (very old browsers, restricted contexts), `createInThreadClient()` runs the same `runHashJob` via `await import("./engine")` on the main thread, still chunked + yielding. It doubles as the component test double. It is a safety net, not a first-class path.
+
+**Message protocol (discriminated unions in `types.ts`):**
+
+```
+main → worker:  { type:"start", jobId, input:{kind:"text", text} | {kind:"file", file:File}, algos }
+                { type:"cancel", jobId }
+worker → main:  { type:"progress", jobId, done, total }
+                { type:"result",   jobId, digests: Record<AlgorithmId, Uint8Array> }  // transfer buffers
+                { type:"error",    jobId, message, name }      // e.g. NotReadableError, NotFoundError
+                { type:"cancelled",jobId }
+```
+
+Post the `File` itself (structured-clone, no copy). Post text as a string. Never transfer big buffers from main.
+
+---
+
+## Cancellation — Superseding-Path Audit (project lesson applied up front)
+
+Project lesson (PROJECT.md Key Decisions, Phase 4 CR-01 / Phase 5): *every* path that can supersede an in-flight async job must cancel it — abort + bump the sequence token — and the audit must enumerate all paths up front, not just the first one tested.
+
+**Single funnel.** `client.start(req)` begins with `cancelCurrent()` (post `cancel` for the active `jobId`, `++seq`, resolve the old promise as `superseded`). `client.cancel()` is the same `cancelCurrent()` with no follow-up job. The hook never calls `worker.postMessage` itself, so there is exactly one place where "supersede" is implemented and tested.
+
+**Three layers:**
+1. **Sequence token in `client`/`useHashJob`** — guarantees the UI never renders a stale result even if the worker is slow to stop (mirror of `requestSeqRef` in `DnsTool.tsx`). Every `setState` in the hook is guarded by `seq === current`.
+2. **Worker-side `AbortController`** — stops CPU work: checked between 1 MiB chunks, with the yield described above.
+3. **`dispose()` → `worker.terminate()`** on unmount / route change. Optional hardening: if a cancelled job has not acknowledged within ~1 s, `terminate()` and lazily respawn.
+
+**Path matrix (each needs a Vitest case in `client.test.ts`/`HashTool.test.tsx` AND an e2e where user-visible):**
+
+| # | Superseding path | Expected behavior |
+|---|------------------|-------------------|
+| 1 | Text edit while a **text** job in flight | New job replaces; only latest digests render |
+| 2 | Text edit while a **file** job in flight | File job cancelled, UI leaves file mode (file chip cleared), text job runs |
+| 3 | New file via picker while file job in flight | Old cancelled, progress resets to new file |
+| 4 | New file via drag-drop while file job in flight | Same as 3 (separate handler — test it separately) |
+| 5 | Same file re-selected | `input.value = ""` after each pick so `change` fires again |
+| 6 | Esc / Reset while in flight | Cancel + restore sample text + sample digests |
+| 7 | Cancel button on progress UI | Cancel; keep prior result dimmed or restore last-complete (decide in UI spec) |
+| 8 | Switch file → text mode via explicit control | Cancel file job |
+| 9 | Unmount / navigate to another tool | `dispose()`; no `setState` after unmount |
+| 10 | Multi-file / directory / non-file drop | Take first `File`; reject directories (size 0, empty type) with message; never start a job for non-files |
+| 11 | File becomes unreadable mid-read (deleted/permission) | `error` message → error state; no stuck spinner |
+| 12 | Case toggle | **NOT** a superseder: no cancel, no re-hash, no seq bump (explicit negative test) |
+| 13 | Initial `?text=` on load | Treated as an initial `start`; no predecessor |
+
+Window-level safety: while the page is mounted, `preventDefault()` on `dragover`/`drop` outside the dropzone so a missed drop doesn't navigate the browser away from the tool to the file.
+
+---
+
+## Lazy-Loading the Hash Library
+
+No `dynamic import()` choreography needed; the worker boundary provides it:
+
+- `@noble/hashes` is imported only by `lib/hash/engine.ts`, which is imported only by `hash.worker.ts` (and by `client.ts` via *dynamic* `import("./engine")` for the in-thread fallback). The tool's page chunk and the `HashTool` island chunk contain **no hash code**.
+- Measured: worker chunk = **18,948 B raw / 7,775 B gzip** for MD5, SHA-1/224/256/384/512, SHA3-256/512, RIPEMD-160 (CRC32 adds <1 KB). It downloads only when the `Worker` is constructed.
+- Construct the worker in a mount effect (warm, off-main-thread, parallel to first paint). The initial render uses the precomputed sample digests so the user sees results instantly regardless of worker readiness.
+- Guardrails: ESLint `no-restricted-imports` or a Vitest import-graph test so nobody imports `engine.ts`/noble from a component or `page.tsx`; `algorithms.ts` stays the only thing UI/server code imports.
+- Because Lighthouse measures main-thread JS, this keeps the page's JS cost equivalent to other tool pages plus the island code.
+
+---
+
+## URL State Decision
+
+**Recommendation:** read `?text=` on load; never write it automatically; provide an explicit "Copy link" button.
+
+Reasoning:
+- Hash input is disproportionately likely to be **secrets** (passwords, API tokens, license keys) — a different sensitivity class from a CIDR or a hostname. A live `replaceState` of every keystroke puts secrets in browser history and autocomplete, and into Vercel request logs whenever the user reloads or shares the URL (the server sees the full query on a navigation).
+- Analytics is already safe: `redactBeforeSend` strips every param not in `DEFAULT_ALLOW_LIST` (currently `[]`). **Do not add `text`.** Add the regression test. Note `redactBeforeSend` splits only on `?` — do **not** use the `#fragment` for state, because it would bypass the redaction logic (and is untested against what Vercel includes in `event.url`).
+- Explicit "Copy link" gives the stated milestone value (shareable/bookmarkable text state) with an informed user action; reload does not restore (acceptable — the default result on load is the sample).
+- Mechanics if/when written: `new URL(location.pathname, origin)` + `URLSearchParams.set("text", text)`, cap at ~2,000 characters (disable the button with a hint beyond that), `encodeURIComponent` semantics via `URLSearchParams`. Read side: `new URLSearchParams(window.location.search).get("text")` in a lazy `useState` initializer (as `getInitialLookupFromUrl` in `DnsTool.tsx`); cap length on read; never `useSearchParams()` (keeps the page static); never `router.replace()` (established decision).
+- Files are never representable in URL state.
+
+**Open decision for the user/roadmap (flag in REQUIREMENTS):** the milestone brief says "bookmarkable text state". If the user wants live-synced URLs consistent with Subnet/DNS, the fallback is a debounced (500 ms) `replaceState` with a ≤1 KB cap and a visible "text is in the URL" indicator — still no allow-list entry. Recommended default is explicit-only.
+
+---
+
+## Registry Category
+
+Use **`"encode"`**.
+
+- `generate` means "produces a value with no required input" (UUID). `encode` means "deterministic transform of user input" — Hash belongs with future base64/URL-encode/JWT-style tools, which is where the landing page would eventually group.
+- The union already includes `"encode"` and `ToolCard.CATEGORY_LABELS` already has `encode: "Encode"` → no type changes. The landing page is a flat grid with no category grouping, so the only visible effect today is the card's category label. Flipping later is a one-word change with no test fallout (ToolCard tests use synthetic tools).
+
+---
 
 ## Data Flow
 
-### Request Flow (local-first tool, e.g. UUID/Subnet/MAC)
-
 ```
-[Browser navigates to /tools/subnet?cidr=10.0.0.0/24]
-    ↓
-[Vercel Edge/CDN serves statically generated HTML for /tools/subnet]  ← page.tsx has NO searchParams read
-    ↓ (hydration)
-[SubnetTool client island mounts] → reads ?cidr= via nuqs (client-side, from window.location)
-    ↓
-[lib/subnet/ipv4.ts calculateSubnet(cidr)] → pure computation, no network call
-    ↓
-[Result rendered in-browser] ← [setCidr() on user input updates URL via history.replaceState, shallow]
-```
+user types ─▶ HashTool(onChange) ─▶ useHashJob.hashText(text)
+                                      │ client.start({kind:text}) ─ cancelCurrent(); ++seq
+                                      ▼
+                              Worker: job(textChunks) ─ update×10 ─ digests
+                                      ▼ postMessage result{jobId}
+                              client: jobId/seq current? ──no──▶ drop
+                                      │ yes
+                                      ▼
+                              useHashJob.setState({digests}) ─▶ rows render hex(format.ts, case toggle)
+                                                              ─▶ per-row copy / copy-all
 
-### Request Flow (network-dependent tool, e.g. DNS Lookup)
-
-```
-[Browser navigates to /tools/dns?name=example.com&type=MX]
-    ↓
-[Static HTML shell served]  ← page.tsx still has no searchParams read
-    ↓ (hydration)
-[DnsTool client island mounts] → reads ?name=&type= via nuqs
-    ↓
-[debounce ~600-800ms on typed input; immediate on paste/Enter]
-    ↓
-[fetch(doH-primary-endpoint) with AbortController] → on failure/timeout → [fetch(doH-fallback)]
-    ↓
-[lib/dns/query.ts normalizes response] → TTL, resolver used, duration, NXDOMAIN/empty states
-    ↓
-[Result rendered] + [analytics: lib/shared/analytics.ts strips/redacts `name` before any event fires]
+file drop/pick ─▶ useHashJob.hashFile(file) ─ same funnel ─▶ progress msgs (~10 Hz) ─▶ progress bar
+Esc / Cancel   ─▶ useHashJob.cancel() / reset() ─▶ same funnel
+on mount       ─▶ state = sampleDigests (constants); client created in effect; ?text= → hashText
+unmount        ─▶ client.dispose() (terminate)
 ```
 
-### State Management
+UI state shape (local to `HashTool`, mirroring `MacToolState`): `{ mode: "text"|"file", rawText, file: {name,size}|null, digests: Record<AlgorithmId, Uint8Array|hex>, status: "idle"|"hashing"|"error", progress?: {done,total}, uppercase: boolean }`. Keep last-valid digests rendered (dimmed) while hashing, per the project's keep-last-result convention, to avoid CLS.
 
-```
-URL query string (source of truth for shareable state)
-    ↕ (nuqs useQueryState, shallow by default)
-Client island local state (React useState/useReducer for transient UI: loading/error/copy-confirmed)
-    ↓ (derived, not stored)
-lib/ pure function output → rendered result
-```
+---
 
-There is no global client-side state store (Redux/Zustand) — each tool's state is local to its island component and the URL. This matches the "each tool page works standalone" principle and avoids a cross-tool state layer that would only add coupling.
+## Integration With Existing Patterns (checklist for the plan author)
 
-### Key Data Flows
+| Existing pattern | How Hash follows it |
+|------------------|---------------------|
+| Server shell + `next/dynamic(ssr:false)` island | `page.tsx` + `HashToolLoader.tsx` (copy `MacToolLoader.tsx`, fixed-height skeleton sized to textarea + 10 rows to avoid CLS) |
+| `faq-data.ts` feeds visible FAQ and FAQPage JSON-LD | Same; add `sampleText`/`sampleDigests` too; JSON-LD `<` → `<` escape as in `mac/page.tsx` |
+| Per-tool SEO | Unique title/description/canonical/OG; worked example table of `sampleDigests` rendered server-side; `hash-seo.spec.ts` |
+| `useCopyToClipboard` | One hook instance per `HashRow` (own confirmation state) + one for copy-all; `aria-live` "Copied!" status span; 44×44 hit area; `reset()` on value change (copy `FormatRow` verbatim) |
+| `useKeyboardShortcut` | `slash` focuses textarea (select-all so paste replaces); `escape` resets + cancels; `copy` (Ctrl/Cmd+C outside editable) → copy-all. **Do NOT register `enter`** — in a textarea it must insert a newline, and this hook's Enter handler fires from editable targets |
+| Zero-effort default | Sample text prefilled, sample digests shown at first paint |
+| Local-first / no third-party requests | Entire tool offline-capable; e2e can assert no network request beyond static assets while hashing |
+| `data-testid` conventions | `hash-input`, `hash-row-<id>`, `hash-row-<id>-value`, `hash-row-<id>-copy`, `hash-copy-all`, `hash-file-input`, `hash-dropzone`, `hash-progress`, `hash-cancel`, `hash-uppercase`, `hash-copy-link` |
+| a11y | File picker button usable without drag-drop; `aria-live` on completion; progress via `role="progressbar"`; drop zone is a convenience, not the only path |
 
-1. **Registry → derived UI:** `tools/registry.ts` is read (never written to at runtime) by nav, landing cards, sitemap, related-tools, and per-page `generateMetadata`. One direction only — UI components never mutate or extend the registry at runtime.
-2. **URL ↔ client island:** nuqs keeps `window.location.search` and component state in sync bidirectionally, shallow (no navigation) by default so local-first tools never trigger a server round trip just from typing.
-3. **Client island → lib/ → result:** every tool's "generate/calculate/lookup" action ultimately calls a pure or async function in `lib/<tool>/`, never inlines domain logic in a component.
-4. **Client island → analytics guard → analytics provider:** any interaction event passes through the shared redaction helper before being sent, so sensitive query param values (MACs, internal hostnames, private IPs, secrets) never reach the analytics vendor.
+---
 
-## Recommended Build Order (dependency chain)
+## Anti-Patterns to Avoid
 
-This directly informs roadmap phase sequencing, and matches the build order already confirmed in PROJECT.md (UUID → Subnet → DNS → MAC):
+### 1. Importing noble (or `engine.ts`) from a component, page, or `algorithms.ts`
+**Why bad:** silently ships ~19 KB into the page bundle and destroys the lazy-load boundary.
+**Instead:** UI imports only `algorithms.ts`/`format.ts`/`client.ts`; add the lint/test guard.
 
-1. **Shared shell + registry (Phase 0, before any tool)**
-   - `tools/registry.ts` with the `ToolDefinition` type (even with only a `planned` UUID entry)
-   - Root `layout.tsx` (theme, `<NuqsAdapter>`, global nav/footer components reading the registry)
-   - `app/page.tsx` landing page rendering cards from the registry
-   - `components/ui/*` primitives (Button, Input, CopyButton) and `components/tools/*` chrome (ResultPanel, FaqSection, RelatedTools) — built generically even though only one tool exists yet, because the second tool is where a hardcoded shell would first show cracks
-   - `lib/shared/analytics.ts` redaction contract established before any tool sends events
-   - **Why first:** every subsequent tool depends on this; changing the registry shape after 2+ tools exist means touching every tool.
+### 2. Hashing text on the main thread "because it's small"
+**Why bad:** two code paths, library on main thread, and pasted multi-MB text freezes typing.
+**Instead:** same worker funnel for text and files.
 
-2. **UUID Generator (first tool, validates the whole pattern end-to-end)**
-   - `lib/uuid/generate.ts` (pure, zero external dependencies — matches PROJECT.md's stated rationale for going first)
-   - `app/tools/uuid/page.tsx` + `uuid-tool.tsx` split
-   - Registry entry flips `uuid` from `planned` → `active`
-   - **Validates:** server/client split pattern, copy/download UX, registry-driven nav actually updates without touching other files.
+### 3. Using `file.stream()` or `crypto.subtle.digest` as the file path
+**Why bad:** `.stream()` is undefined in jsdom (untestable); `subtle.digest` has no incremental API and covers 4 of 10 algorithms.
+**Instead:** `slice().arrayBuffer()` loop feeding incremental hashers.
 
-3. **IP Subnet Calculator (second tool, validates URL-state pattern)**
-   - `lib/subnet/ipv4.ts`, `lib/subnet/ipv6.ts` (pure, no external dependency — still local-first)
-   - `app/tools/subnet/page.tsx` + `subnet-tool.tsx`, introduces `nuqs` and the `?cidr=` bookmarkable pattern for the first time
-   - **Validates:** the searchParams-avoids-dynamic-rendering pattern (Pattern 1) under a real bookmarkable-state requirement; second registry entry proves the shell doesn't need per-tool edits.
+### 4. Cancel by "ignoring the result" only
+**Why bad:** the worker keeps burning CPU hashing a superseded 2 GB file while the new job queues behind it.
+**Instead:** seq token (UI) **and** abort signal (CPU) **and** event-loop yield between chunks.
 
-4. **DNS Lookup (third tool, first external dependency)**
-   - `lib/dns/resolvers.ts` + `lib/dns/query.ts` (async, DoH fetch, but still framework-agnostic — no Next.js imports, testable with a mocked fetch)
-   - `app/tools/dns/page.tsx` + `dns-tool.tsx`: adds debounce, `AbortController`, loading/error/empty states, `?name=&type=` URL state
-   - **Depends on:** resolver choice (deferred decision per PROJECT.md) — but the *architecture* (client-side fetch to a CORS-friendly DoH JSON endpoint, no API route needed) can be locked in now regardless of which resolver is finally chosen.
+### 5. Re-hashing on case toggle / storing formatted strings in state
+**Why bad:** needless work, cancels in-flight jobs, and risks the Phase 2 desync class of bug (copy ≠ display).
+**Instead:** store bytes, format at render and at copy time from the same function.
 
-5. **MAC Address Inspector (fourth tool, first potential API route)**
-   - `lib/mac/parse.ts` (pure, local-first: format normalization, OUI extraction, bit-flag detection — no network needed)
-   - `lib/mac/vendor.ts` (adapter interface: local dataset lookup now, or a call the client makes if a proxy is needed)
-   - Only if the launch vendor source requires a server-side key/CORS workaround: `app/api/mac-vendor/route.ts`, which imports `lib/mac/vendor.ts` — first proof that the API-route/core-logic separation (Pattern 3) actually works, ahead of the future public API milestone.
-   - **Depends on:** vendor data source decision (deferred per PROJECT.md) — architecture accommodates either choice (local dataset = fully client-side; proxy = thin Route Handler over the same `lib/` function) without restructuring.
+### 6. Binding global `Enter` for this tool
+**Why bad:** the hook fires it from editable targets; Enter in the textarea would also trigger the handler.
+**Instead:** no `enter` handler; hashing is live.
 
-**Ordering rationale:** each tool after the first is chosen specifically to stress a *new* piece of the shared architecture (client/server split → URL state → external async data → API-route extraction) while reusing everything validated by the previous tool. This is a stronger reason for the order than "UUID is simplest" alone — it means by the time MAC ships, every architectural seam the roadmap needs has already been exercised once.
+### 7. Putting text in `#fragment` or auto-syncing to `?text=`
+**Why bad:** fragment bypasses the `?`-split redaction; auto-sync leaks secrets to history/logs.
+**Instead:** explicit "Copy link" (see URL State).
 
-## Scaling Considerations
+---
 
-| Scale | Architecture Adjustments |
-|-------|---------------------------|
-| 4 tools (v1 launch) | Structure as described above is sufficient; no code-splitting concerns beyond Next.js's automatic per-route bundling |
-| 10-15 tools (near-term roadmap, §12 of brief) | Registry gains a `category` grouping already in the type; landing page groups cards by category; consider a `lib/index.ts` barrel per category if cross-tool imports emerge (e.g. shared IP-parsing utility used by both Subnet and a future WHOIS tool) |
-| 20+ tools / public API traffic (post-v1, §12.1) | `lib/` is the natural extraction boundary for `@packetory/core` as an actual published package (npm workspace or separate repo); `app/api/*` routes become thin adapters with auth/rate-limiting middleware layered on top, still calling the same `lib/` functions the website uses |
+## Scalability / Performance Considerations
 
-### Scaling Priorities
+Measured on Node 22 / V8 (same engine family as Chrome; MEDIUM confidence for browsers), noble 2.4.0, 64 MiB buffer, per algorithm: SHA-1 419, SHA-256 332, SHA-224 325, RIPEMD-160 304, SHA-512 157, SHA-384 155, MD5 116, SHA3-256 76, SHA3-512 41 MB/s. **All 10 together ≈ 14 MB/s** (sum of per-algorithm times, single thread).
 
-1. **First bottleneck: registry sprawl.** Once 8-10 tools exist, a flat array is still fine, but grouping/derived views (by category, by status) should live as *functions over the registry* (`getToolsByCategory()`), not duplicated filtering logic scattered across components — keep this discipline from tool #2 onward so it never needs a refactor.
-2. **Second bottleneck: `lib/` cross-tool duplication.** IP parsing/validation logic will likely be needed by Subnet, DNS (reverse lookups), and any future WHOIS/ping tool. Watch for copy-pasted CIDR/IP-validation code across `lib/subnet/` and `lib/dns/` — extract to `lib/shared/ip.ts` the moment a second tool needs the same primitive, not preemptively.
+| File size | Single worker, all 10 algos | Mitigation |
+|-----------|----------------------------|------------|
+| 1 MB (text/docs) | ~70 ms — imperceptible | none |
+| 100 MB | ~7 s | progress bar + Cancel required |
+| 1 GB | ~70 s | progress + ETA/throughput readout; size warning ≥ ~500 MB; Cancel |
+| 4 GB+ | minutes | Same; `Blob` slices keep memory flat (1 MiB working set) — memory is NOT the limit, time is |
 
-## Anti-Patterns
+Escape hatches if this proves too slow (design supports, do not build now): (a) split algorithms across 2–3 workers (each worker reads the file independently; protocol already takes `algos`) — SHA3-512 + MD5 are the long poles; (b) swap the engine for `hash-wasm` (WASM, several × faster, but ~1.8 MB package/per-algorithm WASM modules and added worker-origin/WASM complexity); (c) offer an "only selected algorithms" toggle. SHA-3 (41–76 MB/s) dominates wall time — worth noting in perf docs/FAQ.
 
-### Anti-Pattern 1: Reading `searchParams` directly in a tool's `page.tsx`
+Progress messages: throttle to ~10 Hz; `Math.min(done/total,1)`; handle `total === 0` (empty file → instant result).
 
-**What people do:** Destructure `searchParams` in the Server Component page (`export default function Page({ searchParams })`) to pre-render the result server-side "for SEO," e.g. rendering the subnet breakdown for `?cidr=` server-side.
-**Why it's wrong:** This opts the entire route out of static generation — every request to `/tools/subnet` (even with no query string) is now server-rendered, defeating "static-first" and the 90+ Lighthouse target, and it doesn't even buy real SEO value here since these are interactive utility results, not crawlable content that needs to vary per query.
-**Do this instead:** Keep `page.tsx` static (no `searchParams` prop), do all searchParams reading in the Client Component island via `nuqs`/`useSearchParams` inside a `Suspense` boundary (Pattern 1).
+---
 
-### Anti-Pattern 2: Hardcoding a tool's nav link, landing card, or sitemap entry outside the registry
+## Suggested Build Order / Phase Decomposition
 
-**What people do:** Add the second tool by copy-pasting the first tool's `<Link>` in the nav component and adding a new `<Card>` in the landing page JSX, because it's "just one more line."
-**Why it's wrong:** This is precisely the failure mode the brief's architecture intent calls out — by tool 3 or 4, nav/landing/sitemap/related-tools all drift independently, and "add a tool" silently regains its old cost of touching 4-5 files.
-**Do this instead:** Every one of those surfaces must derive from `tools/registry.ts` via a shared helper (`getToolsByCategory`, `relatedTools`, etc.) from the very first tool onward — add the discipline before there's a second tool to prove it matters, not after.
+Phase numbers continue from v1.1 (which ended at Phase 7); labels are suggestions for the roadmapper.
 
-### Anti-Pattern 3: Putting DNS/MAC network calls inside `lib/`-imported browser-only APIs without an adapter seam
+### Phase A — Hash core + worker runtime (no UI) — "foundation"
+- Install `@noble/hashes@2.4.0`; create `types`, `algorithms`, `crc32`, `engine`, `format`, `source`, `job`, `client`, `hash.worker.ts`.
+- **Walking skeleton gate**: a throwaway or permanent dev harness proving `next build` emits the worker chunk and a real browser round-trips a digest (the spike in this research already proves feasibility; re-prove inside the repo and keep as an e2e once the page exists).
+- Tests: published vectors for all 10, fast-check chunk-invariance + Web Crypto oracle, job abort/progress, client supersede/dispose with fake Worker.
+- Why first: everything else depends on it; it is pure and independently testable (project convention: `lib/` before UI); de-risks the only genuinely new technology (workers under Turbopack) before UI investment.
+- Avoids: chunk-boundary bugs, CRC leading-zero bug, stale-result races.
 
-**What people do:** Write `lib/dns/query.ts` using the global `fetch` and assume it always runs in the browser, or conversely write it assuming it always runs server-side with Node-only APIs.
-**Why it's wrong:** Breaks the "same core logic callable by pages and future API routes" requirement (brief §12.1) — if `lib/dns/query.ts` only works in one runtime, the eventual API route (or an edge-runtime deployment) needs a parallel reimplementation, exactly the duplication the architecture is meant to prevent.
-**Do this instead:** Use the standard `fetch` API (available in browser, Node 18+, and Edge runtime) with no runtime-specific globals, and keep resolver endpoint selection/config as plain data so both a client component and a Route Handler can call the same function with the same inputs.
+### Phase B — Tool page, text path, registry integration — "shippable text-only slice"
+- `tools/registry.ts` entry (category `encode`), `ToolCard` icon, all hard-coded-count test fallout (registry, sitemap, home, navigation e2e), `page.tsx`, `HashToolLoader`, `HashTool` (textarea, 10 rows, per-row copy, copy-all, uppercase toggle, not-for-security labels), `useHashJob`, `faq-data.ts` with precomputed `sampleDigests` + unit test pinning them to engine output, SEO + JSON-LD, shortcuts (`/`, `Esc`, copy), `hash.spec.ts` + `hash-seo.spec.ts`, 320px layout check, `?text=` read-on-load.
+- Depends on: Phase A client + algorithms metadata.
+- Avoids: nav/landing/sitemap regressions (explicit fallout list above), CLS (skeleton + sample constants), Enter-in-textarea conflict.
 
-## Integration Points
+### Phase C — File input, progress, cancel, share link, hardening
+- Dropzone + picker, file chip, progress + Cancel, size warning, error states (unreadable/directory/multi-file), window-level drop guard, "Copy link" action, supersede e2e matrix (rows 1–13), analytics-redaction regression test, 100 MB synthetic-file cancel e2e (build the `File` in-page via `DataTransfer`, don't ship 100 MB through Playwright's `setInputFiles`), Lighthouse check (no hash code in initial JS), final a11y pass for this tool.
+- Depends on: Phase B UI and Phase A cancel plumbing.
+- Avoids: the Phase 4/5 recurring "missed superseding path" defect (matrix up front), secrets in URL/analytics.
 
-### External Services
+Why not collapse A into B: A has no UI to review and its exit criterion is crisp (vectors + worker smoke), which lets B be planned against a stable `client` interface. Why not merge B and C: text-only is independently shippable and gives an early prod-verifiable milestone; file handling is where nearly all the async/cancel risk lives and deserves its own security review (untrusted file input, DoS by huge file, error paths).
 
-| Service | Integration Pattern | Notes |
-|---------|----------------------|-------|
-| DNS-over-HTTPS resolver (primary + fallback) | Direct client-side `fetch()` to the resolver's JSON API (e.g. Cloudflare/Google-style DoH JSON, both CORS-enabled) — no `app/api` proxy needed | Resolver choice deferred per PROJECT.md; architecture (client-direct fetch) holds regardless of which resolver is chosen, since major DoH JSON endpoints are CORS-friendly |
-| MAC vendor/OUI data | Either (a) local dataset bundled/generated at build time and queried fully client-side, or (b) `app/api/mac-vendor/route.ts` proxying a low-rate public API if a server-side key or CORS restriction requires it | Brief explicitly flags local-dataset as the preferred long-term model; architecture supports switching from (b) to (a) later by just changing what `lib/mac/vendor.ts` does internally — callers don't change |
-| Future public API consumers | `app/api/<tool>/route.ts` Route Handlers importing `lib/<tool>/*` directly | Not built in v1; the `lib/` boundary is what makes this additive rather than a rewrite |
+**Research flags:**
+- Phase A: worker + Turbopack is the only novel area — already spiked; reconfirm in-repo; no further research.
+- Phase B: standard patterns (copy MAC tool); no research.
+- Phase C: UI-level decisions (progress/ETA copy, size-warning threshold, directory-drop UX) need `discuss-phase`; consider threat-model pass (huge file, exotic filenames in UI, `name` is untrusted display text — render as text, never HTML).
 
-### Internal Boundaries
+---
 
-| Boundary | Communication | Notes |
-|----------|----------------|-------|
-| `tools/registry.ts` ↔ shell/landing/sitemap components | Direct import, read-only, one direction | Registry never imports from `components/` or `app/` — avoids circular deps |
-| `page.tsx` (Server) ↔ `*-tool.tsx` (Client) | Composition via JSX children/props, not import-of-server-into-client | Server Component renders the Client Component as a child; static content (FAQ, examples) stays server-rendered around the island |
-| Client island ↔ `lib/<tool>/*` | Direct function call (sync for UUID/Subnet/MAC parsing, async for DNS/vendor lookup) | No context/store layer between them — keeps each tool's data flow traceable in one file |
-| Client island ↔ URL | `nuqs` `useQueryState`, shallow by default | Only DNS's explicit "refresh" action or a future non-shallow case should trigger a real navigation/server re-render |
-| Any client component ↔ analytics | Must pass through `lib/shared/analytics.ts` redaction helper | Single choke point makes the privacy requirement (brief §8.2) auditable in one file rather than trusted per-tool |
+## Verification Evidence (how claims above were checked)
+
+Done in a throwaway copy of the repo under the session scratchpad (no files in the real repo were touched):
+
+1. Added `app/spike/hash.worker.ts` (noble sha2/sha3/legacy via `.create().update()`) + client page using `new Worker(new URL("./hash.worker.ts", import.meta.url))`.
+2. `next build` (Next 16.2.11, Turbopack) → compiled, TS passed, static prerender passed.
+3. `next start` and `next dev` + real Chrome via Playwright → worker ran, produced correct digests for `abc` (MD5/SHA-1/SHA-224/SHA-256/SHA-384/SHA-512/SHA3-256/SHA3-512/RIPEMD-160 all matched published values); worker chunk loaded as its own request.
+4. Chunk size: 18,948 B raw / 7,775 B gzip.
+5. Node benchmark of per-algorithm throughput (numbers above).
+6. Vitest (jsdom, vitest 4.1.10): noble hashes `TextEncoder` output correctly; `File.arrayBuffer()` exists; `File.stream` is `undefined`.
+7. `lucide-react` exports `Hash` (icon for registry/ToolCard).
+
+Not verified (call out for implementers): browser (non-Node) throughput numbers; behavior of `{type:"module"}` worker option; Safari/Firefox worker behavior (standard API, expected fine; add to manual UAT); what exactly Vercel Analytics includes in `event.url` re: hash fragment (hence the "no fragment" rule).
+
+---
 
 ## Sources
 
-- [Next.js: searchParams / use-search-params reference](https://nextjs.org/docs/app/api-reference/functions/use-search-params) — MEDIUM confidence (official docs, cross-checked)
-- [searchParams Forces Dynamic Rendering in Next.js — Route Separation Fix](https://www.buildwithmatija.com/blog/nextjs-searchparams-static-generation-fix) — MEDIUM confidence (cross-checked against official docs and a second independent article)
-- [Fixing "Dynamic server usage" with URL/search params in Next.js](https://matthewmorek.com/journal/fixing-dynamic-server-usage-when-working-with-url-search-params-in-next-js) — MEDIUM confidence
-- [nuqs — Type-safe search params state management for React](https://nuqs.dev/) and [nuqs GitHub](https://github.com/47ng/nuqs) — MEDIUM confidence (project docs, cross-checked against multiple independent write-ups)
-- [nuqs Options docs — shallow routing](https://nuqs.dev/docs/options) — MEDIUM confidence
-- [Next.js: Server and Client Components](https://nextjs.org/docs/app/getting-started/server-and-client-components) — MEDIUM confidence (official docs, cross-checked)
-- [Vercel Academy: Client-Server Component Boundaries](https://vercel.com/academy/nextjs-foundations/client-server-boundaries) — MEDIUM confidence
-- [Next.js: generateMetadata reference](https://nextjs.org/docs/app/api-reference/functions/generate-metadata) — MEDIUM confidence (official docs)
-- [Next.js: Project Structure](https://nextjs.org/docs/app/getting-started/project-structure) — MEDIUM confidence (official docs)
-- General community App Router structure articles (feature-sliced design, enterprise-pattern write-ups) — LOW-MEDIUM confidence, used only to corroborate conventions already implied by the brief's own proposed structure, not as the primary basis for any recommendation
-
-Overall note on confidence: this project's own `project-brief.md` §8/§8.1 already specifies the registry pattern, `ToolDefinition` type, and folder layout in detail — this research validates that proposal against current (2026) Next.js App Router mechanics rather than inventing a new structure, and the one substantive addition beyond the brief is the explicit Server-shell/Client-island split (Pattern 1) needed to reconcile "static-first rendering" with "bookmarkable URL state," which is not spelled out in the brief but is required to satisfy both constraints simultaneously.
-
----
-*Architecture research for: Packetory (multi-tool Next.js App Router utility site)*
-*Researched: 2026-07-21*
+- Repo inspection (HIGH): `tools/registry.ts`, `components/ToolCard.tsx`, `app/tools/{mac,dns,subnet}/*`, `lib/hooks/*`, `lib/analytics/{redact,PacketoryAnalytics}.ts*`, `app/sitemap.ts`, `*.test.ts` hard-coded lists, `tests/e2e/{home,navigation,mac-lookup,uuid-seo}.spec.ts`, `.planning/PROJECT.md` Key Decisions.
+- `@noble/hashes` 2.4.0: npm registry metadata (MIT, zero deps, `sideEffects:false`, exports `sha2.js`/`sha3.js`/`legacy.js`) and package type definitions inspected via `npm pack` — HIGH.
+- [Turbopack: What's New in Next.js 16.2 — Web Worker Origin](https://nextjs.org/blog/next-16-2-turbopack) — HIGH (official).
+- [Next.js commit — Fix Turbopack worker_threads URL resolution (#93432, issue #93427)](https://app.semanticdiff.com/gh/vercel/next.js/commit/cb96548418cb856cf91d2bdda2083f5bd1e9611b) and [commit d23af53 (browser worker bootstrap rework)](https://app.semanticdiff.com/gh/vercel/next.js/commit/d23af53268d062ff70b7c12322750b85ed3a76ba) — MEDIUM (secondary mirror; scope of regression = Node worker_threads, browser path confirmed independently by the local spike).
+- Local spike results and benchmark (HIGH for this repo/version; MEDIUM for cross-browser throughput).

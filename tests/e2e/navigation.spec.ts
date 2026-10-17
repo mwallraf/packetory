@@ -29,12 +29,12 @@ test.describe("Mobile nav drawer (320px, D-04, SHELL-06)", () => {
     await expect(drawer).toBeVisible();
 
     // All active registry entries render as real links using their shortName.
-    for (const shortName of ["Subnet", "UUID", "Config", "DNS", "MAC"]) {
+    for (const shortName of ["Subnet", "UUID", "Config", "DNS", "Hash", "MAC"]) {
       await expect(
         drawer.getByText(shortName, { exact: true })
       ).toBeVisible();
     }
-    await expect(drawer.locator("a")).toHaveCount(5);
+    await expect(drawer.locator("a")).toHaveCount(6);
     await expect(
       drawer.getByTestId("mobile-nav-link").getByText("UUID", { exact: true })
     ).toBeVisible();
@@ -43,6 +43,9 @@ test.describe("Mobile nav drawer (320px, D-04, SHELL-06)", () => {
     ).toBeVisible();
     await expect(
       drawer.getByTestId("mobile-nav-link").getByText("DNS", { exact: true })
+    ).toBeVisible();
+    await expect(
+      drawer.getByTestId("mobile-nav-link").getByText("Hash", { exact: true })
     ).toBeVisible();
     await expect(
       drawer.getByTestId("mobile-nav-link").getByText("MAC", { exact: true })
@@ -76,5 +79,37 @@ test.describe("Mobile nav drawer (320px, D-04, SHELL-06)", () => {
 
     await expect(drawer).not.toBeVisible();
     await expect(trigger).toBeFocused();
+  });
+});
+
+test.describe("Desktop nav fits six tools at 640px (INTG-01, research A5)", () => {
+  test.use({ viewport: { width: 640, height: 800 } });
+
+  test("the six nav links are visible and neither the page nor the header overflows horizontally", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const links = page.getByTestId("nav-link");
+    await expect(links).toHaveCount(6);
+    for (let i = 0; i < 6; i++) {
+      await expect(links.nth(i)).toBeVisible();
+    }
+
+    const overflow = await page.evaluate(() => {
+      const header = document.querySelector("header");
+      return {
+        pageScrollWidth: document.documentElement.scrollWidth,
+        pageClientWidth: document.documentElement.clientWidth,
+        headerScrollWidth: header?.scrollWidth ?? 0,
+        headerClientWidth: header?.clientWidth ?? 0,
+      };
+    });
+    expect(overflow.pageScrollWidth).toBeLessThanOrEqual(
+      overflow.pageClientWidth
+    );
+    expect(overflow.headerScrollWidth).toBeLessThanOrEqual(
+      overflow.headerClientWidth
+    );
   });
 });

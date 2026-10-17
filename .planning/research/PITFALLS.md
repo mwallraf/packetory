@@ -1,305 +1,489 @@
 # Pitfalls Research
 
-**Domain:** Network/infrastructure utility website (UUID generator, IP subnet calculator, DNS lookup, MAC inspector) — Next.js App Router, static-first, client-island architecture
-**Researched:** 2026-07-21
-**Confidence:** MEDIUM (domain math/protocol facts are HIGH confidence — well-established RFC-backed standards cross-checked against multiple sources; ecosystem/tooling claims are MEDIUM — general web search, not curated docs)
+**Domain:** In-browser multi-algorithm Hash Generator (text + file) added to an existing static-first Next.js 16 / React 19 tool site (Packetory v1.2, `/tools/hash`)
+**Researched:** 2026-10-14
+**Confidence:** HIGH on algorithm/encoding/streaming correctness (well-known, test-vector-verifiable) and on integration points (read directly from this repo: `lib/analytics/PacketoryAnalytics.tsx`, `lib/hooks/useKeyboardShortcut.ts`, `app/tools/*/…Loader.tsx`, `tsconfig.json`, `package.json`). MEDIUM on throughput/memory numbers (device-dependent, must be measured in-phase). LOW-flagged items are called out inline.
+
+**Phase naming used below** (suggested; roadmapper may renumber — v1.1 ended at Phase 7):
+- **Core** = `lib/hash/` framework-agnostic engine + Vitest vectors/property tests (algorithms, UTF-8 encoding, incremental/chunked file hashing, CRC32, formatting)
+- **UI** = `/tools/hash` client island (text + file input, worker wiring, results grid, copy, keyboard, URL state, skeleton)
+- **Ship** = registry entry, per-tool SEO/FAQ/JSON-LD, analytics/privacy hardening, Playwright e2e, Lighthouse/bundle check
+
+---
 
 ## Critical Pitfalls
 
-### Pitfall 1: IPv6 host-count and address arithmetic overflow (JS Number precision loss)
+### Pitfall 1: Hashing the wrong bytes (encoding mismatch vs `sha256sum`)
 
 **What goes wrong:**
-A `/64` IPv6 network has 2^64 addresses — a `/48` has 2^80. JavaScript's `Number` type only safely represents integers up to 2^53 (`Number.MAX_SAFE_INTEGER`). Any subnet calculator that does host-count or address-range math using ordinary numbers (or worse, `parseInt`/bitwise operators, which coerce to 32-bit signed integers) will silently produce wrong, truncated, or garbage results for anything above roughly a `/74` — and IPv4 bitwise operators (`<<`, `>>>`, `&`) are already unsafe above `/1` for full 32-bit masks in some edge cases (sign bit issues on `/0`–`/1`).
+User pastes `héllo 🚀` and gets a digest that differs from `printf 'héllo 🚀' | sha256sum`. Root causes: (a) feeding the library `str.charCodeAt()` values / Latin-1 / UTF-16 code units instead of UTF-8 bytes (classic with legacy npm md5/sha1 packages and `btoa`-style code); (b) Unicode normalization differences (NFC `é` U+00E9 vs NFD `e`+U+0301 hash differently; macOS filenames and some paste sources are NFD); (c) lone surrogates — `TextEncoder` silently replaces them with U+FFFD (`EF BF BD`), so the tool hashes different bytes than what the user "typed"; (d) the user's *other* tool used a different encoding (Windows PowerShell 5 `echo abc > f.txt` writes **UTF-16LE with BOM**; `certutil`, .NET `Encoding.Unicode`, Java `getBytes()` platform default).
 
 **Why it happens:**
-IPv4 subnetting habits (32-bit math fits in a JS Number/Int32) get copy-pasted into IPv6 logic without re-checking bit width. It "looks done" because small prefixes like `/64`–`/128` render fine (few/no usable hosts to enumerate), but larger networks (`/48`, `/32`) silently break.
+JS strings are UTF-16 internally. Hash libraries often accept `string` and each treats it differently. Developers test only with ASCII `"abc"` where every encoding agrees.
 
 **How to avoid:**
-Use `BigInt` for all IPv6 address-to-integer conversions, network/broadcast-equivalent math, and host-count calculations. For IPv4, use `>>> 0` (unsigned right shift by zero) after bitwise ops to avoid sign-bit corruption, or also use BigInt for consistency across both stacks in the shared `lib/subnet` module. Write the core address-math module framework-agnostic and unit-test it independently before wiring it into any UI.
+- One single choke point in `lib/hash/`: `encodeText(s) => new TextEncoder().encode(s)`; every hasher accepts only `Uint8Array`. Never pass strings into hash libs (even where they "support" them) — keeps the contract explicit and testable.
+- Never trim, normalize (NFC/NFD), or case-fold the input. Hash exactly what's in the textarea.
+- Show a live **"N bytes (UTF-8)"** next to the input — makes encoding mismatches self-diagnosing (emoji = 4 bytes, `é` = 2).
+- Mandatory non-ASCII vectors in Vitest: `"é"` (2 bytes), `"€"` (3), `"🚀"` (4), mixed ASCII+emoji, NFC vs NFD pair producing *different* digests (assert they differ — locks "no silent normalization"), lone surrogate `"\uD800"` → documented U+FFFD behavior. Generate expected values from Node `crypto`/`zlib` oracle, not from the implementation under test.
+- FAQ entry: "Why doesn't my hash match?" listing UTF-8 assumption, trailing newline, CRLF, BOM, UTF-16 (PowerShell). Optional differentiator (defer unless cheap): encoding selector UTF-8 / UTF-16LE.
 
 **Warning signs:**
-- Host count displays as a negative number, `NaN`, or `Infinity` for large prefixes.
-- Network/first-address calculation is correct for `/64`+ but wrong for `/32`–`/48`.
-- Any use of `parseInt(x, 2)` or `<<`/`>>` on more than 31 bits in the codebase.
+Tests only use ASCII; implementation imports `utf8ToBytes`/`charCodeAt` loops ad hoc in multiple places; no byte-count displayed; hash of `"é"` differs from `printf 'é' | sha256sum`.
 
-**Phase to address:**
-IP Subnet Calculator phase (2nd in build order). This is core-logic work, not UI polish — should be caught by boundary/property-based unit tests before the tool ships.
+**Phase to address:** Core (encoding choke point + vectors), UI (byte-count display), Ship (FAQ copy).
 
 ---
 
-### Pitfall 2: Off-by-one and "no host bits" errors at IPv4 /31, /32 and IPv6 /127, /128
+### Pitfall 2: Newline/whitespace confusion (`echo` vs `echo -n`, CRLF, textarea behavior, BOM)
 
 **What goes wrong:**
-Standard subnet math assumes network address + broadcast address + usable hosts. RFC 3021 defines `/31` as a special case (point-to-point links) with **no network/broadcast address** — both addresses are usable. `/32` is a single host with no network, broadcast, or usable range at all. IPv6 has **no broadcast address concept whatsoever** — applying IPv4 broadcast logic to IPv6 is a category error. `/127` is the IPv6 point-to-point equivalent (RFC 6164, both addresses usable), and `/128` is a single host.
+The #1 "your tool is wrong" complaint for every hash site. `echo "abc" | sha256sum` hashes `abc\n` (4 bytes); `echo -n` / `printf` hashes `abc`. Windows text files end in `\r\n`. Additionally: the HTML `<textarea>` **API value normalizes line breaks to LF** (spec: CRLF → LF, lone CR → LF), so text pasted from a Windows CRLF file will *not* hash the same as `sha256sum file.txt` — silently, with no way for the user to notice. Smart-punctuation/auto-correct (iOS, macOS "smart quotes/dashes") rewrites `"` → `"`, `--` → `—` before the value reaches JS. Spellcheck/autocapitalize can alter text on mobile.
 
 **Why it happens:**
-Generic subnet formulas (`usable hosts = 2^n - 2`) are hard-coded without branching for these boundary prefixes, since they're rare in example data but common in real point-to-point/loopback configs that engineers actually look up.
+Developers assume the textarea value == the bytes the user "meant". Users assume the tool == their shell. The gap (LF vs CRLF, trailing newline, BOM, autocorrect) is invisible.
 
 **How to avoid:**
-Explicitly branch these four cases (`/31`, `/32` for IPv4; `/127`, `/128` for IPv6) in the core subnet-math module rather than relying on the general formula to degrade gracefully. Add them as required unit-test fixtures, not optional edge cases.
+- Don't trim, and don't strip the trailing newline — a typed trailing `\n` is part of the input. Show a small inline hint when the input ends with a newline: "Input ends with a newline (1 byte) — `echo -n` omits it."
+- Explicitly document in UI help/FAQ: text mode hashes the *textarea content as UTF-8 with LF line endings*; **for exact bytes of an existing file, use File mode** (File mode reads raw bytes: BOM, CRLF, binary all preserved). This is the primary mitigation for CRLF — surface it in the CRLF hint rather than burying it.
+- Optional cheap differentiator: a "Line endings: LF (default) / CRLF" toggle applying `\n → \r\n` before encoding, with the byte count updating live. Decide in planning; don't half-build it (a toggle that converts only some newline cases is worse than none).
+- Textarea attributes: `spellCheck={false} autoComplete="off" autoCorrect="off" autoCapitalize="off"` and `data-gramm="false" data-1p-ignore data-lpignore="true"` (Grammarly / password-manager overlays). `autoCorrect="off"` is the only reliable defense against iOS smart-quote substitution. Also prevents Chrome enhanced-spellcheck sending typed secrets to a cloud service.
+- Test: a Playwright test that pastes `"a\r\nb"` and asserts the displayed byte count matches the documented behavior (3 bytes, LF-normalized), so a future change cannot silently alter it.
 
 **Warning signs:**
-Usable host count shows as negative (`2^0 - 2 = -1`) or the tool displays a broadcast address field for IPv6 output.
+`.trim()` anywhere in the input path; no `autoCorrect`/`spellCheck` attrs; byte count not shown; FAQ says nothing about newlines; issue reports of "SHA-256 of my file doesn't match".
 
-**Phase to address:**
-IP Subnet Calculator phase.
+**Phase to address:** Core (never trim; optional CRLF transform in encoder), UI (attrs, hint, byte count, File-mode pointer), Ship (FAQ).
 
 ---
 
-### Pitfall 3: IPv6 zero-compression and normalization not RFC 5952-compliant
+### Pitfall 3: SHA-3 vs Keccak confusion (Ethereum `keccak256`)
 
 **What goes wrong:**
-IPv6 has multiple textually valid representations of the same address (`2001:0db8:0000:0000:0000:0000:0000:0001` vs `2001:db8::1`), and naive string-based compression logic produces non-canonical or ambiguous output: compressing a single zero group (not allowed — `::` must replace the *longest run* of ≥2 groups, and if there's a tie, the *first* run), using uppercase hex, or leaving unnecessary leading zeros.
+SHA3-256 (NIST FIPS 202) and Keccak-256 (original submission, used by Ethereum/Solidity `keccak256`) differ **only in the padding/domain-separation byte (`0x06` vs `0x01`)**, so they produce completely different digests for identical input. Developers (a) wire the wrong function from a library that exports both (`keccak_256` vs `sha3_256`), (b) label SHA3-256 as "Keccak" or vice versa, (c) copy a "SHA3-256" vector that was actually produced by an Ethereum tool, and (d) users compare against `web3.utils.keccak256` and think the tool is broken.
 
 **Why it happens:**
-Developers write ad-hoc regex/string-replace compression instead of implementing the RFC 5952 canonical algorithm precisely, and testing only against "nice" example addresses instead of adversarial ones (multiple equal-length zero runs, a single isolated zero group, mixed-case input).
+Naming overlap and that many npm packages named `sha3` historically implemented Keccak. Empty-string vectors look similar in structure so the mismatch isn't spotted by eyeballing.
 
 **How to avoid:**
-Implement (or use a well-vetted library for) full RFC 5952 canonicalization: lowercase hex, no leading zeros per group, compress only the single longest run of ≥2 all-zero groups (first one wins on ties), never compress a lone zero group. Provide both compressed and expanded forms as the spec requires — test round-trip (parse → normalize → re-parse → same address).
+- Pin vectors from FIPS 202 / NIST CAVP, and assert both directions in tests:
+  - SHA3-256(`""`) = `a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a`
+  - Keccak-256(`""`) = `c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470` (add as a **negative test**: SHA3-256 output must NOT equal this)
+  - SHA3-256(`"abc"`) = `3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532`
+- Label rows exactly "SHA3-256" / "SHA3-512" (FIPS 202). Do **not** add Keccak-256 in this milestone (scope is ~10 and Ethereum use is a different audience), but add a one-line FAQ: "SHA3-256 ≠ Ethereum's keccak256". If Keccak-256 is ever added it must be a separate, clearly-labelled row.
+- Import by explicit named export from the library's `sha3` module; code-review checklist item: "no `keccak_*` import in `lib/hash`".
 
 **Warning signs:**
-Two different valid input strings for the same address produce different "normalized" output, or `::` appears where only one zero group exists.
+Library import named `keccak*`; SHA3 test vector sourced from a blog/Etherscan rather than FIPS 202/CAVP; the empty-string SHA3-256 starts with `c5d2…` (that's Keccak).
 
-**Phase to address:**
-IP Subnet Calculator phase (IPv6 output requirement explicitly calls for "compressed and expanded notation").
+**Phase to address:** Core.
 
 ---
 
-### Pitfall 4: DoH JSON response treated as "success" based on HTTP status instead of the DNS RCODE
+### Pitfall 4: CRC32 is not one algorithm — variant, sign, byte order, padding, incremental state
 
 **What goes wrong:**
-DNS-over-HTTPS JSON APIs (Cloudflare `/dns-query`, Google `dns.google/resolve`) return **HTTP 200** for NXDOMAIN, SERVFAIL, and most other DNS response codes — the actual outcome lives in the JSON body's `Status` field (the RCODE integer: 0 = NOERROR, 3 = NXDOMAIN, 2 = SERVFAIL, etc.), not the HTTP status. A DNS Lookup tool that treats `response.ok` as "lookup succeeded" will show an empty/blank result (or worse, a raw error) for NXDOMAIN instead of a clear "domain does not exist" message — directly contradicting the explicit requirement to distinguish NXDOMAIN from empty-result states.
+(a) **Variant**: "CRC32" (IEEE 802.3 / zlib / gzip / PNG / `crc32` CLI; poly `0xEDB88320` reflected) vs **CRC-32C Castagnoli** (iSCSI, SCTP, ext4, Btrfs; poly `0x82F63B78`) vs POSIX `cksum` CRC (different algorithm, appends length) vs CRC-32/BZIP2 (MPEG-2 non-reflected) vs CRC-32/JAMCRC. (b) **Signed output**: JS bitwise ops return signed int32 — CRC of `"123456789"` prints `-216151002` instead of `3421780262` unless you `>>> 0`. (c) **Display**: no zero-padding → `0x1a2b3c` shown as 6 digits instead of `001a2b3c`; leading zeros dropped when using `.toString(16)`. (d) **Byte order**: gzip trailers store CRC32 little-endian; most tools print the 32-bit value as big-endian hex — don't reverse bytes. (e) **Incremental/chunked file hashing**: initial value `0xFFFFFFFF` and final `^ 0xFFFFFFFF` must be applied **once per file**, not per chunk — per-chunk init/xor makes small-file text hash right and large-file hash wrong (chunk boundary bug). (f) Typed-array views: passing `u8.buffer` instead of the `Uint8Array` view ignores `byteOffset`/`length` of sliced chunks.
 
 **Why it happens:**
-Treating a DoH endpoint like a normal REST API (HTTP status = outcome) is the natural first instinct; the RCODE-in-body quirk is undocumented in any single authoritative spec since the JSON DoH format has no formal RFC (only RFC 8484 wireformat is standardized).
+CRC "32-bit" has ~dozens of parameterizations; naive tests only check one string. Table-driven JS implementations are copy-pasted, many with the signed-int bug.
 
 **How to avoid:**
-Always parse the JSON body's `Status` field explicitly and map RCODE values to distinct UI states (NOERROR-with-empty-answer vs NXDOMAIN vs SERVFAIL vs REFUSED). Never infer success from `fetch()` promise resolution or HTTP status alone. Build this RCODE-mapping logic as a pure, independently-tested function in `lib/dns/`.
+- Implement/choose **CRC-32/ISO-HDLC (IEEE, zlib-compatible)** only, labelled "CRC32 (IEEE 802.3, zlib/gzip/PNG)". noble-hashes has no CRC32, so this is hand-rolled (~20 lines, table-driven, `Uint32Array` table) or a tiny dep; either way it's the highest-bug-density module in the milestone — test accordingly.
+- Output: unsigned (`>>> 0`), `padStart(8, "0")`, lowercase hex to match other rows; offer decimal as secondary display only if cheap. Uppercase/lowercase toggle must apply to all rows uniformly.
+- Vectors: CRC32(`""`) = `00000000`; CRC32(`"a"`) = `e8b7be43`; CRC32(`"123456789"`) = `cbf43926` (the CRC catalogue "check" value). **Caution:** the milestone's cited RFC 3720 vectors are **CRC-32C (Castagnoli)** (e.g. `"123456789"` → `e3069283`) — using them to "verify" IEEE CRC32 will fail and can push someone to implement the wrong variant. Either cite the right source (CRC catalogue / zlib / RFC 1952 gzip) or add CRC32C as a separate labelled row (scope decision; recommend not adding in v1.2).
+- Include a vector with CRC value having leading zero byte(s) and one with high bit set (to catch signed/padding bugs).
+- Property test: for any bytes and any split point(s), `crc.update(a).update(b)` == one-shot over `a||b`. Oracle: Node `zlib.crc32` (Node ≥ 20.15 / 22.2 — MEDIUM confidence on exact version; check `node -v` used by CI) or `python -c zlib.crc32`.
+- Tooltip/FAQ on the CRC32 row: "IEEE/zlib variant. Differs from CRC32C and `cksum`."
 
 **Warning signs:**
-NXDOMAIN lookups render as a blank/empty results list indistinguishable from "no records of this type" instead of a distinct "domain does not exist" state.
+Negative number ever displayed; CRC row sometimes <8 chars; large-file CRC differs from small-file CRC of same content; test vector sourced from RFC 3720 for plain "CRC32".
 
-**Phase to address:**
-DNS Lookup phase (3rd in build order).
+**Phase to address:** Core (implementation + vectors + chunk property test); Ship (FAQ/label).
 
 ---
 
-### Pitfall 5: Stale DNS/async requests overwrite newer results (race condition on fast typing/resolver switch)
+### Pitfall 5: Reading whole files into memory (ArrayBuffer OOM, iOS Safari kills the tab)
 
 **What goes wrong:**
-With debounced typed input (~600–800ms) plus instant-on-paste/Enter plus a fallback-resolver retry path, there are multiple concurrent code paths that can each kick off a fetch. Without cancellation, a slow response to an *earlier* query (e.g., resolving `example.co` while the user finishes typing `example.com`) can resolve *after* the response to the current query and overwrite the correct on-screen result with stale data — a subtle bug that only shows up under real typing speed and flaky network latency, not in manual QA where requests are naturally sequenced.
+`await file.arrayBuffer()` or `FileReader.readAsArrayBuffer(file)` on a multi-hundred-MB / GB file throws `RangeError`/`NotReadableError`, or on mobile Safari the tab is reloaded/killed with no error (iOS Safari effective per-tab memory is a few hundred MB to ~1 GB depending on device — MEDIUM confidence, device-dependent; measure). Even if the read succeeds, a 10-algorithm run may hold multiple copies (buffer + typed-array view + worker transfer copy).
 
 **Why it happens:**
-Developers debounce the *trigger* but forget that debouncing alone doesn't guarantee response ordering — two in-flight requests can still resolve out of order. This is explicitly called out as an acceptance criterion in the brief ("stale async requests cannot overwrite newer results") precisely because it's an easy miss.
+The text path is whole-buffer and trivial; the file path is "the same code with `file.arrayBuffer()`". `crypto.subtle.digest()` (see Pitfall 8) also *requires* the whole buffer, nudging developers toward the unsafe path.
 
 **How to avoid:**
-Use `AbortController` to cancel the previous in-flight request the moment a new one starts (not just to save bandwidth — as the *primary* correctness mechanism), and additionally guard state updates with a request-id/generation counter so an aborted-but-still-resolving promise can never write to state if a newer request has since started. Apply the same pattern to the primary→fallback resolver retry logic, which is itself a second async hop that can race.
+- File path is **incremental only**: loop `for (offset; offset < file.size; offset += CHUNK) { const buf = await file.slice(offset, offset + CHUNK).arrayBuffer(); const u8 = new Uint8Array(buf); for (const h of hashers) h.update(u8); }`. `Blob.slice().arrayBuffer()` is universally supported (Safari 14+); `file.stream().getReader()` is also viable (Safari 14.1+) but `slice` is simpler to reason about and to cancel.
+- **Read each chunk once and feed all ~10 hashers** from it (not 10 passes over the file — 10x the I/O and 10x the progress UI).
+- CHUNK ≈ 1–8 MiB (start at 4 MiB; tune by measurement; smaller on mobile). Let each chunk go out of scope before the next read.
+- Unit-test the chunked path with a synthetic `Blob` of generated bytes (jsdom/Node 20+ have `Blob.slice().arrayBuffer()`); property: chunked digest == one-shot digest for random sizes with chunk sizes that don't divide the length, including chunk sizes of 1, 63, 64, 65 (hash block boundaries).
+- Playwright: set a large-ish generated file (e.g. 256 MB via `setInputFiles` with a buffer or a temp file) and assert correct digest + page stays responsive; do **not** assert on 1+ GB in CI.
+- Ship a documented practical limit message rather than crashing: e.g. soft warning above N GB ("large file — this may take several minutes; keep tab open"), never a hard crash.
 
 **Warning signs:**
-Rapidly typing and backspacing in the DNS input occasionally shows a result for a domain no longer in the input box; results flicker between two different domains' data when network is throttled in DevTools.
+Any `arrayBuffer()` / `readAsArrayBuffer` call on the full `File`; works on desktop with 50 MB but never tested above 500 MB; iOS manual test = page reload.
 
-**Phase to address:**
-DNS Lookup phase — this should be a required, automated test (simulate two in-flight requests resolving out of order), not just manual verification.
+**Phase to address:** Core (chunked engine as the only file API), UI (progress/cancel/limit message), Ship (large-file e2e).
 
 ---
 
-### Pitfall 6: Silent resolver fallback masks meaningfully different results
+### Pitfall 6: Main-thread jank — live-as-you-type and file hashing blocking the UI
 
 **What goes wrong:**
-The brief explicitly warns: "never switch silently when the returned result could differ." Different DoH resolvers can return genuinely different answers for the same query (different DNS views for split-horizon/geo-DNS domains, different filtering — e.g., malware-blocking resolver variants, different TTL/caching behavior, different TXT-record quoting since the JSON format isn't RFC-standardized). A naive "try primary, on any error silently retry fallback and show the result" implementation hides *which* resolver actually produced the displayed answer, which is actively misleading for a tool engineers rely on for ground truth.
+Pure-JS hashing is 10–50x slower than native; running ten algorithms (SHA-512/SHA3 in JS are the slowest) synchronously on every keystroke is fine for 100 bytes but freezes input for a 5 MB paste, and a file hash on the main thread freezes the entire tab (no progress repaint, no cancel, browsers show "page unresponsive"). Inversely, shipping *everything* via a Worker adds a post-load latency before the default result appears (CLS/flash) and complicates tests.
 
 **Why it happens:**
-Fallback-on-failure is a common, otherwise-correct resiliency pattern; the domain-specific twist (that a "successful" fallback response is not equivalent to the primary would have returned) is easy to overlook.
+"Live" is read as "synchronous on `onChange`". File hashing is written as an async loop, which *looks* non-blocking but each chunk's `update()` still runs on the main thread between awaits.
 
 **How to avoid:**
-Always surface which resolver produced the displayed result (this is already a stated output requirement: "whether a fallback resolver was used"). Trigger fallback only on primary resolver *failure* (network error, timeout, malformed response) — never silently on a NOERROR-but-empty or NXDOMAIN result, since that's usually a legitimate answer, not a resolver failure.
+- Split by size, measured not guessed: **small text (≤ ~64–256 KB, set the threshold from a benchmark of the slowest algorithm) → synchronous on the main thread with no debounce** (instant, preserves the "live" feel); **larger text and all files → Web Worker** with debounce (~150–250 ms) for large text only.
+- Worker is a *thin shell* around `lib/hash` (messages: `{id, kind:'text'|'file', …}` → `{id, progress}` / `{id, digests}` / `{id, error}`). Keep all logic in `lib/hash` so Vitest tests it without a Worker (jsdom has none).
+- Progress updates throttled (≤ ~10 Hz via time check, not per chunk) to avoid React re-render storms; render progress in a reserved-height slot (no CLS).
+- Cancel = bump sequence id and `worker.terminate()` (+ lazily recreate); terminate is the only way to interrupt a synchronous hash loop inside the worker. Terminate worker on unmount (React 19 StrictMode double-mount in dev creates/terminates twice — verify no leaked workers).
+- Worker construction `new Worker(new URL("./hash.worker.ts", import.meta.url), { type: "module" })` works under Turbopack/webpack, but **dev-works/prod-breaks is a classic failure** — the Playwright suite must run against `next build && next start` (CI already builds; confirm e2e uses the production server, not `next dev`) with at least one file-hash test through the real worker.
+- Do not use `requestIdleCallback`/chunked `setTimeout` main-thread hashing as a substitute — still janky, unsupported on Safari for rIC.
 
 **Warning signs:**
-A domain that legitimately doesn't have an AAAA record shows as if the fallback resolver "found" a different answer, or the resolver-used indicator is missing/wrong in the UI.
+INP regressions in Lighthouse, typing lag with big paste, progress bar never animating during file hash, worker errors only visible in production build, duplicate worker instances in DevTools.
 
-**Phase to address:**
-DNS Lookup phase.
+**Phase to address:** UI (threshold, worker, cancel), Core (pure, Worker-agnostic API), Ship (prod-build worker e2e + Lighthouse INP/TBT).
 
 ---
 
-### Pitfall 7: MAC "locally administered" bit conflated with "randomized" bit
+### Pitfall 7: Stale / mixed results (race conditions across text edits, file swaps, mode switches)
 
 **What goes wrong:**
-The standard heuristic for detecting a randomized/private MAC address is: locally-administered bit (U/L, bit 1 of the first octet) = 1 AND unicast bit (I/G, bit 0) = 0, which always makes the second hex nibble one of `{2, 6, A, E}`. But locally-administered ≠ randomized in general — VMs (VirtualBox, VMware, Docker bridge interfaces), manually-configured MACs, and some enterprise MAC-assignment schemes also set the U/L bit without being privacy-motivated randomization. A tool that labels every locally-administered address as "randomized/private MAC" will mislabel legitimate VM/manually-set addresses, which is a credibility-damaging mistake for a tool aimed at engineers who will recognize the error immediately.
+Edit text during a large hash → older result arrives later and overwrites newer. Drop file B while file A is still hashing → A's digests labelled with B's filename. Switch from File to Text mode → old file digests flash under new text. Ten results set via ten `setState` calls → briefly rows from different inputs. Copy-all copies half-stale values. Playwright flakes because assertion races worker completion.
 
 **Why it happens:**
-The U/L-bit heuristic is the closest thing to a detection signal that exists (there's no cryptographic proof of randomization), and it's tempting to present a heuristic as a definitive fact.
+The exact bug class this repo already hit twice (Phase 4 CR-01: race guard wired into only some paths; Phase 5 applied the lesson up front). Worker adds one more async hop.
 
 **How to avoid:**
-Label the result as "likely randomized/locally administered" rather than an assertion of certainty, and expose the underlying bits (U/L, I/G) transparently so engineers can judge for themselves — this matches the brief's requirement to "identify... likely randomized/private MAC addressing" (note: "likely," already hedged in the spec). Do not overclaim precision the underlying signal doesn't support.
+- Apply the existing Key Decision verbatim: **every path that supersedes in-flight work (text keystroke, file drop/pick, mode switch, clear/Esc, unmount, URL-load) must bump the sequence token *and* cancel (terminate worker / abort loop)**. List all entry points in the plan and test each one (the project already learned that testing only the "obvious" path is insufficient).
+- Model input as one discriminated state: `source = {kind:'text', value} | {kind:'file', file} | {kind:'none'}` and results as one atomic object `{ id, digests }` set in a single state update; render only if `result.id === currentId`.
+- Tag results with the input identity (file name + size + lastModified, or text length) and show it ("Hashed: report.pdf · 12.4 MB") so a user can see which input the visible digests belong to.
+- Copy buttons read from the displayed result object at click time; disabled/placeholder while `computing` (never copy `—`).
+- Worker messages carry `id`; main thread drops any message whose id ≠ current.
+- e2e: slow-file-then-text, file-A-then-file-B, text-edit-during-large-text, Esc during hashing; use a deliberately slow large generated file to widen the race window deterministically.
 
 **Warning signs:**
-Support/feedback reports of "this VM MAC isn't randomized but your tool says it is."
+Results object built incrementally across multiple setStates; no `id` in worker messages; only one "stale" test written; bug reports of "wrong hash for the file I dropped second".
 
-**Phase to address:**
-MAC Address Inspector phase (4th in build order).
+**Phase to address:** UI (state model + token), Ship (race e2e matrix).
 
 ---
 
-### Pitfall 8: Full MAC addresses (and other sensitive lookup values) leaking into analytics via URL query params
+### Pitfall 8: Web Crypto assumptions (secure context, async-only, no streaming, no MD5/SHA-3/RIPEMD/SHA-224)
 
 **What goes wrong:**
-Shareable/bookmarkable URL state (`?cidr=`, `?name=&type=`, and implicitly a MAC-inspector equivalent) is a stated feature, but most analytics tools (even "privacy-friendly" ones) record the full page URL including query string by default. A private/internal MAC address, an internal hostname (`?name=db01.corp.internal`), or an RFC1918 private IP (`?cidr=10.20.0.0/20`) pasted into a tool and left in the URL for sharing becomes de-facto PII/internal-infrastructure data sitting in analytics logs — directly contradicting the explicit privacy requirement and turning a convenience feature into a data-leak vector.
+(a) `crypto.subtle` is **undefined on non-secure origins** (plain `http://192.168.x.x:3000` when testing on a phone from the LAN, or any non-localhost http dev host) → `TypeError: Cannot read properties of undefined (reading 'digest')`. Production is HTTPS so it works in prod and breaks only in dev/device testing. (b) `subtle.digest` is async-only → can't compute inside synchronous render/derive paths; pushes you to effect+state and creates flash-of-empty. (c) `subtle.digest` takes a **whole** buffer (no `update()`), so it can't hash files incrementally. (d) Web Crypto covers only SHA-1/256/384/512 — no MD5, SHA-224, SHA3, RIPEMD-160 (MDN; browser native SHA-3 not available in the standard — treat as absent). (e) Mixing two implementations (native for SHA-2 on small text, JS for the rest/for files) means two code paths that must agree; a divergence (e.g. native given `u8.buffer` ignoring `byteOffset`) shows up only for sliced views.
 
 **Why it happens:**
-URL-state and analytics are built by different concerns/phases; the interaction between them ("shareable state" + "collect page views") isn't obviously in tension until someone traces exactly what a typical analytics snippet actually sends. Blocklisting specific param names is also fragile — it's easy to add a new tool/param and forget to update the analytics-exclusion list.
+"Use the platform" is good advice that's wrong here: the algorithm set and the file streaming requirement force a JS library anyway.
 
 **How to avoid:**
-Default to an **allow-list**, not a block-list, for which query parameters are ever sent to analytics (e.g., only non-identifying params like `?ref=` are passed through; everything else is stripped before the analytics call fires) — mirrors how privacy-focused analytics tools like Plausible handle this by discarding all query params except attribution ones by default. Strip the query string from the tracked page-view URL entirely and track only the pathname (`/tools/subnet`) unless a specific param is explicitly allow-listed. Do this centrally in one shared analytics wrapper function, not per-tool, so new tools can't forget it.
+- **Single implementation: one zero-dependency JS library for all algorithms (project's chosen direction: noble-style, Uint8Array in/out, incremental `create().update().digest()`), used for both text and file.** Rationale: sync, no secure-context dependency, incremental, Worker-safe, one code path. Do not add `crypto.subtle` as a speed optimization in v1.2 (two paths, async, can't stream); revisit only if measured file-hash throughput is unacceptable, and then behind a cross-check property test (native vs JS on random bytes).
+- If `subtle` is ever used: feature-detect `globalThis.crypto?.subtle`, pass an exact-length `Uint8Array` (copy the slice if `byteOffset ≠ 0`), and fall back to the JS path.
+- If the chosen library is noble-hashes **v2** (verified latest 2.4.0, ESM-only, zero deps): import paths are `@noble/hashes/sha2.js`, `/sha3.js`, `/legacy.js` (MD5, SHA-1, RIPEMD-160 live in `legacy.js`) — the `.js` suffix is required and v1-era paths (`/sha256`, `/ripemd160`) from tutorials/LLM snippets **do not exist**. `tsconfig` uses `moduleResolution: "bundler"` (OK). Confirm in the Core phase's first task with a throwaway import test.
+- Noble-specific gotchas: `digest()` **destroys** the hasher (calling twice throws) — create a fresh instance per run or use `clone()` for snapshots; `update()` rejects non-`Uint8Array` (convert ArrayBuffers: `new Uint8Array(buf)`); `legacy.js` exports are named "legacy" on purpose — good hook for the security messaging (Pitfall 12).
 
 **Warning signs:**
-Any analytics dashboard where the "top pages" report shows full CIDR ranges, domain names, or MAC-looking strings in the URL column.
+`crypto.subtle` in code review; `import … from "@noble/hashes/sha256"` (v1 path); `Hash instance has been destroyed` errors on second render; app works on desktop https but throws on phone over LAN http.
 
-**Phase to address:**
-Shared site-shell phase (analytics wrapper should exist and be allow-list-based *before* the first tool with sensitive URL state ships — i.e., before or alongside the Subnet Calculator phase, since UUID has no sensitive query data but Subnet is next and does).
+**Phase to address:** Core (library choice + import verification + single-path rule), UI (never call digest twice on the same instance).
 
 ---
 
-### Pitfall 9: Hydration mismatch from client-only logic bleeding into the initial (server-rendered) render
+### Pitfall 9: Secrets in the URL — "bookmarkable text state" for a tool people paste passwords into
 
 **What goes wrong:**
-Every tool needs an *instant* default result on load (UUID generated immediately, subnet pre-filled and calculated, DNS demo value resolved) — several of these depend on browser-only or non-deterministic APIs: `crypto.randomUUID()`/`crypto.getRandomValues()`, `Date.now()` (relevant to UUID v7's timestamp-based generation), `localStorage` (last-5-UUIDs convenience storage), or `window`. If any of this executes during the server-render pass (or if the client's *first* render pass produces different output than what the server sent — e.g., generating a *different* random UUID client-side than what was server-rendered), React will throw a hydration mismatch, discard the server-rendered HTML, and force a client re-render — which both hurts performance (defeats the point of static-first rendering) and can cause a visible flash/flicker of a different value than what was initially shown.
+People paste passwords, API keys, tokens, and PII into hash tools to hash them. Writing the input into `?text=` (the Subnet/DNS `replaceState` pattern) leaks it to: browser history and **cross-device history sync**, bookmarks, shared screenshots/links, the `Referer` of any outbound link click (mitigated by `Referrer-Policy` default but verify), screen-share, and — critically — **Vercel request logs** (the query string reaches the CDN/edge on page load even for a static route). **Analytics redaction does not cover these**: `redactBeforeSend` only protects what `@vercel/analytics` sends. Specific integration bug in this repo: `redactBeforeSend` does `event.url.split("?")` and, if there is no `?`, **returns the event untouched** — so any state placed in the URL **fragment** (`/tools/hash#text=hunter2`) bypasses the redaction entirely if Vercel Analytics includes the hash in `event.url` (LOW confidence whether it does; treat as "must test" and fix defensively). Also a `?` inside the fragment or an `&` in the value can confuse the naive split.
 
 **Why it happens:**
-"Zero-effort instant result on load" naturally pulls developers toward generating the result as early as possible, including during SSR — but crypto randomness, `Date.now()`, and `localStorage` are inherently non-deterministic/client-only and cannot be safely computed on the server and expected to match the client.
+The brief/milestone lists "bookmarkable text state" as a feature; the pattern is already established and cheap; the risk is specific to hash tools (users hash secrets).
 
 **How to avoid:**
-For content that must be truly random/instant (UUID generator, MAC-vendor "OUI copy" reference), either (a) generate it in a `useEffect` on mount and render a stable placeholder/skeleton during the SSR pass (accepting the brief instant that adds), or (b) mark the whole interactive tool as a client component with no server-rendered dynamic content, letting the *static shell* (nav, headings, explanatory copy, FAQ) stay server-rendered while the *tool itself* renders client-side only, matching the project's own "client islands" architecture intent. Never read `localStorage`/`window` during the render body of a component that's also invoked during SSR — always gate behind `useEffect` or `typeof window !== 'undefined'` checks placed correctly (not just present, but placed so they don't create the mismatch anyway).
+- **Default: do NOT auto-write input to the URL.** Satisfy "bookmarkable" via an explicit, user-initiated **"Copy link to this input"** action (writes `?text=` or `#` only at that moment) or an opt-in "Remember in URL" toggle that defaults OFF. Flag this to the roadmapper/user as a requirement refinement — it deviates from the Subnet/DNS auto-sync pattern deliberately.
+- Cap URL payload (e.g. ≤ ~1–2 KB encoded; above that, no link offered with a "too long to share" note). Never put *file* contents/names in the URL.
+- Reading `?text=` on load is fine (static page reads `window.location.search`, not `searchParams`, per existing pattern) — but then immediately `replaceState` to strip it (so a later bookmark/copy of the address bar from a shared link doesn't re-share it)? Decide in planning; at minimum do not re-emit it.
+- Do **not** add `text` (or `input`, `data`, `v`) to `DEFAULT_ALLOW_LIST` — keep the safe-by-default allow-list, and add a unit test to `redact.test.ts` asserting `?text=` is stripped. Extend `redactBeforeSend` to also drop the fragment (`event.url.split(/[?#]/)[0]` + allow-listed params) and unit-test URLs with `#…`, `?a=b#c`, and a `?` inside the fragment.
+- Prefer a fragment over a query for share links if a link feature ships (fragment is never sent to the server → keeps it out of Vercel logs) — but only after the analytics fix + test above.
+- Add the page to privacy disclosure language: "Nothing you type is sent anywhere" must be **true** — see Pitfall 11. (Legal/privacy text change requires human approval per project automation model.)
 
 **Warning signs:**
-Console warnings about "Text content did not match" or "Hydration failed because the initial UI does not match what was rendered on the server"; a visible flash where the first UUID shown changes a moment after page load.
+`window.history.replaceState` on every keystroke in the hash tool; `text` appears in a Vercel Analytics URL; a grep of the allow-list shows a hash-tool param; fragment state with unmodified `redactBeforeSend`.
 
-**Phase to address:**
-Shared site-shell / first tool phase (UUID Generator) — this is the first tool built and sets the pattern every subsequent tool copies, so getting the client-island boundary right here matters most.
+**Phase to address:** UI (share-link design), Ship (analytics fix, redact tests, privacy review). **Needs a user/roadmap decision before UI planning.**
 
 ---
 
-### Pitfall 10: UUID v7 monotonicity and randomness-source mistakes
+### Pitfall 10: "Fully local" claim silently violated (input or filename leaks via telemetry, errors, logs)
 
 **What goes wrong:**
-UUID v7 embeds a millisecond Unix timestamp in the high bits specifically so IDs sort chronologically — but a naive implementation that (a) doesn't use a cryptographically secure random source (`crypto.getRandomValues`, not `Math.random()`) for the random bits, or (b) generates a batch of 1–100 UUIDs in a tight loop without any monotonic-counter/sub-millisecond-collision handling, can produce IDs that aren't actually sortable within the same millisecond (multiple v7 UUIDs generated in the same millisecond have no defined ordering relative to each other) or, worse, use `Math.random()` which is not cryptographically secure and is explicitly disallowed by the RFC 9562 spec for the random portion of any UUID version.
-
-**Why it happens:**
-`Math.random()` is the reflexive choice for "I need a random number in JS," and batch-generation-in-a-loop is the obvious naive implementation that doesn't consider same-millisecond ordering.
+The trust proposition of a hash tool is "nothing is uploaded". It gets broken accidentally by: custom analytics events carrying algorithm/inputs/filenames/sizes; an error boundary/reporter that attaches state; `console.log` of input during debugging committed to prod; a third-party font/CDN/script added for the new page (violates the "no third-party requests" NFR); `next/link` prefetch irrelevant but a library that lazy-fetches a WASM blob from a CDN; sample "Try it" links.
 
 **How to avoid:**
-Always use `crypto.getRandomValues()` (available in all browsers and Node ≥ 19 as `crypto.randomUUID()` for v4; v7 needs custom implementation or a vetted library like `uuid` npm package, since native `crypto.randomUUID()` only produces v4). For batch generation, either accept RFC 9562's documented behavior (same-millisecond v7 UUIDs are not guaranteed ordered relative to each other, which is spec-compliant) or implement the optional monotonic counter extension if ordering-within-batch is a stated requirement — decide explicitly rather than leaving it as an accidental behavior.
+- Hash island makes **zero network requests while hashing** — enforce with a Playwright test: `page.on('request')` collected after page load; type text, drop a file; assert no new requests (other than the already-known analytics pageview beacon) and none containing the input/filename.
+- No custom analytics events from this tool (or only with a fixed, non-input enum such as "tool used").
+- Lint/grep gate in CI or review checklist: no `console.log` in `lib/hash`/`app/tools/hash`; no `fetch`/`XMLHttpRequest`/`navigator.sendBeacon` in `lib/hash`.
+- Self-contained bundle: no WASM/worker assets from a CDN (if a WASM lib is ever picked, it must be bundled and served same-origin).
+- Pre-ship: manual DevTools Network tab check on a production preview.
 
 **Warning signs:**
-A batch of 100 UUIDs generated instantly (well within one millisecond in modern JS engines) don't sort in generation order when sorted lexically.
+New dependency pulls `fetch`; analytics `track()` call in the tool; network panel shows requests on keystroke.
 
-**Phase to address:**
-UUID Generator phase (1st in build order) — since this ships first and is the "fully self-contained, no external dependencies" validation phase for the whole shared-shell pattern, get the crypto-randomness source right here as the template for MAC-vendor-lookup randomness needs too (if any) later.
+**Phase to address:** UI (no events), Ship (network-silence e2e + review).
+
+---
+
+### Pitfall 11: Misleading users into hashing passwords with MD5/SHA-1 (security messaging)
+
+**What goes wrong:**
+Putting MD5/SHA-1/CRC32 next to SHA-256 as equal-looking "hashes" with copy buttons implicitly endorses them, and the dominant misuse of hash sites is people generating unsalted fast hashes for passwords/signatures. Over-correcting is also a failure: modal warnings/interstitials (banned by project UX rules), scary red banners on every row, or claims like "secure" that overstate (SHA-256 of a password is *also* wrong for password storage).
+
+**How to avoid:**
+- Per-row subtle labels: MD5 / SHA-1 / RIPEMD-160 / CRC32 get a "legacy — not collision-resistant" or (CRC32) "checksum, not cryptographic" text badge (not color-only; accessible text), tooltip/`aria-describedby` detail.
+- One persistent, low-key line under the results (not modal, not dismiss-required): "Fast hashes are for checksums and integrity — never store passwords with them. Use Argon2id, scrypt or bcrypt." Dedicated FAQ item with the same message (SEO + disclosure). Wording must avoid legal-style claims (legal text needs human approval).
+- Don't sort/bold legacy algorithms to the top; keep one fixed, documented order (e.g., SHA-2 family first, then SHA-3, then legacy) — also avoids CLS from reordering.
+- No "HMAC"/"salt"/"password" features in this milestone (anti-feature) — out of scope, and implies password use.
+
+**Warning signs:**
+Row list with identical styling for MD5 and SHA-256; a modal/toast warning; copy of "secure hashing" in meta description.
+
+**Phase to address:** UI (badges + footer note), Ship (FAQ/meta copy review).
+
+---
+
+## Moderate Pitfalls
+
+### Pitfall 12: Bundle size / Lighthouse regression
+
+**What goes wrong:** Importing the whole library (`import * as noble`) or each algorithm from a barrel pulls unused code; importing the library in **both** the main island chunk and the Worker duplicates it; adding a polyfill or a heavy file-drop dependency (`react-dropzone` ~ unnecessary) bloats a tool whose pages target 90+ Lighthouse. Hash code leaking into the shared layout/landing bundle (e.g. by importing from `lib/hash` in `tools/registry.ts` for an example hash) penalizes every page.
+**Prevention:**
+- Per-module deep imports only; no `export *` barrel in `lib/hash/index.ts` that the island imports wholesale (or ensure it's tree-shake-clean — verify).
+- Island loaded via the existing `next/dynamic(..., {ssr:false})` Loader pattern; registry and SEO page must not import hash algorithm code (the worked-example digests can be hard-coded constants or computed at build time in a Server Component, which adds zero client JS).
+- Hand-roll drag-and-drop (≈30 lines + `<input type="file">`), no dropzone dependency.
+- Record `next build` route JS size for `/tools/hash` vs `/tools/mac` baseline in the phase; budget it (suggest: island + libs ≲ 40–60 KB gzip, worker separate and not on the critical path — LOW confidence on numbers, set from measurement). Lighthouse run on the production preview for `/tools/hash` and for `/` (landing must not regress).
+**Warning signs:** `/` first-load JS grew after the milestone; two copies of `sha512` in the build analyzer output.
+**Phase to address:** Core (deep imports), UI (loader split), Ship (size/Lighthouse gate).
+
+### Pitfall 13: Hydration mismatch and CLS when results appear
+
+**What goes wrong:** Default result computed during SSR vs client (they'd match for a constant sample, but a `?text=`/localStorage-derived initial state wouldn't) → hydration error. Skeleton shorter than the real 10-row grid → layout shift when island mounts. Results rows of unequal wrapped height (SHA-512/SHA3-512 = 128 hex chars wrapping at 320px; CRC32 = 8) jump when switching placeholder → value. Drag-over overlay or progress bar inserted into flow pushes the grid down. Copy-confirmation text changing button width.
+**Prevention:**
+- Keep the established Server-shell + `ssr:false` client-island pattern; read `window.location.search` inside the island only (never `searchParams` in `page.tsx` — it opts the page out of static rendering).
+- Skeleton with fixed `min-height` equal to the measured 10-row grid at both mobile (320px) and desktop; all 10 rows always rendered (placeholders when computing) in a fixed order; `font-mono break-all` for digests; reserved-height slots for the byte-count line, newline hint, progress bar, and error message; drag-over state as a border/ring/outline (no layout properties) and an absolutely-positioned overlay.
+- Copy confirmation via fixed-width icon swap (reuse `useCopyToClipboard` as other tools do).
+- "Default result on load" (UX non-negotiable): prefill a sample (e.g. `hello world`) so all rows show immediately after mount; consider server-rendering the *sample's* digests (constant, computed at build in a Server Component) inside the page's worked-example section for SEO — never inside the island.
+- Verify with the existing 320px check and Lighthouse CLS = 0 on production preview.
+**Warning signs:** React hydration warning in console; Lighthouse CLS > 0; rows jumping when typing the first character.
+**Phase to address:** UI, Ship (Lighthouse verification).
+
+### Pitfall 14: Keyboard model collisions with a multi-line `<textarea>` (first such tool)
+
+**What goes wrong:** Subnet/DNS/MAC use single-line inputs; `useKeyboardShortcut` was designed around that. In a `<textarea>`: **`Enter` must insert a newline** (which changes the hash), but the hook's `enter` handler fires for any non-button target (textarea included, per `isInteractiveTarget`) — wiring `enter` to "recompute/blur" makes Enter blur the field or double-fire. `Esc` clearing the textarea can destroy a long pasted input with no undo. The `/` shortcut correctly ignores editable targets. `Ctrl/Cmd+C` copy-primary-result is ignored in editable targets (fine — native copy keeps working), but then the default state (focus in textarea) has no keyboard route to "copy SHA-256", and selecting digest text with the mouse then pressing Cmd+C must still copy the selection.
+**Prevention:** Do **not** register `enter` for the hash tool (live hashing needs no execute action); make `Esc` clear only when it's cheap to reverse (store previous value for one-step restore, or clear only when text is empty → blur) — decide in planning; offer explicit shortcut/button for "copy primary hash" that works while the textarea is focused (e.g., `Ctrl/Cmd+Shift+C`, documented), and "copy all"; add unit tests to the tool for Enter-in-textarea inserting a newline and not copying/blurring; Playwright keyboard flow: `/` → type → Tab through rows → Enter on copy button copies once.
+**Warning signs:** Enter in textarea blurs; double clipboard writes; Esc loses input without recovery.
+**Phase to address:** UI.
+
+### Pitfall 15: Drag-and-drop & file-input edge cases
+
+**What goes wrong:** (a) Missing `preventDefault` on `dragover`/`drop` → the browser navigates away to open the dropped file, discarding state; (b) `dragenter/dragleave` flicker from child elements; (c) drag-only UI with no keyboard/mobile path (iOS has no drag-and-drop); (d) dropping a folder yields a zero-size/unreadable "file" and a confusing `NotFoundError`; (e) multiple files dropped — unspecified behavior; (f) 0-byte file (valid: SHA-256 `e3b0c442…b855`) treated as "no file"; (g) file modified/removed or cloud placeholder (iCloud/OneDrive) fails mid-read with `NotReadableError`; (h) `accept` attribute on input restricting types needlessly; (i) selecting the same file twice doesn't re-trigger `change` (input value not reset).
+**Prevention:** Real `<input type="file">` + visible `<label>`/button (keyboard + mobile primary path), drop zone as enhancement; `preventDefault` on `dragover`+`drop` for the zone and (defensively) window-level to stop accidental navigation; use `dragenter/leave` counter or `pointer-events-none` on children; take first file only and state it; treat `size === 0 && type === ""` carefully (show "0 bytes" hashes for genuine empty files; show "folders aren't supported" on read error); catch read errors into a visible, non-modal error state with retry; reset `input.value=""` after selection; no `accept`. e2e via Playwright `setInputFiles` (works with hidden input) for picker path and a synthetic `DataTransfer` drop test.
+**Phase to address:** UI, Ship (e2e).
+
+### Pitfall 16: Test vectors incomplete or self-referential
+
+**What goes wrong:** Vectors generated by running the implementation (tautology), only `"abc"`/`""` tested (misses padding-boundary bugs), no multi-block or long-input test, no chunked-equals-oneshot test, SHA3 sponge-rate boundaries untested, RIPEMD-160 variant confusion (RIPEMD-160 vs RIPEMD-128/256/320 vs Bitcoin double-hash), library upgrades silently change nothing because tests are tautological.
+**Prevention (concrete vector set to require in Core):**
+- **MD5 (RFC 1321 §A.5 7-vector suite)**: `""`→`d41d8cd98f00b204e9800998ecf8427e`, `"a"`, `"abc"`→`900150983cd24fb0d6963f7d28e17f72`, `"message digest"`, alphabet, alnum, 80-digit string.
+- **SHA-1 / SHA-224 / SHA-256 / SHA-384 / SHA-512 (FIPS 180-4 examples / NIST CAVP)**: `""`, `"abc"` (SHA-1 `a9993e36…d89d`; SHA-256 `ba7816bf…15ad`), the 448-bit `"abcdbcdecdef…nopq"` two-block message, 896-bit message for SHA-384/512, and the **one-million `a`** vector (also the long-input/chunking test).
+- **SHA3-256/512 (FIPS 202 examples / CAVP ShortMsg)**: `""`, `"abc"`, plus inputs of rate−1, rate, rate+1 bytes (rate 136 for SHA3-256, 72 for SHA3-512). Add the Keccak negative test (Pitfall 3).
+- **RIPEMD-160 (Bosselaers reference vectors)**: `""`→`9c1185a5c5e9fc54612808977ee8f548b2258d31`, `"abc"`→`8eb208f7e05d987a9b044a8e98c6b087f15a0bfc`, `"message digest"`, alphabet, the 8×"1234567890" vector, million `a`.
+- **CRC32** per Pitfall 4 (and *not* RFC 3720 unless CRC32C is a separate algorithm).
+- **Padding-boundary lengths** 0,1,55,56,57,63,64,65,111,112,113,119,120,127,128,129 bytes for MD5/SHA-1/SHA-2/RIPEMD; compare against Node `crypto.createHash` as an independent oracle with `fast-check` random bytes (project already has `fast-check` + `@fast-check/vitest`). Caveat: Node/OpenSSL 3 may not expose `ripemd160` (it moved between OpenSSL providers) — guard with `try/catch` and fall back to the published vectors (MEDIUM confidence; check CI's Node version).
+- **Chunk-split property:** for random data and random split points, incremental == one-shot, per algorithm.
+- Mix of Uint8Array views with non-zero `byteOffset` (subarray) to catch buffer-vs-view bugs.
+- Playwright smoke: type `abc`, assert the 10 rows equal the pinned vector table (one e2e, not 10).
+**Phase to address:** Core (blocking acceptance criterion: "all vectors green before UI work starts"), Ship (e2e smoke).
+
+### Pitfall 17: Output-format inconsistencies
+
+**What goes wrong:** Mixed upper/lower case across rows; a case toggle that only re-cases some rows; copy-all format differing from what's displayed; CRLF/trailing-space inside copied values; no way to match `sha256sum`'s lowercase default; hex vs Base64 expectations (some APIs want Base64, e.g. SRI `sha384-…`).
+**Prevention:** Single `formatDigest(bytes, {case})` in `lib/hash`; lowercase default (matches `sha256sum`, `openssl`); case toggle applied centrally and persisted nowhere sensitive; copy-all as `Algorithm: hex` lines (newline `\n`), unit-tested; Base64 display = optional differentiator, defer unless trivial (don't ship half-built).
+**Phase to address:** Core (formatter), UI.
+
+### Pitfall 18: SEO/registry integration slips
+
+**What goes wrong:** Tool added to `registry.ts` with wrong `category` (union is `"network"|"dns"|"web"|"encode"|"generate"` — hash fits `generate` or `encode`; adding a new category forces shared-nav edits, violating the "register one entry only" architecture rule), `clientOnly:true` omitted, JSON-LD FAQ not content-matched to visible FAQ (Phase 2–5 established the rule), worked example hash values that don't match what the tool computes (hand-typed in FAQ; later drift), canonical/sitemap relying on registry (automatic — don't hand-edit), `status:"beta"` visually indistinguishable (known a11y debt), "related tools" still unbuilt.
+**Prevention:** Single `faq-data.ts` consumed by both visible FAQ and JSON-LD; worked-example digests produced from the same `lib/hash` at build time or asserted by a unit test; reuse existing `tools/registry.test.ts` expectations; do not touch nav components.
+**Phase to address:** Ship.
+
+---
+
+## Minor Pitfalls
+
+### Pitfall 19: Number/size formatting and progress math
+**What goes wrong:** Progress as `offset/size` with `size === 0` → NaN/Infinity; progress exceeding 100% on last chunk; throughput/ETA flicker; showing bytes with inconsistent units (MB vs MiB).
+**Prevention:** Guard zero-size, clamp 0–1, pick one unit convention (MiB/GiB with 1 decimal), no ETA (it's noisy) or smoothed ETA only. **Phase:** UI.
+
+### Pitfall 20: Clipboard in non-secure/permission contexts
+**What goes wrong:** `navigator.clipboard.writeText` unavailable on insecure origins and can reject without user gesture; copy-all during computing copies placeholders.
+**Prevention:** Reuse existing `useCopyToClipboard` (already shipped and tested across 4 tools) — don't reimplement; keep visible confirmation; disable copy while computing. **Phase:** UI.
+
+### Pitfall 21: Large-text paste / textarea performance
+**What goes wrong:** Pasting 10–50 MB of text into a controlled React `<textarea>` makes React/DOM sluggish independent of hashing; byte-count via `new TextEncoder().encode(s).length` on every keystroke duplicates encoding work.
+**Prevention:** Set a text-mode soft cap (e.g. warn above ~1–5 MB: "use File mode for big inputs"); compute byte length once and reuse the encoded array for hashing; avoid re-rendering the digest grid unless digests changed (`React.memo` rows). **Phase:** UI.
+
+### Pitfall 22: Timing/side-channel and "compare" expectations
+**What goes wrong:** Users expect a "compare with expected hash" field (verifying downloads is the #2 use case); string `===` compare is fine for checksums (not secrets) but case/whitespace/`sha256:` prefix/ `  filename` suffix mismatches cause false "mismatch".
+**Prevention:** If a compare field ships (strong differentiator, see FEATURES), normalize: trim, lowercase, strip `sha256:` prefix and trailing `  filename`, auto-detect algorithm by length; otherwise defer. **Phase:** UI (only if in scope).
 
 ---
 
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|-----------------|------------------|
-| Hand-roll IPv4-only subnet math first, "add IPv6 later" | Faster initial ship | IPv6 usually needs a structurally different data model (BigInt, no broadcast concept) — bolting it on later means a rewrite, not an extension | Never for this project — brief requires both IPv4 and IPv6 auto-detected from the same input in v1 |
-| Use a single public MAC-vendor API (e.g., macvendors.com) directly from the client with no proxy/caching | Zero backend work, ships fast | Low-rate public APIs throttle/block quickly under real traffic; brief explicitly says "do not make a low-rate public API the permanent architecture" | Acceptable only as an explicitly temporary `/api/mac-vendor` proxy route at MAC-inspector launch, with a tracked follow-up to move to a local OUI dataset |
-| Blocklist a few known-sensitive query param names in analytics | Quick to implement | New tool/param added later and forgotten → silent PII leak | Never — use allow-list instead (see Pitfall 8) |
-| Mark entire tool pages as `'use client'` at the top level instead of isolating the interactive island | Simpler mental model, fewer files | Ships unnecessary JS for static content (headings, FAQ, examples) on every page load, hurting the "minimal JS per page" performance target | Acceptable only very early (pre-Lighthouse-check) as a stepping stone, must be refactored before performance NFR verification |
-| Skip `AbortController`/race-condition guards on first DNS Lookup implementation, "add later if it's a problem" | Faster initial ship | Race condition is a correctness bug that's hard to reproduce in manual testing and erodes trust in a tool whose whole value is accuracy | Never — stated as an explicit acceptance criterion in the brief, should be built in from the first version |
+|----------|-------------------|----------------|-----------------|
+| `await file.arrayBuffer()` for files | 3 lines, matches text path | OOM / iOS tab kill on large files; later rewrite to chunked | Never (chunked engine is the only file API) |
+| Everything on main thread (no Worker) | No worker wiring/test setup | Jank on large text, frozen tab on files, no cancel | Only for text under the measured threshold |
+| Auto-writing text to URL on each keystroke (copy Subnet pattern) | Reuses existing code; "bookmarkable" | Secrets in history/sync/Vercel logs; analytics gap for fragment | Never by default; explicit user action only |
+| Tests with outputs generated by the implementation | Fast to write | Zero regression value; encoding/variant bugs invisible | Never |
+| Two code paths (native subtle for SHA-2 + JS for rest) | Faster SHA-2 on small text | Divergence bugs, secure-context failures, async plumbing | Only after measured need + native-vs-JS property test |
+| Hand-copied CRC32 snippet | Quick | Signed output, per-chunk init bugs | Only with the full vector + chunk-split tests |
+| Hard-coded worked-example digests in FAQ | Fast SEO copy | Drift from actual tool output | Only if a unit test asserts them against `lib/hash` |
+| Skipping prod-build worker e2e | CI faster | Worker breaks in prod only | Never |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
-|-------------|-----------------|-------------------|
-| DoH JSON resolver (Cloudflare `/dns-query`, Google `dns.google/resolve`) | Treating HTTP 200 as "lookup succeeded"; not sending `Accept: application/dns-json` header (some resolvers require it to return JSON instead of wireformat) | Parse the `Status` RCODE field from the JSON body explicitly; always set `Accept: application/dns-json`; handle non-2xx HTTP separately from DNS-level errors (network/CORS failure vs. NXDOMAIN) |
-| MAC vendor lookup API (interim `/api/mac-vendor` proxy) | Calling the third-party vendor API on every keystroke as the user types the MAC | Debounce, and only query once the input is a syntactically complete/valid MAC (matching the DNS tool's own debounce pattern); cache OUI→vendor lookups (OUIs are static, don't change per request) |
-| Vercel Edge/serverless functions for any API route | Assuming Node.js-only APIs (`fs`, certain crypto methods) work in Edge Runtime | Confirm runtime (`export const runtime = 'nodejs'` vs default edge) matches what each API route actually needs, especially if the future local OUI-dataset lookup reads a bundled file |
-| Vercel preview deployments + analytics | Preview/staging traffic polluting production analytics dashboards | Gate analytics initialization on `NODE_ENV === 'production'` / `VERCEL_ENV === 'production'`, not just presence of the script |
+|-------------|----------------|------------------|
+| `lib/analytics/PacketoryAnalytics.tsx` (`redactBeforeSend`) | Assuming query-only redaction covers all URL state; `split("?")` with no `?` returns event untouched (fragment bypass) | Strip fragment, keep allow-list empty for hash, add unit tests for `#`, `?a#b`, and `text=` |
+| `lib/analytics/redact.ts` allow-list | Adding `text` so analytics "shows usage" | Never add input-bearing params; allow-list stays safe-by-default |
+| `useKeyboardShortcut` | Registering `enter` (fires in textarea); expecting `copy` to work with textarea focus | Don't register `enter`; add a separate documented chord for primary copy; test Enter-newline |
+| `tools/registry.ts` | New `category` value or hand-editing nav/landing/sitemap | One entry, existing category (`generate`/`encode`); registry test passes untouched |
+| `next/dynamic(..., {ssr:false})` Loader pattern | Reading `searchParams` in `page.tsx` (breaks static rendering); skeleton height mismatch | Read `window.location.search` inside island; fixed-height skeleton matching 10 rows |
+| Web Worker under Next 16 / Turbopack | Works in `next dev`, breaks in prod build; Vitest/jsdom has no Worker | Thin worker over `lib/hash`; e2e against production build; unit-test core directly |
+| `@noble/hashes` v2 | v1 import paths; reusing destroyed hasher; passing ArrayBuffer | `.js`-suffixed module paths (`sha2.js`, `sha3.js`, `legacy.js`); fresh instance per run; `new Uint8Array(buf)` |
+| `useCopyToClipboard` | Reimplementing clipboard code per tool | Reuse; disable while computing |
+| Playwright | Asserting immediately after typing against async worker result | `expect.poll`/auto-waiting locators on a "ready" attribute; deterministic slow-file fixtures |
+| TypeScript (target ES2020, per `tsconfig.json`) | Using BigInt/`Uint8Array.fromHex`/`toHex` (newer baselines) in `lib/hash` formatters | Hand-write hex conversion (`Array.from(u8, b => b.toString(16).padStart(2,"0")).join("")`) — LOW-cost, runs everywhere |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
-|------|----------|------------|-----------------|
-| Loading a full/local OUI vendor dataset (tens of thousands of entries) as client-side JSON | Large first-load JS/data payload hurts Lighthouth performance score and "minimal JS" NFR | Look up OUI vendor data server-side (API route or build-time static lookup), return only the matched result to the client — don't ship the whole dataset to the browser | Immediately at MAC Inspector launch if done naively; brief's own perf NFR (90+ Lighthouse) will catch this in CI/Lighthouse checks if configured |
-| Re-running full subnet math on every keystroke without debounce for large-prefix inputs | Noticeable input lag typing a CIDR, especially IPv6 with BigInt math | Debounce or memoize input parsing; only recompute when the CIDR string is syntactically complete enough to be meaningful | Minor at v1 scale (single-user client-side compute), but matters for mobile/low-end-device Lighthouse scores from day one |
-| Global 'use client' at page/layout level | Larger JS bundles shipped for pages that are mostly static content (FAQ, examples, related-tool links) | Keep static content (explanatory copy, FAQ, SEO content) as Server Components; isolate only the actual interactive tool as a client component "island" | Shows up immediately in Lighthouse/bundle-analyzer, worsens as more tools + shared UI accumulate JS |
-| Client-side crypto/randomness-heavy batch operations (100x UUID generation, or large-block IPv6 host enumeration) blocking the main thread | UI briefly freezes / jank on generate | Cap batch sizes to stated limits (1–100 already specified for UUID) and avoid ever trying to enumerate/list individual IPv6 hosts for large subnets (only present counts, not full lists) | Would break badly if a future feature let users "list all hosts" in a `/48` — explicitly avoid building that |
+|------|----------|------------|----------------|
+| Sync 10-hash recompute on every keystroke | Input lag, Lighthouse TBT/INP | Size threshold → worker + debounce above it | Pastes ≳ 0.5–2 MB (measure slowest algo) |
+| One pass per algorithm over the file | 10x I/O time, 10 progress bars | One read, feed all hashers per chunk | Any file > ~100 MB |
+| Per-chunk React state updates | Re-render storm, slower hashing | Throttle progress (~10 Hz), update a ref + occasional setState | Files > ~100 MB with 1 MiB chunks |
+| Large chunk size on mobile | Memory spike, tab reload | 1–4 MiB chunks; tune on real iOS | Files > few hundred MB on iPhone |
+| JS SHA-3/SHA-512 throughput | Slow file hash with all 10 on | Show progress + cancel; consider letting user deselect algorithms (defer) | ~1 GB+ files (minutes) — set expectation in UI copy |
+| Duplicate library in main + worker chunks | Bundle +25–40 KB | One execution model per input class; analyzer check | Always (Lighthouse budget) |
+| Re-encoding text for byte count and hashing separately | 2x work per keystroke | Encode once, reuse | Large pastes |
 
 ## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Reflecting user-supplied `name`/`cidr`/MAC query params directly into HTML (e.g., page `<title>` or meta description built from `?name=`) without escaping | Reflected XSS via crafted shareable URL | Always escape/sanitize any user-controlled URL param before interpolating into HTML, titles, or meta tags; prefer React's default JSX escaping and avoid `dangerouslySetInnerHTML` with param-derived content |
-| Building a server-side DNS/WHOIS/vendor lookup proxy without egress restrictions | SSRF risk if the proxy can be tricked into fetching arbitrary internal/attacker-chosen URLs (e.g., a "resolver URL" param) | Hard-code the allowed resolver/vendor-API endpoints server-side; never let client input control the target host of a server-side fetch |
-| Treating `crypto.randomUUID()`/UUID output as a security token or session identifier elsewhere in the app later | UUIDs generated purely for display/utility purposes get reused as auth tokens without considering entropy/leakage assumptions | Keep the UUID tool's output purely a utility feature; if authentication/session tokens are ever needed elsewhere in the app, use a separate, purpose-built token generation path, not the public-facing generator's code path |
-| Rate-limiting-free `/api/mac-vendor` (or any API route) proxying a third-party service | The route becomes an open proxy/amplification vector for hitting the upstream vendor API, risking the upstream banning the whole app | Apply basic rate limiting (even simple IP-based, via Vercel/Edge middleware) on any API route that forwards to a paid/rate-limited third party |
+| Input/file name in URL, analytics events, or logs | Secrets/PII exposure (history, sync, Vercel logs) — HIGH | Pitfalls 9, 10: opt-in share links, fragment-safe redaction, no custom events |
+| Trusting `?text=` as safe HTML | XSS if ever rendered via `dangerouslySetInnerHTML` | Render only as text/`value`; never HTML; React default escaping |
+| Presenting MD5/SHA-1 as suitable for security | Users hash passwords/signatures with broken algos — MEDIUM | Legacy badges + persistent calm note (Pitfall 11) |
+| Third-party scripts/CDN for libs or fonts on this page | Breaks "fully local" claim and CSP-friendliness | Bundle everything same-origin |
+| Browser spellcheck/autocorrect/extension overlays on the textarea | Secrets sent to cloud spellcheck; text silently altered | `spellCheck/autoCorrect/autoComplete` off, `data-gramm=false` |
+| Persisting last input in `localStorage` | Secrets at rest in browser | Don't persist input; (brief allows local convenience storage for non-sensitive outputs only — hash inputs are sensitive) |
+| Zip-bomb-like expectations / huge files DoS the user's own tab | Self-DoS only; no server risk | Progress, cancel, soft limit message |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
-|---------|-------------|-------------------|
-| Generic/unhelpful error messages ("Something went wrong") for DNS/network failures | Engineer can't tell if it's their typo, a real NXDOMAIN, a resolver outage, or their own network — defeats the tool's purpose | Explicitly distinguish and label: invalid input, NXDOMAIN, empty result (NOERROR, no records of that type), resolver timeout, rate-limited, temporary service unavailable — exactly as the brief's error-handling NFR requires |
-| Layout shift (CLS) when async result replaces a loading skeleton with a different-sized block | Page jumps as content loads, especially jarring on mobile, actively penalized by the stated CLS-free NFR | Reserve fixed/min-height space for result blocks based on the largest plausible result shape (e.g., DNS multi-record lists, subnet's full field breakdown) before data arrives; use skeleton placeholders sized to match |
-| Copy button with no visible confirmation, or confirmation only visible to sighted mouse users | Keyboard/screen-reader users can't tell if copy succeeded; sighted users double-click "just in case," sometimes copying twice or triggering rate-sensitive re-lookups | Pair every copy action with both a visible transient state change (icon/label swap) AND an `aria-live` region announcement, per the accessibility NFR |
-| Debounce timing tuned only for "typical" typing speed, ignoring paste-then-edit patterns | User pastes a domain, tool resolves instantly (correct), then immediately re-triggers a second debounced lookup mid-paste-edit if they touch the field again, causing a visible double-flicker | Treat "paste" and "Enter" as an immediate-trigger + debounce-timer-reset event, not just an additional trigger on top of the existing debounce timer |
-| MAC input requiring one exact format (colons only, or dashes only) before it will parse | Engineers copy MACs from many different tool outputs (Cisco `.` grouping, Windows `-`, Linux `:`) — a rigid parser feels broken | Accept and auto-normalize all common delimiters/groupings (`:`, `-`, `.`, no delimiter, Cisco triplet grouping) as-you-type, matching the brief's explicit "normalize as the user types" requirement |
+|---------|-------------|-----------------|
+| Empty page on load until user types | Violates "zero-effort default result" | Prefilled sample text; all 10 rows populated immediately |
+| No indication of what bytes were hashed | "Your tool is wrong" reports | Live "N bytes (UTF-8)" + newline hint |
+| Text mode silently normalizes CRLF | Windows users can't match `sha256sum` | Hint pointing to File mode for exact bytes; optional LF/CRLF toggle |
+| Results re-order or rows pop in/out | CLS, scanning difficulty | Fixed order, always 10 rows, reserved heights |
+| 128-char digests overflow at 320px | Horizontal scroll | `break-all`, mono font, verified at 320px (existing check) |
+| Copy with no visible feedback | Violates non-negotiable | Reuse `useCopyToClipboard` confirmation on each row + copy-all |
+| Cancel not offered for file hashing | User stuck on huge file | Cancel button + Esc cancels in-flight file hash (before clearing) |
+| Drag-and-drop as the only file path | Mobile/keyboard users blocked | Visible file button + labelled input |
+| Modal warnings about MD5 | Banned UX; annoying | Inline badges + one calm note |
+| Mixed case outputs | Copy/paste mismatches | One central case setting |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **IPv6 subnet support:** Often "works" only for the example `/64`/`/48` shown in the demo — verify against `/127`, `/128`, `/1`, and prefixes requiring BigInt math (anything beyond `/74`-ish where host counts exceed 2^53)
-- [ ] **DNS error states:** Often only the happy path (valid domain, A record exists) is tested — verify NXDOMAIN, SERVFAIL, a domain with no records of the requested type (empty NOERROR), a syntactically invalid domain, and a resolver timeout all render distinctly
-- [ ] **Stale-request cancellation:** Often looks correct in slow manual testing — verify with an automated test that artificially delays an earlier request's response past a later request's response and asserts the UI shows the later result
-- [ ] **MAC bit inspection:** Often only handles the "normal" universally-administered unicast case — verify multicast addresses (e.g., `01:00:5e:...`), locally-administered non-randomized addresses (VM MACs), and malformed/too-short/too-long input all produce sensible labeled output, not a crash
-- [ ] **Analytics query-param safety:** Often verified only by checking that *known* sensitive params (the ones in the spec) are stripped — verify the default behavior is allow-list (nothing new leaks) by adding a brand-new fake sensitive param name and confirming it's excluded without any code change
-- [ ] **CLS-free async states:** Often looks fine on the exact demo data used during development — verify with the largest plausible real result (e.g., a domain with many TXT/MX records, a subnet with the longest possible field labels) that the reserved space doesn't shift
-- [ ] **Keyboard-only operation:** Often verified by clicking through with a mouse while glancing at focus rings — verify a full keyboard-only pass (Tab order, `/` focus-input shortcut, `Enter` execute, `Esc` clear) with the mouse physically unplugged/ignored
-- [ ] **Bookmarkable URL state round-trip:** Often verified only in the "just generated" direction — verify pasting a saved/shared URL directly into a fresh browser tab reproduces the exact same result, including for malformed/tampered query values (must degrade to a validation error, not a crash)
-- [ ] **UUID v7 batch behavior:** Often looks correct because 100 UUIDs "look random and different" — verify explicitly whether same-millisecond ordering is guaranteed or not, and that this matches what's documented/promised to users
-- [ ] **Server/client component boundaries:** Often "just works" in dev mode — verify in a production build (`next build && next start`) specifically, since dev mode is more forgiving of hydration mismatches and some issues only surface in production
+- [ ] **Encoding:** Often missing non-ASCII vectors — verify `"é"`, `"€"`, `"🚀"` match `printf … | sha256sum` for every algorithm
+- [ ] **Newlines:** Often missing the trailing-newline/CRLF explanation — verify byte count shown, hint present, FAQ entry exists, textarea attrs (`autoCorrect=off`, `spellCheck=false`) set
+- [ ] **SHA3:** Often missing Keccak negative test — verify SHA3-256("") starts `a7ffc6f8…`, not `c5d24601…`
+- [ ] **CRC32:** Often missing high-bit/leading-zero cases — verify never negative, always 8 chars, chunked == one-shot, `"123456789"` = `cbf43926`, and RFC 3720 vectors not misapplied
+- [ ] **Large files:** Often only tested at 10 MB — verify 256 MB+ file hashes correctly with responsive UI, progress, and cancel; manual iOS Safari check with a ≥500 MB file
+- [ ] **Worker in prod:** Often only works in `next dev` — verify e2e on `next build && next start`
+- [ ] **Stale results:** Often only text-edit path tested — verify file→file, file→text, text→file, Esc, mode switch, unmount all cancel in-flight work
+- [ ] **No-network:** Often assumed — verify Playwright asserts zero new requests while hashing text and files
+- [ ] **URL state:** Often auto-written — verify input is NOT in the URL unless user explicitly shares; `text` not in allow-list; fragment redacted in `redactBeforeSend` with unit tests
+- [ ] **Keyboard:** Often copied from single-line tools — verify Enter inserts newline in textarea, Cmd/Ctrl+C on a selection copies the selection, `/` focus works, Tab order through rows/copy buttons is logical
+- [ ] **Empty/zero-byte:** Often treated as "no input" — verify empty text and a 0-byte file both show correct empty-input digests (SHA-256 `e3b0c442…b855`, CRC32 `00000000`)
+- [ ] **Drag-drop:** Often missing `preventDefault` — verify a drop outside the zone doesn't navigate away; file input resets so same file can be re-picked
+- [ ] **CLS/Lighthouse:** Often passes on desktop only — verify CLS 0 and 90+ on production preview at 320px
+- [ ] **Bundle:** Often unchecked — verify `/` and other tool routes' first-load JS unchanged; hash libs only in the hash island/worker chunks
+- [ ] **SEO:** Often drifts — verify FAQ JSON-LD content-matches visible FAQ; worked-example digests asserted by test; registry-only change (no nav edits)
+- [ ] **a11y:** Often skipped — verify labelled textarea/file input, `aria-live="polite"` for progress/completion (not per-keystroke), legacy badges are text not color-only, focus-visible rings
+- [ ] **Security note:** Often missing — verify legacy-algorithm labels and the calm password note present, no modals
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
-|---------|-----------------|------------------|
-| IPv6 Number-precision math bugs shipped to production | MEDIUM | Identify all address-math call sites in `lib/subnet`, convert to BigInt, re-run/expand unit test suite with large-prefix fixtures, redeploy — contained because core logic is isolated per the framework-agnostic `lib/` architecture |
-| Silent resolver fallback already shipped and users have bookmarked/shared URLs with misleading results | LOW | Add resolver-used indicator to the UI (no data migration needed, purely additive), fix fallback trigger condition; no backward-compat break since URL state doesn't encode which resolver was used |
-| Analytics already collected sensitive query params before allow-list fix shipped | HIGH | Requires a data-deletion/purge request to the analytics provider for the affected date range (may not be fully possible depending on provider retention/export controls) plus a written incident note — this is the costliest pitfall to recover from because data exposure, once collected by a third party, may not be fully retractable; strongly prioritize preventing this over any other item in this document |
-| Hydration mismatches discovered after multiple tools already built on the same flawed client-island pattern | MEDIUM-HIGH | Fix the pattern in the shared `components/` layer once, then each tool page needs a targeted re-verification pass (not a full rewrite, since core logic in `lib/` is unaffected) — cost scales with number of tools already shipped, which is why Pitfall 9 should be resolved during the very first tool (UUID) |
-| MAC randomization heuristic mislabeled as certain fact, already published/indexed | LOW | Copy/wording change only (add "likely" hedge, expose raw bits) — no data model change, ships as a normal content fix |
+|---------|---------------|----------------|
+| Wrong encoding path shipped | LOW | Fix single encoder choke point; add vectors; redeploy (stateless tool) |
+| SHA3/Keccak mislabel | LOW | Swap import, add negative test, correct FAQ |
+| CRC32 variant/sign bug | LOW–MEDIUM | Fix formatter/state handling; add chunk-split + vector tests; if users relied on wrong values, note in changelog |
+| `arrayBuffer()` file path shipped | MEDIUM | Replace with chunked engine behind same function signature (hence: engine is the only API from day one) |
+| Worker fails in prod | MEDIUM | Fix URL/bundler config; add prod-build e2e; temporary fallback to main-thread chunked hashing with `setTimeout(0)` yields |
+| Secrets leaked via URL/analytics | HIGH | Remove auto URL-write; purge/ignore affected analytics URLs in Vercel dashboard; fix redaction; add tests; consider disclosure (needs human approval for legal text); cannot un-leak browser-history copies |
+| Stale-result race | MEDIUM | Add sequence token + worker terminate to *all* entry paths (audit all, not just reported one — per Phase 4 retro) |
+| Bundle regression | LOW–MEDIUM | Switch to deep imports, split worker/main, remove barrel |
+| Hydration/CLS regressions | LOW | Fix skeleton height/reserved slots; re-run Lighthouse |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
-|---------|--------------------|----------------|
-| UUID v7 randomness source / batch ordering (Pitfall 10) | UUID Generator (Phase 1) | Unit test asserts `crypto.getRandomValues` (not `Math.random`) is used; documented/tested behavior for same-millisecond batch ordering |
-| Hydration mismatch from client-only logic in initial render (Pitfall 9) | UUID Generator (Phase 1) — sets the client-island pattern for all later tools | Production build (`next build && next start`) shows zero hydration-mismatch console warnings; visual check for no flash-of-different-value on load |
-| Analytics allow-list for sensitive URL params (Pitfall 8) | Shared site-shell (Phase 1, before/alongside first tool with sensitive URL state) | Add a fake never-seen-before sensitive param name to a test URL, confirm it's excluded from the analytics call without any code change |
-| IPv6 Number-precision overflow (Pitfall 1) | IP Subnet Calculator (Phase 2) | Unit/property-based tests covering `/32`, `/48`, `/64`, `/80`+ host-count and address math using BigInt |
-| /31, /32, /127, /128 boundary handling (Pitfall 2) | IP Subnet Calculator (Phase 2) | Explicit unit test fixtures for all four boundary prefixes in both IPv4 and IPv6 |
-| RFC 5952 IPv6 normalization (Pitfall 3) | IP Subnet Calculator (Phase 2) | Round-trip tests: multiple valid textual inputs for the same address normalize to one canonical output |
-| DoH RCODE-vs-HTTP-status handling (Pitfall 4) | DNS Lookup (Phase 3) | Test fixtures/mocks for NOERROR-empty, NXDOMAIN, SERVFAIL responses each render a distinct UI state |
-| Stale async request race conditions (Pitfall 5) | DNS Lookup (Phase 3) | Automated test simulating out-of-order response resolution; `AbortController` + request-generation-counter both present |
-| Silent resolver fallback masking differing results (Pitfall 6) | DNS Lookup (Phase 3) | UI always displays which resolver produced the result; fallback only triggers on network/timeout failure, not on legitimate NXDOMAIN/empty |
-| MAC locally-administered vs. randomized conflation (Pitfall 7) | MAC Address Inspector (Phase 4) | Copy review confirms hedged ("likely") language; raw U/L and I/G bits exposed in output, not just a boolean verdict |
-| Local OUI dataset not shipped to client as raw JSON (Performance Trap) | MAC Address Inspector (Phase 4) | Bundle-size/Lighthouse check confirms no multi-thousand-entry dataset in client JS payload |
+|---------|------------------|--------------|
+| 1. Encoding mismatch | Core (+UI byte count) | Non-ASCII vectors vs Node oracle; Playwright byte-count assertion |
+| 2. Newline/CRLF/textarea | Core + UI + Ship (FAQ) | Playwright paste `a\r\nb`; hint visible; attrs asserted |
+| 3. SHA3 vs Keccak | Core | Positive FIPS 202 + negative Keccak vector tests |
+| 4. CRC32 variant/format | Core | Check value `cbf43926`, padding, unsigned, chunk-split property, zlib oracle |
+| 5. Memory / whole-file reads | Core (engine) + UI (progress/cancel) | Chunk-equals-one-shot property; 256 MB e2e; iOS manual |
+| 6. Main-thread jank | UI (+Core pure API) | Benchmark-derived threshold; worker e2e on prod build; Lighthouse TBT/INP |
+| 7. Stale/mixed results | UI | Race e2e matrix covering every superseding path |
+| 8. Web Crypto assumptions / lib import specifics | Core | Single-implementation rule; import smoke test; no `crypto.subtle` grep |
+| 9. Secrets in URL / analytics fragment bypass | UI + Ship | `redact.test.ts` new cases; no auto-URL-write test; **decision needed pre-UI planning** |
+| 10. "Fully local" violation | UI + Ship | Playwright network-silence test; grep gates |
+| 11. Password/legacy-hash messaging | UI + Ship | Visual/a11y review; FAQ item present |
+| 12. Bundle size | Core + UI + Ship | Build output compare vs baseline; analyzer; Lighthouse on `/` and `/tools/hash` |
+| 13. Hydration / CLS | UI + Ship | Console clean; CLS 0 at 320px/desktop |
+| 14. Textarea keyboard collisions | UI | Keyboard e2e + component tests |
+| 15. Drag-drop/file input edges | UI + Ship | Picker + drop e2e, 0-byte, folder, reselect |
+| 16. Test-vector completeness | Core | Vector table + oracle property tests as blocking gate |
+| 17. Output formatting | Core + UI | Formatter unit tests; copy-all snapshot |
+| 18. Registry/SEO integration | Ship | Registry test; FAQ JSON-LD content-match test |
+| 19–22. Minor | UI | Component tests |
+
+## Roadmap Implications (for synthesizer)
+
+1. **Core first and gated on vectors.** The riskiest correctness items (1, 3, 4, 5, 8, 16) are all UI-independent and cheaply testable in Node. Make "vector table + chunk-split property tests green" an exit criterion before any UI work.
+2. **One explicit pre-UI decision for the user/roadmapper:** how "bookmarkable text state" is delivered without leaking secrets (Pitfall 9) — recommended: explicit "Copy link" (or opt-in toggle), never auto-write; plus the `redactBeforeSend` fragment fix.
+3. **UI phase needs the worker + sequence-token design up front** (Pitfalls 6, 7) and a decision on text-mode soft cap, `Esc` semantics, and optional LF/CRLF toggle.
+4. **Ship phase includes** production-build worker e2e, network-silence test, Lighthouse/bundle check, FAQ with the "why doesn't my hash match" and "SHA3 ≠ keccak256" and password note.
+5. **Phases likely needing deeper phase-level research:** Core (library selection/CRC32 sourcing — benchmark noble vs alternatives on the target algorithms and measure gzip size; confirm Node oracle availability for RIPEMD-160/zlib.crc32 in CI's Node version) and UI (Worker bundling under Next 16/Turbopack, iOS Safari memory limits — real-device test). Ship phase is standard patterns.
 
 ## Sources
 
-- [DNS over HTTPS — Wikipedia](https://en.wikipedia.org/wiki/DNS_over_HTTPS) — MEDIUM confidence (general web search, cross-checked against known RFC 8484 scope)
-- [Using JSON — Cloudflare Docs](https://developers.cloudflare.com/1.1.1.1/encryption/dns-over-https/make-api-requests/dns-json/) — MEDIUM confidence
-- [DNS over HTTPS JSON API needs some tweaks — Cloudflare Community](https://community.cloudflare.com/t/dns-over-https-json-api-needs-some-tweaks/14728) — MEDIUM confidence (community report of TXT-quoting divergence)
-- [draft-ietf-doh-dns-over-https-14](https://datatracker.ietf.org/doc/html/draft-ietf-doh-dns-over-https-14) — HIGH confidence (IETF draft/RFC lineage for RFC 8484)
-- IPv6 Subnet Calculator references (IO Tools, Networking Toolbox, ipcalc.info, Gcore) — MEDIUM confidence, cross-checked against RFC 5952 (zero-compression canonical form) and RFC 6164/RFC 3021 (/127, /31 point-to-point special cases), which are HIGH-confidence standards knowledge
-- [Cisco DNA Center Q&A for Randomized MAC Addresses](https://www.cisco.com/c/en/us/td/docs/cloud-systems-management/network-automation-and-management/dna-center/tech_notes/b_randomized_mac_addresses.html) — MEDIUM confidence
-- [Nzyme — What are random MAC addresses](https://www.nzyme.org/knowledge/wifi/random-mac-addresses) — MEDIUM confidence
-- [draft-ietf-madinas-mac-address-randomization](https://datatracker.ietf.org/doc/html/draft-ietf-madinas-mac-address-randomization-06) — HIGH confidence (IETF draft), cross-checked against IEEE 802 U/L and I/G bit definitions (HIGH-confidence standards knowledge)
-- Next.js App Router hydration-mismatch articles (LogRocket, Medium, OneUptime) — MEDIUM confidence, cross-checked against React/Next.js official hydration-error documentation behavior (server/client render divergence, browser-API-during-render causes) which is HIGH-confidence framework knowledge
-- [Cloudflare vs Google DNS comparisons](https://5gstore.com/blog/2026/03/03/google-dns-vs-cloudfare-dns/) — MEDIUM confidence (retention-policy claims should be re-verified against each provider's current privacy policy before final resolver selection in the DNS Lookup phase)
-- [PII examples: what not to send to analytics — Plausible Analytics](https://plausible.io/blog/pii-examples) — MEDIUM confidence
-- [Data Redaction in Google Analytics 4](https://www.analyticsmania.com/post/data-redaction-in-ga4/) — MEDIUM confidence
-- RFC 9562 (UUID) — HIGH confidence, own model knowledge of the specification (v7 timestamp+random structure, cryptographic randomness requirement, no cross-instance same-millisecond ordering guarantee)
+- Repo (HIGH, direct reads): `lib/analytics/PacketoryAnalytics.tsx` (`redactBeforeSend` split-on-`?` behavior), `lib/analytics/redact.ts`, `lib/hooks/useKeyboardShortcut.ts` (Enter/copy guards), `app/tools/mac/MacToolLoader.tsx` (Loader/skeleton pattern), `tools/registry.ts` (category union), `tsconfig.json` (ES2020, bundler resolution), `package.json` (fast-check, vitest, no hash lib yet), `.planning/PROJECT.md` (Key Decisions: race-guard rule, `replaceState` URL pattern, Server-shell/Client-island)
+- npm registry (HIGH): `@noble/hashes` 2.4.0 — zero dependencies; exports `./legacy.js`, `./sha2.js`, `./sha3.js`, `./sha3-addons.js` (no CRC32; v1-style paths absent); `hash-wasm` 4.12.0 (~1.8 MB unpacked — WASM alternative, not recommended for bundle/CSP reasons, MEDIUM)
+- [MDN SubtleCrypto.digest()](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/digest) — algorithm list (SHA-1/256/384/512 only), async, whole-buffer (MEDIUM-HIGH, via search result)
+- [caniuse SubtleCrypto.digest](https://caniuse.com/mdn-api_subtlecrypto_digest) — broad SHA-2 support; no SHA-3 data found (MEDIUM)
+- [mojoauth SHA3-256 in browser](https://mojoauth.com/security-guides/sha3-256-in-javascript-in-browser.md) — SHA-3 not in Web Crypto; use a library (LOW-MEDIUM, secondary)
+- [WHATWG HTML textarea element (API value vs raw vs form-submission value)](https://www.w3.org/TR/2012/WD-html5-20121025/the-textarea-element.html), [zzz.buzz — Three Normalizations of textarea value](https://zzz.buzz/2017/12/21/javascript-traps-and-pitfalls-three-normalizations-of-textarea-elements-value/) — API value uses LF (MEDIUM; spec text from 2012 draft, re-check against current WHATWG standard in the UI phase with a real paste test)
+- Domain knowledge, to be re-verified by test in Core (MEDIUM-HIGH): FIPS 180-4 / FIPS 202 / RFC 1321 / RIPEMD-160 reference vectors cited above; CRC catalogue check value `cbf43926` for CRC-32/ISO-HDLC; RFC 3720 Appendix B.4 vectors are CRC-32C; SHA-3 vs Keccak padding byte difference; PowerShell 5 redirect writes UTF-16LE+BOM
+- Not verified in this research (LOW): exact iOS Safari per-tab memory ceilings; whether Vercel Analytics includes `location.hash` in `event.url`; exact Node version availability of `zlib.crc32` and OpenSSL `ripemd160` in CI — each flagged above for in-phase verification
 
 ---
-*Pitfalls research for: Network/infrastructure utility website (Packetory)*
-*Researched: 2026-07-21*
+*Pitfalls research for: in-browser multi-algorithm Hash Generator (Packetory v1.2)*
+*Researched: 2026-10-14*
