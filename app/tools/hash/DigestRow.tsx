@@ -125,10 +125,11 @@ export function DigestRow({
           )}
         </button>
       </div>
+      {/* geometricPrecision: Linux Chromium rounds Geist Mono glyph advances (~9.6px to 10px) without it, wrapping 128-char digests onto an extra line at 320px and breaking the pinned skeleton height in HashToolLoader. */}
       <span
         data-testid={"hash-row-" + id + "-value"}
         className={cn(
-          "min-w-0 font-mono text-base leading-[1.5] break-all text-foreground",
+          "min-w-0 font-mono [text-rendering:geometricPrecision] text-base leading-[1.5] break-all text-foreground",
           primary && "font-semibold",
         )}
       >
