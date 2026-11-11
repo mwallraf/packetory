@@ -1,172 +1,120 @@
 ---
 phase: 13-password-generator-page
-reviewed: 2026-11-11T00:00:00Z
+reviewed: 2026-11-11T23:50:00Z
 depth: standard
-files_reviewed: 24
+files_reviewed: 17
 files_reviewed_list:
-  - app/tools/password/page.tsx
-  - app/tools/password/PasswordToolLoader.tsx
   - app/tools/password/PasswordTool.tsx
-  - app/tools/password/PasswordOptionsPanel.tsx
   - app/tools/password/PasswordOutput.tsx
   - app/tools/password/PasswordRow.tsx
+  - app/tools/password/PasswordOptionsPanel.tsx
+  - app/tools/password/PasswordToolLoader.tsx
+  - app/tools/password/page.tsx
   - app/tools/password/ColoredPassword.tsx
   - app/tools/password/runs.ts
-  - app/tools/password/password-test-utils.ts
   - app/tools/password/PasswordTool.test.tsx
-  - app/tools/password/PasswordTool.options.test.tsx
   - app/tools/password/PasswordTool.url.test.tsx
   - app/tools/password/PasswordTool.output.test.tsx
   - app/tools/password/PasswordTool.keyboard.test.tsx
-  - app/tools/password/runs.test.ts
+  - app/tools/password/PasswordTool.options.test.tsx
   - app/tools/password/page-guards.test.ts
-  - lib/password/boundaries.test.ts
-  - tests/e2e/password.spec.ts
-  - tests/e2e/password-url.spec.ts
-  - tests/e2e/password-options.spec.ts
   - tests/e2e/password-keyboard.spec.ts
-  - tests/e2e/password-privacy.spec.ts
-  - tests/e2e/password-responsive.spec.ts
   - tests/e2e-prod/password-ssr.spec.ts
+  - tests/e2e/password.spec.ts
 findings:
-  critical: 1
-  warning: 3
-  info: 6
+  critical: 0
+  warning: 0
+  info: 10
   total: 10
   necessity: 0
 status: issues_found
 ---
 
-# Phase 13: Code Review Report
+# Phase 13: Code Review Report (iteration 2)
 
 **Reviewed:** 2026-11-11
 **Depth:** standard
-**Files Reviewed:** 24
-**Status:** issues_found
+**Files Reviewed:** 17
+**Status:** issues_found (Info only)
 
 ## Summary
 
-The page is carefully built against the privacy contract. No generated value reaches the URL, storage, analytics, DOM attributes, the live region or server HTML. Generation happens only in the `ssr:false` island, `serializeOptions` accepts `ToolOptions` only, and the guard tests are non-vacuous (in-memory mutants). The hostile-URL rewrite, the draft/clamp logic and the Ctrl/Cmd+C guards trace correctly.
+Re-review after the fix commits 4b742a9, 2008e09, 548c8e1, 5014e61, 417e522 and e2b2feb.
 
-One real correctness defect was found. The URL writer is unguarded and runs mid-commit, so a throttled `history.replaceState` (Safari throws after 100 calls per 30 s, and a slider drag easily exceeds that) aborts the commit and leaves the displayed options and the displayed password out of sync. The other findings are test-soundness gaps (racy negative assertions, a leak detector that skips `<script>`), one error-handling mislabel, and minor accessibility and maintainability items.
+**Resolution of the iteration-1 blocking findings**
 
-No necessity findings. `necessity-review.md` was read.
+- **CR-01 resolved.** `writeUrl` (`PasswordTool.tsx:95-107`) wraps `serializeOptions` and `replaceState` in `try/catch`, which also covers the mount-time call at `:172-175`. `commit` (`:197-204`) now runs `setOptions`, then `generate`, then `applyGenerated`, and only then `writeUrl`. A throwing URL write can no longer abort regeneration. The new jsdom test (`PasswordTool.url.test.tsx:204-217`) installs a throwing spy after mount, with `afterEach` calling `vi.restoreAllMocks()`, so it does not leak into other tests. It covers the slider/length path and the toggle path.
+- **WR-01 resolved.** `generate()` (`:55-71`) maps only `GenerationExhaustedError` to `exhausted` and only `CryptoUnavailableError` to `crypto`. Everything else becomes `unexpected`, with its own `ERROR_COPY` entry (`PasswordOutput.tsx:34-37`). The new test (`PasswordTool.test.tsx:245-256`) forces `getRandomValues` to throw `Error("boom")` and asserts both the neutral copy and the absence of the Web Crypto wording. Enter (`regenerate`) still recovers from the `unexpected` panel.
+- **WR-02 resolved.** The `settle()` helper makes the absence assertions run after the async copy path would have completed. The selection test now proves its precondition (`getSelection()` equals the heading text). Both tests additionally assert that the button accessible names did not change. This is a sound strengthening.
+- **WR-03 resolved.** I decoded the real prod HTML at `.next/server/app/tools/password.html` with the same per-script regex and `JSON.parse` logic. It yields 5 flight payloads and the parser handles Next's current format (a script body with no trailing `;`, matched by `$`). The positive control (a leak hidden in a `<script>`) and the negative control (build id) exercise the new scan.
 
-## Critical Issues
+I found no regression from the fix commits. `vitest run app/tools/password lib/password` passes (18 files, 591 tests) and `tsc --noEmit` is clean.
 
-### CR-01: Unguarded `replaceState` inside `commit` aborts regeneration (Safari throttle SecurityError)
+**UI-1..UI-3 markup changes.** No functional regression. Row copy is now a fixed `h-11 w-11` button with no `flex-wrap`, so the confirmation cannot reflow it. The copy-failure `<p>` sits outside the flex row, and the accessible names and test ids are unchanged. Two disclosed spec deviations remain for UAT sign-off (IN-07 and IN-08 below). There are no Critical or Warning findings. The iteration-1 Info items IN-01..IN-06 are untouched by the fixes and carry forward unchanged.
 
-**File:** `app/tools/password/PasswordTool.tsx:91-97` and `:187-194`
-**Issue:** `commit()` runs `setOptions(normalized)`, then `writeUrl(normalized)`, and only then `generate(...)` and `applyGenerated(...)`. `writeUrl` calls `window.history.replaceState` with no `try/catch`. WebKit (Safari desktop and iOS) throws `SecurityError: Attempt to use history.replaceState() more than 100 times per 30 seconds`. `onSliderChange` calls `commit` on every slider step, and `onLengthDraftChange` and the symbol input call it on every keystroke. Dragging the slider across the 4-128 range is about 124 calls in one gesture.
-
-Once the limit is hit, `writeUrl` throws out of the React event handler:
-- `setOptions` has already been queued, so the controls move to the new options.
-- `generate` and `applyGenerated` never run, so the password, the copy-confirmation reset and the generation counter keep their old values.
-- The output no longer obeys the visible options (PWD-02) and no error is shown.
-- Every later commit inside the throttle window fails the same way.
-
-Chrome throttles with a console warning and a dropped call, so only the URL goes stale there. The mount-time `writeUrl` at `:162-165` has the same unguarded call. No unit or e2e test simulates a throwing `replaceState`.
-
-**Fix:** Make the URL mirror best-effort and run it after state is applied. Optionally coalesce slider writes.
-```tsx
-function writeUrl(opts: ToolOptions) {
-  try {
-    const qs = serializeOptions(opts);
-    const path = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
-    window.history.replaceState(null, "", path);
-  } catch {
-    // Throttled (Safari) or unavailable: the URL is a convenience mirror only.
-  }
-}
-
-function commit(next: ToolOptions): Generated {
-  const normalized = normalizeToolOptions({ ...next, mode: "password" });
-  setOptions(normalized);
-  const applied = generate(normalized, gen.generation + 1);
-  applyGenerated(applied);
-  writeUrl(normalized);
-  return applied;
-}
-```
-Add a jsdom test that stubs `history.replaceState` to throw and asserts the output still matches the new length after `setLength("30")`.
-
-## Warnings
-
-### WR-01: `generate()` reports every thrown error as "Secure random generation isn't available"
-
-**File:** `app/tools/password/PasswordTool.tsx:60-66`
-**Issue:** The `catch` maps anything other than `GenerationExhaustedError` to `"crypto"`. That includes a `RangeError` from `randomInt` (non-uniform fill, 1000 redraws), a TypeError from a future regression in this file or the library, and a `QuotaExceededError`. The user is told their browser lacks Web Crypto, which is false and hides the cause. D-12 bans logging, so nothing is surfaced anywhere. Fail-closed is correct, but the diagnosis is wrong and the tests cannot distinguish the cases.
-**Fix:** Narrow the mapping and give anything else a neutral fail-closed message.
-```ts
-} catch (e) {
-  const error: GenError =
-    e instanceof GenerationExhaustedError ? "exhausted"
-    : e instanceof CryptoUnavailableError ? "crypto"
-    : "unexpected";
-  return { results: [], error, generation };
-}
-```
-Add an `unexpected` entry to `ERROR_COPY`, for example "Something went wrong, so no password was generated. Press Enter to try again.", and a unit test with a fill that throws `Error`.
-
-### WR-02: Negative e2e assertions can pass before the code under test has acted
-
-**File:** `tests/e2e/password-keyboard.spec.ts:159-162` and `:181-183`
-**Issue:** In "Ctrl/Cmd+C does nothing for a batch" and "leaves a user selection alone", the first assertion after the keypress is `expect(status).toHaveText("")`. Playwright evaluates it immediately and it passes at once. If the guard were broken, the status would only become "Copied" after `writeText` resolves, a state update and a `setTimeout(0)`. The clipboard read that follows is also racy, because the handler's `await navigator.clipboard.writeText` may not have landed yet. So these two tests can stay green with the batch or selection guard removed.
-**Fix:** Settle before asserting absence, then assert.
-```ts
-await page.keyboard.press("ControlOrMeta+c");
-await page.waitForTimeout(250); // or: await page.evaluate(() => new Promise(r => setTimeout(r, 250)))
-await expect(page.getByTestId("password-status")).toHaveText("");
-expect(await page.evaluate(() => navigator.clipboard.readText())).toBe("sentinel-value");
-```
-In the selection test, also assert `getSelection().toString()` equals the heading text before pressing, so the precondition is proven.
-
-### WR-03: Prod SSR leak detector ignores `<script>` content, where a server-generated prop would appear
-
-**File:** `tests/e2e-prod/password-ssr.spec.ts:23-28` and `:101`
-**Issue:** `visibleText()` replaces `<script>` blocks with spaces before `hasAllSetsRun` runs. The reason given is that class names and the build id false-positive. But if a password were ever generated on the server and passed as a prop, it would land in the RSC flight payload (`self.__next_f.push(...)`), which is inside a script, and this test would not see it. The remaining protection is the testid checks and `page-guards.test.ts`. Neither covers a server component that generates and passes a prop to a client component. So the headline PWD-01 proof has a blind spot in exactly the leak path that matters most.
-**Fix:** Also scan script bodies, but only for runs that contain all four classes and are at least `LENGTH_DEFAULT` long. A 20-character run over `[A-Za-z0-9!@#$...]` containing all four classes is very unlikely in build ids or class names. Narrow it by checking the JSON-unescaped string literals of `__next_f` pushes rather than the raw script text. Keep the positive control and add one that embeds `Aa0!`x5 inside a `<script>`.
+No necessity findings. `necessity-review.md` was not required for this pass because no reachable-but-impossible guard was found.
 
 ## Info
 
-### IN-01: Symbol hint wording is wrong for non-empty unusable drafts and silent for the look-alike fallback
+### IN-01: Symbol hint wording is wrong for non-empty unusable drafts and silent for the look-alike fallback (carried)
 
 **File:** `app/tools/password/PasswordOptionsPanel.tsx:74-86`
-**Issue:** For drafts like `abc 123` or `é€`, which are not empty, the hint says "Empty, so the default set is used". The tests lock this wording in (`options.test.tsx:400-409`). Separately, with Avoid look-alikes on and a draft of `|`, `hasUsableSymbol` is true and the hint shows the normal rule text, while `resolveAlphabet` silently substitutes the default symbols. The user sees `|` in the field but never gets it.
-**Fix:** Reword to "No usable symbols, so the default set is used". When `avoidLookalikes` is on and every kept symbol is in `LOOK_ALIKES`, show a dedicated hint such as "Those are look-alikes, so the default set is used".
+**Issue:** Drafts like `abc 123` or `é€` are not empty, yet the hint says "Empty, so the default set is used". With Avoid look-alikes on and a draft of `|`, the hint shows the normal rule text while `resolveAlphabet` silently substitutes the default symbols.
+**Fix:** Reword to "No usable symbols, so the default set is used", and add a dedicated look-alike hint.
 
-### IN-02: Duplicated button markup and a circular type import
+### IN-02: Duplicated button markup (now larger) and a circular type import (carried)
 
-**File:** `app/tools/password/PasswordOutput.tsx:82-115`, `:143-176`; `:6`
-**Issue:** The copy and Regenerate buttons, with identical long class strings, appear in both `Hero` and `Batch`, and a third copy lives in `PasswordRow`. `PasswordOutput.tsx` imports `type Generated` from `PasswordTool.tsx`, which imports `PasswordOutput`. It is type-only so it is erased at runtime, but it is a latent cycle.
-**Fix:** Extract `CopyButton` and `RegenerateButton` components. Move `Generated`, `GenError` and `StatusPhrase` to a small `types.ts` beside `runs.ts`.
+**File:** `app/tools/password/PasswordOutput.tsx:89-123`, `:151-185`; `:6`
+**Issue:** UI-2 made the long filled-accent class string appear twice (hero Copy, Copy all), alongside the duplicated Regenerate string and a third copy in `PasswordRow`. `PasswordOutput.tsx` imports `type Generated` from `PasswordTool.tsx`, which imports `PasswordOutput`. It is type-only, so it is erased at runtime, but it is a latent cycle.
+**Fix:** Extract `CopyButton` and `RegenerateButton`. Move `Generated`, `GenError` and `StatusPhrase` to a `types.ts`.
 
-### IN-03: Skeleton pinned at two widths only, with a redundant class and a one-line measurement comment
+### IN-03: Skeleton pinned at two widths only (carried)
 
 **File:** `app/tools/password/PasswordToolLoader.tsx:21-33`
-**Issue:** The 980px and 712px heights are measured at 320px and 1280px, with a single `sm:` switch at 640px. Between about 360 and 639px the loaded island is shorter than 980px because the hints wrap less, so the footer shifts on load (no-CLS goal). Phase 14 owns the final pin (D-17), so this is a note, not a defect. `h-[124px] sm:h-[124px]` is redundant. The measurement comment is one 200-character line.
-**Fix:** Drop `sm:h-[124px]`, wrap the comment, and make the Phase 14 pin cover 360-639px.
+**Issue:** The 980px and 712px heights are measured at 320px and 1280px with one `sm:` switch, so between about 360 and 639px the footer can shift on load. `h-[124px] sm:h-[124px]` is redundant. Phase 14 owns the final pin (D-17).
+**Fix:** Drop `sm:h-[124px]` and make the Phase 14 pin cover 360-639px.
 
-### IN-04: Accessibility gaps in the output and option feedback
+### IN-04: Accessibility gaps in the output and option feedback (carried)
 
-**File:** `app/tools/password/PasswordOutput.tsx:73-80`; `PasswordOptionsPanel.tsx:128-162`; `PasswordTool.tsx:196-221`, `:253-272`
-**Issue:**
-- The output `div` has no label, role or heading, so a screen-reader user can reach it only by browsing the page.
-- The length number input and the range slider both take the accessible name "Length", so they are indistinguishable by name.
-- Slider, length, set switches, symbol and look-alike changes regenerate the password with no announcement. This is by design (D-11), but it leaves AT users with no signal that the output changed.
-**Fix:** Give the output wrapper `role="group"` and `aria-label="Generated password"` (never the value). Use `aria-label="Length slider"` on the range, or `aria-valuetext`. Consider announcing "Password updated" on commits that regenerate, and revisit D-11 in Phase 14.
+**File:** `app/tools/password/PasswordOutput.tsx:81-88`; `PasswordOptionsPanel.tsx:128-162`; `PasswordTool.tsx:206-231`
+**Issue:** The output `div` has no role or label. The length number input and the range slider share the accessible name "Length". Option commits regenerate the password with no announcement (D-11 by design).
+**Fix:** Add `role="group"` with `aria-label="Generated password"`. Name the slider "Length slider". Revisit D-11 in Phase 14.
 
-### IN-05: Live-region "clear then set" re-read and repeat-copy announcements are unreliable
+### IN-05: Live-region "clear then set" and repeat-copy announcements are unreliable (carried)
 
-**File:** `app/tools/password/PasswordTool.tsx:133-158`; `PasswordRow.tsx:30-34`
-**Issue:** `announce` sets `""` and then the phrase one `setTimeout(0)` later. Two renders inside a few milliseconds are often coalesced by screen readers, so the identical repeated phrase may not be re-announced. The unit test only proves the DOM passes through `""`. A second copy within the 2 s revert window does not flip `copied` (it is already true), so it is not announced again. Copy announcements also depend on three separate effects.
-**Fix:** Alternate between two live-region nodes, or append a zero-width counter to the text. Have `useCopyToClipboard` expose a monotonically increasing `copyCount` so announcements can follow successful copies deterministically.
+**File:** `app/tools/password/PasswordTool.tsx:143-147`; `PasswordRow.tsx:28-34`
+**Issue:** `announce` clears and sets one `setTimeout(0)` apart, which screen readers often coalesce. A second copy inside the 2 s revert window does not flip `copied`, so it is not announced.
+**Fix:** Alternate two live-region nodes, or expose a monotonic `copyCount` from the hook.
 
-### IN-06: Copy-announcement effects exist only to dodge a lint rule
+### IN-06: Copy-announcement effects exist only to dodge a lint rule (carried)
 
-**File:** `app/tools/password/PasswordTool.tsx:145-158`; `PasswordRow.tsx:28-34`
-**Issue:** Each of three effects wraps `announce` in `setTimeout(..., 0)` "so no state is set synchronously in the effect body". This is ceremony driven by `react-hooks/set-state-in-effect`, and it adds an extra tick between copy and announcement. The `announce` timer is itself guarded separately in the mount cleanup.
-**Fix:** Derive the announcement from the copy result (the `copyCount` suggestion in IN-05) in the click and shortcut handlers instead, which removes all three effects.
+**File:** `app/tools/password/PasswordTool.tsx:158-168`; `PasswordRow.tsx:30-34`
+**Issue:** Three effects wrap `announce` in `setTimeout(..., 0)` to satisfy `react-hooks/set-state-in-effect`.
+**Fix:** Derive the announcement from the copy result in the click and shortcut handlers.
+
+### IN-07: UI-2 filled accent puts 14px semibold text at 3.68:1 (new, disclosed deviation)
+
+**File:** `app/tools/password/PasswordOutput.tsx:95`, `:156`
+**Issue:** `bg-primary text-primary-foreground` is white on `#0891b2`, 3.68:1 in light mode, for 14px/600 text. That is below WCAG AA 4.5:1 for normal text, and `hover:bg-primary/90` lowers it slightly further. The UI-SPEC (Color, lines 118-127) specifies `text-primary` on a transparent background for copy controls. The fix report discloses this deviation. It is consistent with the existing `ConfigTool.tsx:214` filled button and the spec's own "accepted site-wide precedent" of 3.68:1, so it is not a new class of defect. It does widen that precedent to two more buttons. Dark mode is fine (`#020617` on `#22d3ee`).
+**Fix:** Get UAT sign-off, and update UI-SPEC to record the filled accent. If the contrast is later tightened site-wide, use a darker `--primary` (for example `#0e7490`, about 5.4:1 with white) for filled buttons.
+
+### IN-08: UI-3 drops the visible "Copied!" caption from the row confirmation (new, disclosed deviation)
+
+**File:** `app/tools/password/PasswordRow.tsx:52-63`
+**Issue:** The confirmed state is now a `Check` icon only. "Copied!" survives only in the `aria-label` and a redundant `sr-only` span (the `aria-label` already overrides the content for the accessible name, so the span exists only so `getByText("Copied!")` tests keep passing). UI-SPEC line 221 and the "visible confirmation everywhere" constraint call for a visible "Copied!" caption. A 20px icon swap in the accent colour is a weak visible signal for the confirmation. The Copy all and hero buttons still show the caption.
+**Fix:** Get UAT sign-off. If the visible caption is wanted back without reflow, show it as a short-lived absolutely positioned label or a `title`-free tooltip rather than inline.
+
+### IN-09: The WR-03 flight scan has no non-vacuity assertion on real HTML (new)
+
+**File:** `tests/e2e-prod/password-ssr.spec.ts:46-66`, `:170`
+**Issue:** `flightPayloads` swallows every `JSON.parse` failure (`catch {}`), and `expect(flightHasAllSetsRun(html)).toBe(false)` passes when zero payloads were decoded. I verified it decodes 5 payloads against the current build, but a future Next change to the push format (a wrapper such as `(self.__next_f=...).push(` already exists for the bootstrap push, which is correctly skipped) would silently turn the scan into a no-op. The synthetic positive control uses a hand-written string, not the real page.
+**Fix:** In the real-HTML test, add `expect(flightPayloads(html).length).toBeGreaterThan(0)`.
+
+### IN-10: `PasswordOutput`'s empty-result fallback still says "crypto" (new)
+
+**File:** `app/tools/password/PasswordOutput.tsx:225-227`
+**Issue:** `gen.results[0] === undefined` with `gen.error === null` renders the Web Crypto error. That is the same mislabelling WR-01 removed from `generate()`. The state is effectively unreachable, because `generateBatch(opts, batch >= 1)` either returns at least one value or throws, so it is defensive code with the wrong label.
+**Fix:** Render `<ErrorPanel error="unexpected" />`, or drop the branch and narrow the type.
 
 ---
 
