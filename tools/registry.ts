@@ -95,7 +95,7 @@ export const tools: ToolDefinition[] = [
       "Highlight Cisco network configurations locally, then copy rich formatting for email and documents or copy the original plain text.",
     category: "network",
     keywords: ["config", "cisco", "ios", "ios-xe", "ios-xr", "syntax"],
-    icon: "Network",
+    icon: "FileTerminal",
     status: "active",
     clientOnly: true,
     featured: false,
