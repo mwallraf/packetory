@@ -5,16 +5,16 @@ milestone_name: Password Generator & Tool Page Polish
 current_phase: 12
 current_phase_name: Password Core Library
 status: executing
-stopped_at: Completed 12-02-PLAN.md
-last_updated: "2026-11-11T20:48:04.564Z"
+stopped_at: Completed 12-03-PLAN.md
+last_updated: "2026-11-11T20:50:53.374Z"
 last_activity: 2026-11-11
 last_activity_desc: Phase 12 execution started
-state_head: 2cd8785583c16fc17cec57c65c1c0ff53b7545e9
+state_head: ca8c672a2fdbf2033efeeb9fcc06b668460471b4
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 12
-  completed_plans: 9
+  completed_plans: 10
   percent: 20
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-11-11)
 ## Current Position
 
 Phase: 12 (Password Core Library) — EXECUTING
-Plan: 3 of 5
+Plan: 4 of 5
 Status: Ready to execute
 Last activity: 2026-11-11 — Phase 12 execution started
 
@@ -116,6 +116,7 @@ Progress: [██░░░░░░░░] 20%
 | Phase 11 P01 | 20min | 3 tasks | 6 files |
 | Phase 12 P01 | 3 min | 3 tasks | 9 files |
 | Phase 12 P02 | 3 min | 3 tasks | 3 files |
+| Phase 12 P03 | 6 min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -141,6 +142,7 @@ Full decision log lives in PROJECT.md Key Decisions; v1.2 phase-level decisions 
 - [Phase 11]: Lighthouse before/after capture deferred to milestone UAT after Phase 14; SUMMARY holds PENDING rows (U-2)
 - [Phase 12]: Password option normalization lives in charset.ts with resolveAlphabet; ToolOptions field names and constants are the cross-phase contract
 - [Phase 12]: 12-02: random.ts unchanged; all SC-2 proofs (rejection boundaries, byte cap, fail-closed Web Crypto, import silence) pass against the 12-01 implementation; generateBatch clamps count via clampBatchCount
+- [Phase 12]: Plan 12-03: one-string pool (symbols-only, 1 symbol) has exactly 0 bits; entropy property asserts >= 0, never overstated
 
 ### Pending Todos
 
@@ -181,8 +183,8 @@ Per user instruction (2026-11-11): run phases 11–14 autonomously and batch all
 
 ## Session Continuity
 
-Last session: 2026-11-11T20:48:04.503Z
-Stopped at: Completed 12-02-PLAN.md
+Last session: 2026-11-11T20:50:53.317Z
+Stopped at: Completed 12-03-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

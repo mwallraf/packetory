@@ -31,7 +31,7 @@
 - [ ] **PWD-01**: Opening `/tools/password` immediately shows a fresh random 20-character password using all four character sets, generated client-side only (never present in the static HTML; different on every load)
 - [ ] **PWD-02**: User can set length 4–128 via slider and number input
 - [ ] **PWD-03**: User can toggle uppercase, lowercase, digits, and symbols; the last enabled set cannot be turned off
-- [ ] **PWD-04**: Every generated password contains at least one character from each enabled set, without biasing the distribution (whole-password rejection resampling)
+- [x] **PWD-04**: Every generated password contains at least one character from each enabled set, without biasing the distribution (whole-password rejection resampling)
 - [ ] **PWD-05**: User can edit the symbol set (deduplicated, printable ASCII only; emptying it restores the default `!@#$%^&*()-_=+[]{};:,.?`)
 - [ ] **PWD-06**: User can enable "avoid look-alikes", which removes `0 O o 1 l I |` from the pool
 - [ ] **PWD-07**: All randomness comes from `crypto.getRandomValues` with unbiased rejection sampling; if Web Crypto is unavailable the tool shows an error instead of falling back to a weaker source
@@ -105,7 +105,7 @@
 | PWD-01 | Phase 13 | Pending |
 | PWD-02 | Phase 13 | Pending |
 | PWD-03 | Phase 13 | Pending |
-| PWD-04 | Phase 12 | Pending |
+| PWD-04 | Phase 12 | Complete |
 | PWD-05 | Phase 13 | Pending |
 | PWD-06 | Phase 13 | Pending |
 | PWD-07 | Phase 13 | Pending |
