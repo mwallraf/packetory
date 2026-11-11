@@ -430,44 +430,53 @@ test.describe("Subnet narrow widths (SUBNET-10)", () => {
 });
 
 /**
- * Pinned skeleton heights live in SubnetToolLoader.tsx as
- * `h-[Apx] sm:h-[Bpx] lg:h-[Cpx]`. Reading them from the source (rather than
- * duplicating constants here) means a stale pin fails the gate.
+ * Pinned skeleton heights live in SubnetToolLoader.tsx as a ladder of
+ * `h-[Apx] min-[Npx]:h-[Bpx] ...` utilities (the first has no variant and
+ * applies from 0px). Reading them from the source (rather than duplicating
+ * constants here) means a stale pin fails the gate.
  */
-function readPinnedHeights(): { base: number; sm: number; lg: number } | null {
+function readPinnedHeights(): { minWidth: number; height: number }[] | null {
   const source = readFileSync(
     path.join(process.cwd(), "app/tools/subnet/SubnetToolLoader.tsx"),
     "utf8",
   );
-  const match = source.match(/h-\[(\d+)px\] sm:h-\[(\d+)px\] lg:h-\[(\d+)px\]/);
-  if (!match) return null;
-  return { base: Number(match[1]), sm: Number(match[2]), lg: Number(match[3]) };
+  const pins = Array.from(
+    source.matchAll(/(?:min-\[(\d+)px\]:)?h-\[(\d+)px\]/g),
+    (m) => ({ minWidth: m[1] ? Number(m[1]) : 0, height: Number(m[2]) }),
+  );
+  return pins.length > 0 ? pins.sort((x, y) => x.minWidth - y.minWidth) : null;
 }
 
 test.describe("Subnet skeleton pin (no CLS)", () => {
-  test("skeleton pins match the settled default island at 375, 768 and 1366px wide", async ({
+  // The island height steps with width inside each breakpoint band (the
+  // break-all field values wrap by card width). Sample the interior of every
+  // measured band plus both sides of each Tailwind breakpoint, not just one
+  // width per band.
+  const WIDTHS = [
+    320, 345, 375, 430, 460, 560, 639, 640, 650, 670, 800, 1023, 1024, 1100,
+    1366,
+  ] as const;
+
+  test("skeleton pins match the settled default island across the width range", async ({
     page,
   }) => {
     const measured: Record<string, number> = {};
-    for (const [width, height] of [
-      [375, 800],
-      [768, 800],
-      [1366, 650],
-    ] as const) {
-      await page.setViewportSize({ width, height });
+    for (const width of WIDTHS) {
+      await page.setViewportSize({ width, height: width >= 1024 ? 650 : 800 });
       await gotoSettled(page);
       const box = await page.getByTestId("subnet-tool").boundingBox();
       if (!box) throw new Error("subnet-tool has no bounding box");
       measured[String(width)] = Math.round(box.height);
     }
     const pins = readPinnedHeights();
-    expect(pins, "measured island heights " + JSON.stringify(measured)).not.toBeNull();
+    expect(
+      pins,
+      "could not parse pinned heights from SubnetToolLoader.tsx; expected `h-[Apx] min-[Npx]:h-[Bpx] ...`. Measured island heights " +
+        JSON.stringify(measured),
+    ).not.toBeNull();
     if (!pins) return;
-    for (const [width, pin] of [
-      [375, pins.base],
-      [768, pins.sm],
-      [1366, pins.lg],
-    ] as const) {
+    for (const width of WIDTHS) {
+      const pin = pins.filter((p) => p.minWidth <= width).at(-1)?.height ?? NaN;
       expect(
         Math.abs(measured[String(width)] - pin),
         `island ${measured[String(width)]}px vs skeleton pin ${pin}px at ${width}px wide`,
