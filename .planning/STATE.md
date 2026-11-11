@@ -199,6 +199,7 @@ Per user instruction (2026-11-11): run phases 11–14 autonomously and batch all
 |-------|-------|--------|
 | 11 | verification_deferred_human | /gsd-verify-work 11 |
 | 12 | verification_deferred_human | /gsd-verify-work 12 |
+| 13 | verification_deferred_human | /gsd-verify-work 13 |
 
 ## Session Continuity
 
