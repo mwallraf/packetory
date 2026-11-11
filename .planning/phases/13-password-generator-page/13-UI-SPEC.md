@@ -1,7 +1,7 @@
 ---
 phase: "13"
 slug: password-generator-page
-status: draft
+status: approved
 shadcn_initialized: true
 preset: b2fA
 created: "2026-11-11"
