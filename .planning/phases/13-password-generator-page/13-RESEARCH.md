@@ -682,15 +682,15 @@ Wrap the Web Crypto method with a counter in an init script (call original with 
 | A5 | Accepting that after a double Copy inside 2s the second copy is not re-announced | Pattern 7 | Minor a11y gap; fixable with a copy counter if UAT objects |
 | A6 | Mapping every non-exhausted throw (including `RangeError` from a non-uniform fill) to the Web Crypto sentence | Pattern 2 | Wording slightly imprecise for an exotic failure; behavior (fail closed) is correct either way |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Where to put the page-ban guard (D-15 allows either)**
+1. **Where to put the page-ban guard (D-15 allows either)** — RESOLVED: extend `WALK_DIRS` and add sibling `page-guards.test.ts` (plan 13-03).
    - What we know: `analyze()` scopes `frameworkImporters`, `loaderImporters`, `sideChannels` to `lib/password/` only, so extending `WALK_DIRS` alone gives the page only the `Math` random, Web Crypto name, wordlist-import and crypto-module rules.
    - Recommendation: extend `WALK_DIRS` in `boundaries.test.ts` (D-15) **and** put the Phase 13 bans in a sibling pure guard (`app/tools/password/page-guards.test.ts`, `// @vitest-environment node`) reusing the same `stripComments`/mutant approach. Avoid growing `boundaries.test.ts`'s `Analysis` shape; duplicating the small `stripComments` helper is cheaper than refactoring a verified file, or export it via a tiny shared non-test module if the planner prefers.
-2. **Should the island root carry `data-testid="password-tool"`?** UI-SPEC's island structure does not list it, but the skeleton pin procedure and the 320px overflow offender scan (hash-layout pattern) need a root. Recommendation: add it (testid only, no value-bearing data).
-3. **Re-announce on repeated copy.** Accept the gap (A5) or add a per-hook copy counter. Recommendation: accept for Phase 13, mention in SUMMARY.
-4. **E1-a11y-snapshot interpretation** (UI-SPEC unresolved row): recommendation in the section above; confirm at UAT.
-5. **Manual UAT queue.** Password-manager save/autofill prompt, Safari, and translation checks are not automatable; follow the Phase 12 precedent of persisting them as a UAT file and batching them to milestone UAT.
+2. **Should the island root carry `data-testid="password-tool"`?** — RESOLVED: yes (plan 13-01). UI-SPEC's island structure does not list it, but the skeleton pin procedure and the 320px overflow offender scan (hash-layout pattern) need a root. Recommendation: add it (testid only, no value-bearing data).
+3. **Re-announce on repeated copy.** — RESOLVED: accepted gap, recorded in 13-04 assumptions and SUMMARY. Accept the gap (A5) or add a per-hook copy counter. Recommendation: accept for Phase 13, mention in SUMMARY.
+4. **E1-a11y-snapshot interpretation** — RESOLVED: assert names/descriptions/attributes/live region; confirmation deferred to batched milestone UAT by user decision (13-06 human-check). (UI-SPEC unresolved row): recommendation in the section above; confirm at UAT.
+5. **Manual UAT queue.** — RESOLVED: persisted as human-checks in 13-06, batched to milestone UAT by user decision. Password-manager save/autofill prompt, Safari, and translation checks are not automatable; follow the Phase 12 precedent of persisting them as a UAT file and batching them to milestone UAT.
 
 ## Suggested Plan Slicing (for the planner)
 
