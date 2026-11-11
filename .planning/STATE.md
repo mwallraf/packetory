@@ -5,16 +5,16 @@ milestone_name: Password Generator & Tool Page Polish
 current_phase: 14
 current_phase_name: Passphrase, Strength & Launch
 status: executing
-stopped_at: Completed 14-06-PLAN.md
-last_updated: "2026-11-11T23:48:44.211Z"
+stopped_at: Completed 14-07-PLAN.md
+last_updated: "2026-11-11T23:52:19.727Z"
 last_activity: 2026-11-12
 last_activity_desc: Phase 14 execution started
-state_head: 530fb638f42e74054b3da5e896bb31065f6581bd
+state_head: 496f0a1372a7bea7b3b106e973caf5af1c64be51
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 26
-  completed_plans: 24
+  completed_plans: 25
   percent: 20
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-11-11)
 ## Current Position
 
 Phase: 14 (Passphrase, Strength & Launch) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Ready to execute
 Last activity: 2026-11-12 — Phase 14 execution started
 
@@ -131,6 +131,7 @@ Progress: [██░░░░░░░░] 20%
 | Phase 14 P04 | 12min | 2 tasks | 5 files |
 | Phase 14 P05 | 20min | 2 tasks | 11 files |
 | Phase 14 P06 | 15min | 2 tasks | 7 files |
+| Phase 14 P07 | 12min | 3 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -174,6 +175,7 @@ Full decision log lives in PROJECT.md Key Decisions; v1.2 phase-level decisions 
 - [Phase 14]: 14-04: strength level from raw bits and all figures floored via formatBits (append-number shows 80 bits, not 81); scenario is display-only island state reset by Esc
 - [Phase 14]: 14-05: Esc keeps the current mode; word-count draft mirrors Length rules; shared RangeRow/BatchCountRow for both panels
 - [Phase 14]: 14-06: repeat-copy re-announce via post-copy counters in island/rows; lib/hooks unchanged
+- [Phase 14]: Password sorts last in nav/grid/sitemap (featured first, then name), not between MAC and Subnet; nav links use px-2 (23.4px slack at 640px)
 
 ### Pending Todos
 
@@ -216,8 +218,8 @@ Per user instruction (2026-11-11): run phases 11–14 autonomously and batch all
 
 ## Session Continuity
 
-Last session: 2026-11-11T23:48:44.063Z
-Stopped at: Completed 14-06-PLAN.md
+Last session: 2026-11-11T23:52:19.566Z
+Stopped at: Completed 14-07-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
