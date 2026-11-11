@@ -25,8 +25,10 @@ function unit(count: number, singular: string): string {
   return count === 1 ? `1 ${singular}` : `${count} ${singular}s`;
 }
 
+/** The single source of truth for the cap: the label below names this value. */
+const CAP_YEARS = 1e12;
 const CAP = "more than a trillion years";
-const CAP_LOG10_SECONDS = 13 + Math.log10(SECONDS_PER_YEAR);
+const CAP_LOG10_SECONDS = Math.log10(CAP_YEARS * SECONDS_PER_YEAR);
 
 export function formatCrackTime(log10Seconds: number): string {
   if (Number.isNaN(log10Seconds) || log10Seconds < 0) {
@@ -41,7 +43,7 @@ export function formatCrackTime(log10Seconds: number): string {
   if (s < 86400) return unit(Math.floor(s / 3600), "hour");
   if (s < SECONDS_PER_YEAR) return unit(Math.floor(s / 86400), "day");
   const y = roundSig12(s / SECONDS_PER_YEAR);
-  if (y >= 1e12) return CAP;
+  if (y >= CAP_YEARS) return CAP;
   if (y >= 1e9) return `${Math.floor(y / 1e9)} billion years`;
   if (y >= 1e6) return `${Math.floor(y / 1e6)} million years`;
   if (y >= 1e3) return `${Math.floor(y / 1e3)} thousand years`;
