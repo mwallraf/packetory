@@ -47,6 +47,10 @@ function isEditableTarget(target: EventTarget | null): boolean {
  * update) and the global `enter` handler run for the same keypress,
  * desyncing what's copied/downloaded from what's displayed.
  *
+ * A focused `summary` (or any element inside one) also self-activates on
+ * Enter by toggling its `details`, so the global shortcut must not fire there
+ * either (INFO-04, Phase 10).
+ *
  * Deliberately does NOT treat a plain text `input`/`textarea` as
  * "interactive" here (unlike `isEditableTarget`, which this function used to
  * delegate to) — none of this project's forms wrap inputs in a `<form>`, so
@@ -59,7 +63,7 @@ function isEditableTarget(target: EventTarget | null): boolean {
  * E2E test, which requires Enter to work from inside the domain input). */
 function isInteractiveTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
-  return target.closest('button, [role="button"], [role="radio"], a[href]') !== null;
+  return target.closest('button, [role="button"], [role="radio"], a[href], summary') !== null;
 }
 
 /**
