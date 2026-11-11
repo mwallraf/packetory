@@ -46,10 +46,10 @@
 
 ### Strength (STR)
 
-- [ ] **STR-01**: User sees a strength meter with entropy bits and a label (Weak <40 / Fair 40–74 / Strong 75–99 / Very strong ≥100), computed from settings so it is stable across Regenerate
-- [ ] **STR-02**: User sees a pool-size · bits line (e.g. "85 chars · 128 bits"; for passphrases, wordlist size × words)
-- [ ] **STR-03**: User sees an estimated time to crack with its guess-rate assumption stated visibly
-- [ ] **STR-04**: User can switch the crack-time estimate between a fast-hash (10^10 guesses/s) and a slow-hash (bcrypt-style) scenario
+- [x] **STR-01**: User sees a strength meter with entropy bits and a label (Weak <40 / Fair 40–74 / Strong 75–99 / Very strong ≥100), computed from settings so it is stable across Regenerate
+- [x] **STR-02**: User sees a pool-size · bits line (e.g. "85 chars · 128 bits"; for passphrases, wordlist size × words)
+- [x] **STR-03**: User sees an estimated time to crack with its guess-rate assumption stated visibly
+- [x] **STR-04**: User can switch the crack-time estimate between a fast-hash (10^10 guesses/s) and a slow-hash (bcrypt-style) scenario
 
 ### Output, state & keyboard (POUT)
 
@@ -114,10 +114,10 @@
 | PHR-02 | Phase 14 | Pending |
 | PHR-03 | Phase 14 | Complete |
 | PHR-04 | Phase 14 | Pending |
-| STR-01 | Phase 14 | Pending |
-| STR-02 | Phase 14 | Pending |
-| STR-03 | Phase 14 | Pending |
-| STR-04 | Phase 14 | Pending |
+| STR-01 | Phase 14 | Complete |
+| STR-02 | Phase 14 | Complete |
+| STR-03 | Phase 14 | Complete |
+| STR-04 | Phase 14 | Complete |
 | POUT-01 | Phase 13 | Complete |
 | POUT-02 | Phase 13 | Complete |
 | POUT-03 | Phase 13 | Complete |
