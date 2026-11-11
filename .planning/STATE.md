@@ -5,16 +5,16 @@ milestone_name: Password Generator & Tool Page Polish
 current_phase: 14
 current_phase_name: Passphrase, Strength & Launch
 status: executing
-stopped_at: Completed 13-06-PLAN.md
-last_updated: "2026-11-11T23:24:47.700Z"
-last_activity: 2026-11-11
-last_activity_desc: Phase 13 execution started
-state_head: 5d1b82269746b706b1d8ffb4564040c928b737e6
+stopped_at: Completed 14-01-PLAN.md
+last_updated: "2026-11-11T23:29:40.100Z"
+last_activity: 2026-11-12
+last_activity_desc: Phase 14 execution started
+state_head: f9ab7f5211a5ca972b538a804c7565bc4d66a88e
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 26
-  completed_plans: 18
+  completed_plans: 19
   percent: 20
 ---
 
@@ -25,14 +25,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-11)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Phase 13 — Password Generator Page
+**Current focus:** Phase 14 — Passphrase, Strength & Launch
 
 ## Current Position
 
-Phase: 14 (Passphrase, Strength & Launch) — READY TO EXECUTE
-Plan: 6 of 6
+Phase: 14 (Passphrase, Strength & Launch) — EXECUTING
+Plan: 2 of 8
 Status: Ready to execute
-Last activity: 2026-11-11 — Phase 13 execution started
+Last activity: 2026-11-12 — Phase 14 execution started
 
 Progress: [██░░░░░░░░] 20%
 
@@ -125,6 +125,7 @@ Progress: [██░░░░░░░░] 20%
 | Phase 13 P04 | 5 min | 2 tasks | 6 files |
 | Phase 13 P05 | 12 min | 2 tasks | 4 files |
 | Phase 13 P06 | 2 min | 2 tasks | 3 files |
+| Phase 14 P01 | 5 min | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -161,6 +162,8 @@ Full decision log lives in PROJECT.md Key Decisions; v1.2 phase-level decisions 
 - [Phase 13]: 13-04: Accepted gaps: same-target double copy within 2s not re-announced; clipboard write resolving after Regenerate may briefly show Copied!
 - [Phase 13]: 13-05: Esc reuses commit(DEFAULT_OPTIONS) plus draft resets (no remount, focus kept); copy chord handler undefined unless exactly one result, with a local getSelection guard; lib/hooks unchanged
 - [Phase 13]: 13-06: skeleton pinned h-[980px] sm:h-[712px] from measured 977.9/708.4px; final pin and CLS gate deferred to Phase 14
+- [Phase 14]: 14-01: loaded EFF list is cached even when its load continuation is stale; only applying the result is token-gated
+- [Phase 14]: 14-01: Esc keeps the current mode; page-guards allow exactly @/lib/password/wordlist from the island
 
 ### Pending Todos
 
@@ -203,8 +206,8 @@ Per user instruction (2026-11-11): run phases 11–14 autonomously and batch all
 
 ## Session Continuity
 
-Last session: 2026-11-11T22:22:05.961Z
-Stopped at: Completed 13-06-PLAN.md
+Last session: 2026-11-11T23:29:39.959Z
+Stopped at: Completed 14-01-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
