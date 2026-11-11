@@ -27,6 +27,74 @@ function visibleText(html: string): string {
     .replace(/<[^>]+>/g, " ");
 }
 
+/**
+ * The decoded string payloads of every `self.__next_f.push([n, "..."])` call
+ * (the RSC flight data). A password generated on the server and passed to a
+ * client component as a prop would land here, inside a script, which
+ * `visibleText` blanks out (WR-03). Only the JSON-unescaped payload strings are
+ * returned, so class names and chunk paths in markup are not scanned.
+ */
+function flightPayloads(html: string): string[] {
+  const payloads: string[] = [];
+  for (const m of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/gi)) {
+    const body = m[1] ?? "";
+    for (const push of body.matchAll(
+      /self\.__next_f\.push\((\[[\s\S]*?\])\)\s*(?:;|$)/g,
+    )) {
+      try {
+        const parsed: unknown = JSON.parse(push[1]!);
+        if (Array.isArray(parsed)) {
+          for (const item of parsed) {
+            if (typeof item === "string") payloads.push(item);
+          }
+        }
+      } catch {
+        // Not a JSON push argument: nothing to decode.
+      }
+    }
+  }
+  return payloads;
+}
+
+/** The Next build id, which is a long mixed-class token that is not a leak. */
+function buildIds(html: string): string[] {
+  return [...html.matchAll(/\\?"b\\?":\\?"([^"\\]+)\\?"/g)].map((m) => m[1]!);
+}
+
+/**
+ * Build artifacts that sit in the flight data as whole string values and are
+ * long mixed-class tokens, so they would false-positive: the build id, asset
+ * paths (`.js`, `.css`, `.map`, `.woff2`) and CSS-module class names.
+ */
+function isBuildArtifact(value: string, ids: string[]): boolean {
+  return (
+    ids.includes(value) ||
+    /\.(?:js|css|map|woff2?)$/.test(value) ||
+    value.includes("-module__")
+  );
+}
+
+/**
+ * True when any quoted string value in the flight payloads holds an all-sets
+ * run, ignoring the build artifacts above. A password passed as a prop is a
+ * quoted value, so it is caught; the markup scan (`visibleText`) cannot see it.
+ */
+function flightHasAllSetsRun(html: string): boolean {
+  const ids = buildIds(html);
+  for (const payload of flightPayloads(html)) {
+    for (const quoted of payload.matchAll(/"((?:[^"\\]|\\.)*)"/g)) {
+      let value: string;
+      try {
+        value = JSON.parse(`"${quoted[1]}"`) as string;
+      } catch {
+        value = quoted[1]!;
+      }
+      if (!isBuildArtifact(value, ids) && hasAllSetsRun(value)) return true;
+    }
+  }
+  return false;
+}
+
 function hasAllSets(run: string): boolean {
   return (
     [...run].some((c) => UPPERCASE.includes(c)) &&
@@ -99,12 +167,24 @@ test.describe("Password page server HTML (PWD-01, E1-loading)", () => {
       );
 
       expect(hasAllSetsRun(visibleText(html))).toBe(false);
+      expect(flightHasAllSetsRun(html)).toBe(false);
     });
   }
 
   test("the leak detector has a positive and a negative control", () => {
     expect(hasAllSetsRun("Aa0!".repeat(5))).toBe(true);
     expect(hasAllSetsRun("Password Generator")).toBe(false);
+  });
+
+  test("the flight-payload scan sees a password hidden inside a script (WR-03)", () => {
+    const leaked = "Aa0!".repeat(5);
+    const withLeak = `<html><script>self.__next_f.push([1,"3:{\\"pw\\":\\"${leaked}\\"}"])</script></html>`;
+    // The visible-text scan blanks scripts, so only the payload scan can see it.
+    expect(hasAllSetsRun(visibleText(withLeak))).toBe(false);
+    expect(flightHasAllSetsRun(withLeak)).toBe(true);
+
+    const clean = `<html><script>self.__next_f.push([1,"0:{\\"b\\":\\"Ab3-Cd4_Ef5-Gh6_Ij7-Kl\\",\\"p\\":\\"\\"}"])</script></html>`;
+    expect(flightHasAllSetsRun(clean)).toBe(false);
   });
 });
 
