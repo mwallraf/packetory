@@ -52,7 +52,7 @@ Phase 10 (File Hashing & Release Hardening) was removed 2026-10-17 by user decis
 
 **Release gate:** CI runs typecheck/lint/test/build only. The Playwright job was removed 2026-10-17. A phase that touches pages is only complete after `npm run test:e2e` **and** `npm run test:e2e:prod` both pass locally.
 
-- [ ] **Phase 10: Shared About Section & Config Parity** - Every tool page shows the tool first, with a closed, muted "About this tool" area below it built from one shared component and one JSON-LD builder; Config gets its worked example, FAQ and own icon; Enter on a `<summary>` no longer fires tool shortcuts
+- [x] **Phase 10: Shared About Section & Config Parity** - Every tool page shows the tool first, with a closed, muted "About this tool" area below it built from one shared component and one JSON-LD builder; Config gets its worked example, FAQ and own icon; Enter on a `<summary>` no longer fires tool shortcuts (completed 2026-11-11)
 - [ ] **Phase 11: Subnet Calculator Compaction** - The full default Subnet result fits a 1366×650 laptop viewport without scrolling, with no fields, copy controls or mobile layout lost
 - [ ] **Phase 12: Password Core Library** - Framework-agnostic, fully tested `lib/password` (unbiased CSPRNG sampling, charsets, generator, passphrase + lazy EFF wordlist, entropy/crack time, URL options codec), no UI
 - [ ] **Phase 13: Password Generator Page** - `/tools/password` shows a fresh random password on load, with every password option, copy, batch, Regenerate, keyboard shortcuts and options-only bookmarkable URL
@@ -70,7 +70,7 @@ Phase 10 (File Hashing & Release Hardening) was removed 2026-10-17 by user decis
   3. With keyboard focus on a `<summary>`, pressing Enter toggles only that section and fires no global Enter action on any tool page (UUID does not regenerate, DNS does not re-run its lookup). A `useKeyboardShortcut` unit test and an e2e check prove this.
   4. `/tools/config` shows a worked example and a 4–6 item FAQ with matching FAQPage JSON-LD. The worked example is a highlighted Cisco IOS snippet that uses only RFC 5737 documentation addresses and no realistic secrets. Config shows its own `FileTerminal` icon on its landing card (nav links and tool-page headings stay text-only for every tool, per Phase 10 decision D-16), and a unit test fails if any registered tool icon lacks an explicit `ICONS` entry (no silent fallback to another tool's icon).
   5. The existing SEO e2e specs open the disclosures before asserting visibility, and a Config SEO spec exists. Typecheck, lint, unit tests, the build, `npm run test:e2e` and `npm run test:e2e:prod` all pass locally.
-**Plans**: 6/6 plans executed
+**Plans**: 6/6 plans complete
 
 Plans:
 **Wave 1**
@@ -176,7 +176,7 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 7. Production Domain Cutover | v1.1 | 1/1 | Complete | 2026-07-25 |
 | 8. Hash Core & Worker Runtime | v1.2 | 5/5 | Complete | 2026-10-15 |
 | 9. Hash Tool Page & Text Hashing | v1.2 | 9/9 | Complete | 2026-10-17 |
-| 10. Shared About Section & Config Parity | v1.3 | 6/6 | In Progress | - |
+| 10. Shared About Section & Config Parity | v1.3 | 6/6 | Complete    | 2026-11-11 |
 | 11. Subnet Calculator Compaction | v1.3 | 0/TBD | Not started | - |
 | 12. Password Core Library | v1.3 | 0/TBD | Not started | - |
 | 13. Password Generator Page | v1.3 | 0/TBD | Not started | - |
