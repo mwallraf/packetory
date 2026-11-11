@@ -2,6 +2,7 @@
 
 import { Check, Copy, RefreshCw, TriangleAlert } from "lucide-react";
 import type { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
+import { ColoredPassword } from "./ColoredPassword";
 import type { Generated } from "./PasswordTool";
 
 type CopyState = ReturnType<typeof useCopyToClipboard>;
@@ -74,7 +75,7 @@ function Hero({
         spellCheck={false}
         className="font-mono text-[20px] leading-[1.4] font-semibold break-all select-all text-foreground"
       >
-        {value}
+        <ColoredPassword value={value} />
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <button
