@@ -63,7 +63,7 @@
 
 - [x] **PREG-01**: The Password tool appears in nav, landing page, and sitemap with a `KeyRound` icon; all seven nav links fit at 640px width
 - [x] **PREG-02**: `/tools/password` has unique metadata, a worked example, and an FAQ in the shared About component; FAQ numbers derive from `lib/password` constants and privacy wording is human-approved
-- [ ] **PREG-03**: `/tools/password` and `/tools/subnet` score Lighthouse 90+ and the password page has no layout shift on load (pinned skeleton)
+- [x] **PREG-03**: `/tools/password` and `/tools/subnet` score Lighthouse 90+ and the password page has no layout shift on load (pinned skeleton)
 
 ## Future Requirements
 
@@ -125,7 +125,7 @@
 | POUT-05 | Phase 13 | Complete |
 | PREG-01 | Phase 14 | Complete |
 | PREG-02 | Phase 14 | Complete |
-| PREG-03 | Phase 14 | Pending |
+| PREG-03 | Phase 14 | Complete |
 
 **Coverage:**
 - v1.3 requirements: 35 total
