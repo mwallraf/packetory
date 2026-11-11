@@ -187,7 +187,30 @@ Plans:
      - an estimated time to crack, with its guess-rate assumption stated, switchable between a fast-hash (10^10 guesses/s) and a slow-hash (bcrypt-style) scenario
   4. The Password tool appears in the nav, the landing grid and the sitemap with a `KeyRound` icon, and all seven nav links fit at 640px. `/tools/password` has unique metadata and the shared About area with a worked example, the EFF CC BY attribution, and an FAQ whose numbers come from `lib/password` constants. The FAQ includes a note on the list's 4 hyphenated words and privacy wording the user has explicitly approved.
   5. Lighthouse scores 90+ in every category on both `/tools/password` and `/tools/subnet`, and the password page shows no layout shift on load (pinned skeleton). Every hard-coded tool count is updated from 6 to 7, and `npm run test:e2e` and `npm run test:e2e:prod` pass locally.
-**Plans**: TBD
+**Plans**: 8 plans
+
+Plans:
+**Wave 1**
+- [ ] 14-01-PLAN.md — Tracer: Mode toggle -> lazy EFF word list (one allowed deep import) -> 6-word passphrase and ?mode=passphrase; relaxed and re-armed guards; prod chunk proof (a)/(b) (PHR-01, PHR-03)
+- [ ] 14-02-PLAN.md — Final metadata (noindex removed), intro, ToolAbout with constants-only worked example, EFF attribution and 6-item FAQ; SEO and prod SSR specs; privacy wording queued for UAT (PREG-02, PHR-04)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 14-03-PLAN.md — Bookmark restore via one mount load, sequence-token race matrix, error panel with Retry (reload on ChunkLoadError), prod abort-then-Retry proof (PHR-01, PHR-03)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 14-04-PLAN.md — Strength panel: meter + label, pool line, crack time with stated assumption, Fast/Slow scenario; stable across Regenerate (STR-01..04)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 14-05-PLAN.md — Passphrase options (word count, separator, capitalize, append number, EFF credit), shared range rows (Fix 4/5), keyboard parity with Esc keeping the mode (PHR-02, PHR-01, PHR-04)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [ ] 14-06-PLAN.md — Mode-aware output names and announcements, repeat-copy re-announce, word-boundary wrapping; passphrase privacy sweep and 320px proofs (PHR-01; D-20)
+
+**Wave 6** *(blocked on Wave 5 completion)*
+- [ ] 14-07-PLAN.md — Register the tool (KeyRound, Password sorts last), px-2 nav padding, every tool count 6 -> 7, seven links fit at 640/700px (PREG-01)
+
+**Wave 7** *(blocked on Wave 6 completion)*
+- [ ] 14-08-PLAN.md — Final skeleton and loading-block pin, CLS gates (default, bookmark, toggle), sequential release gate, first-load JS and local Lighthouse advisory, human-check queue (PREG-03)
 **UI hint**: yes
 
 **Research flags**: Measure the final skeleton heights in both modes, at 320px and at desktop width. Confirm seven-link nav fit at 640px and 700px, falling back to `shortName` if needed. Hard-coded counts of 6 live in `tools/registry.test.ts`, `home.spec.ts`, `navigation.spec.ts` and the sitemap test. Do a manual password-manager and VoiceOver pass. Run Lighthouse on a Vercel preview deploy. The privacy/clipboard FAQ text needs explicit human approval: legal and privacy text is a human gate under PROJECT.md's automation model, and clipboard-history wording must be honest. Use a memoized loader with a sequence token so a slow wordlist load can't apply its result after the user has changed mode or options.
@@ -212,4 +235,4 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 11. Subnet Calculator Compaction | v1.3 | 1/1 | In Progress | - |
 | 12. Password Core Library | v1.3 | 5/5 | In Progress | - |
 | 13. Password Generator Page | v1.3 | 6/6 | In Progress | - |
-| 14. Passphrase, Strength & Launch | v1.3 | 0/TBD | Not started | - |
+| 14. Passphrase, Strength & Launch | v1.3 | 0/8 | Planned | - |
