@@ -4,17 +4,17 @@ milestone: v1.3
 milestone_name: Password Generator & Tool Page Polish
 current_phase: 12
 current_phase_name: Password Core Library
-status: executing
-stopped_at: Completed 12-04-PLAN.md
-last_updated: "2026-11-11T20:53:54.538Z"
+status: verifying
+stopped_at: Completed 12-05-PLAN.md
+last_updated: "2026-11-11T20:58:45.976Z"
 last_activity: 2026-11-11
 last_activity_desc: Phase 12 execution started
-state_head: a33c04cc5c7b94e809b084e5f4b2900f7d4aec38
+state_head: a28425e4dba2bc9332f87a8f2776d2d5e655a52d
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 12
-  completed_plans: 11
+  completed_plans: 12
   percent: 20
 ---
 
@@ -31,7 +31,7 @@ See: .planning/PROJECT.md (updated 2026-11-11)
 
 Phase: 12 (Password Core Library) — EXECUTING
 Plan: 5 of 5
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-11-11 — Phase 12 execution started
 
 Progress: [██░░░░░░░░] 20%
@@ -118,6 +118,7 @@ Progress: [██░░░░░░░░] 20%
 | Phase 12 P02 | 3 min | 3 tasks | 3 files |
 | Phase 12 P03 | 6 min | 3 tasks | 4 files |
 | Phase 12 P04 | 3 min | 3 tasks | 6 files |
+| Phase 12 P05 | 8min | 3 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -145,6 +146,7 @@ Full decision log lives in PROJECT.md Key Decisions; v1.2 phase-level decisions 
 - [Phase 12]: 12-02: random.ts unchanged; all SC-2 proofs (rejection boundaries, byte cap, fail-closed Web Crypto, import silence) pass against the 12-01 implementation; generateBatch clamps count via clampBatchCount
 - [Phase 12]: Plan 12-03: one-string pool (symbols-only, 1 symbol) has exactly 0 bits; entropy property asserts >= 0, never overstated
 - [Phase 12]: 12-04: loader memo stores and compares the same promise (RESEARCH Pattern 4 sketch never cleared); eff-large.ts pinned by joined and raw SHA-256; licence header wording is a human-check for milestone UAT
+- [Phase 12]: 12-05: parseOptions always hands URLSearchParams a string with exactly one leading '?' so '??x' keeps a '?x' key; serializeOptions returns '' for defaults with no leading '?'
 
 ### Pending Todos
 
@@ -185,8 +187,8 @@ Per user instruction (2026-11-11): run phases 11–14 autonomously and batch all
 
 ## Session Continuity
 
-Last session: 2026-11-11T20:53:54.480Z
-Stopped at: Completed 12-04-PLAN.md
+Last session: 2026-11-11T20:58:45.909Z
+Stopped at: Completed 12-05-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
