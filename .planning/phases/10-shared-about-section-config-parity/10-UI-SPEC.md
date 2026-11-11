@@ -1,7 +1,7 @@
 ---
 phase: "10"
 slug: shared-about-section-config-parity
-status: draft
+status: approved
 shadcn_initialized: true
 preset: b2fA
 created: "2026-11-11"
@@ -235,7 +235,7 @@ Layout of `/tools/config` page: keep `max-w-6xl` main and the existing intro `<p
 | ICONS map | `components/ToolCard.tsx`: add `FileTerminal` import and map entry; `Network` stays (Subnet uses it) |
 | Silent fallback | REMOVE `?? Fingerprint`. Unknown icon must fail loudly (throw in dev/test, or render nothing with a console error — planner decides; the unit test is the gate). Add a unit test iterating every `tools` registry entry and asserting `ICONS[tool.icon]` is defined. |
 | Landing card | Icon renders in existing slot: `size-5 shrink-0 text-muted-foreground`, `aria-hidden="true"` (unchanged) |
-| Nav / page surfaces | SCOUT FINDING: only `ToolCard` renders registry icons today. `SiteHeader`, `MobileNav` and tool-page `<h1>`s are text-only for ALL tools. Default contract: do NOT add icons to header, mobile nav, or h1 for any tool in this phase (keeps all tools consistent; avoids disturbing the seven-link nav fit at 640px that Phase 14 depends on). "Nav / page" in CFG-03 is satisfied by the registry-driven landing grid/card + the registry resolving the icon explicitly. FLAGGED FOR USER: if the literal reading of CFG-03 ("in nav ... and page") is wanted, the alternative is a `size-6 text-muted-foreground` icon before the h1 on every tool page and a `size-4` icon in nav links — larger scope, touches all pages. Researcher recommends the default. |
+| Nav / page surfaces | DECIDED (user, 2026-11-11): Card + registry only. Only `ToolCard` renders registry icons today; `SiteHeader`, `MobileNav` and tool-page `<h1>`s stay text-only for ALL tools in this phase. This protects the seven-link nav fit at 640px that Phase 14 depends on. CFG-03 / ROADMAP SC-4 wording ("in the nav ... and on its page") is satisfied by the registry-driven landing card plus the explicit `ICONS` entry; the planner should amend the success-criterion wording to match. Nav/h1 icons are out of scope. |
 
 ---
 
@@ -277,18 +277,39 @@ Accuracy requirements for the planner/executor: verify claim 3 and 4 against `li
 
 ## UI Considerations
 
-Applicable state considerations resolved: 6 covered, 2 backstop, 0 unresolved
+Probe: `ui-consideration-probe` over 6 elements (E1 About section, E2 Worked-example disclosure, E3 FAQ disclosure, E4 Config code pane, E5 FAQPage JSON-LD, E6 Config icon on card). 29 applicable, 0 unclassified. Resolved 2026-11-11 (user accepted proposal): 9 explicit, 7 backstop, 13 dismissed, 0 unresolved. Empty/error COPY lives in the Copywriting Contract; this section covers state coverage only.
 
-| Category | Element(s) | Status | Resolution / Reason |
-|----------|------------|--------|---------------------|
-| empty | About area, FAQ list | ✅ covered | Every tool has a non-empty `faqItems` (>= 4) and a worked example; the area is never rendered empty. `ToolAbout` receives `faqItems` as a required prop. |
-| loading | About area | ✅ covered | Server-rendered static HTML; no loading state. It appears with the first paint, outside the `ssr:false` tool loader, so it never waits on tool JS. |
-| error | Config example render | ✅ covered | Build-time server render of `highlightConfig`; a failure fails the build and cannot reach users. Copy for runtime errors: none needed. |
-| zero-one-many | FAQ summary count | ✅ covered | `FAQ (N questions)` derives N from `faqItems.length`; never hard-coded; all tools have >= 4 items so no singular form is required. |
-| populated (collapsed/expanded) | Both `<details>` | ✅ covered | Closed on load (no `open` attribute in server HTML); open state shows full content; chevron rotates 90deg on `[open]`. |
-| partial (JS disabled / no-JS) | Disclosures | ✅ covered | Native `<details>` works with no JS; content is in server HTML; exactly one FAQPage JSON-LD script. |
-| long-text | Q/A, mono strings, Config code pane | 🧪 backstop | 320px visual check: no horizontal page overflow; mono values `break-all`; code pane scrolls internally. Verify with a 320px/375px e2e or manual screenshot. |
-| overflow | `<summary>` row at 320px | 🧪 backstop | Label wraps rather than truncating; focus ring not clipped; verify visually in light and dark. |
+| ID | Element | Category | Status | Verification | Resolution / Reason |
+|----|---------|----------|--------|--------------|---------------------|
+| E3-empty | FAQ disclosure | empty | resolved | explicit | `ToolAbout` takes `faqItems` as a required prop and every tool ships >= 4 items; a test asserts each tool's `faqItems.length >= 4` (Config 4–6). The area is never rendered empty. |
+| E5-empty | FAQPage JSON-LD | empty | resolved | explicit | Exactly one FAQPage script per tool page, with `mainEntity.length === faqItems.length` (>= 4); never emitted empty. |
+| E6-empty | Config icon | empty | resolved | explicit | Unit test: every registry `tool.icon` has an explicit `ICONS` entry; the `?? Fingerprint` fallback is removed. |
+| E3-populated | FAQ disclosure | populated | resolved | explicit | Closed on load (no `open` attribute in server HTML); when opened, all Q/A items show as two `<p>` each; the chevron rotates 90deg. |
+| E5-populated | FAQPage JSON-LD | populated | resolved | explicit | JSON-LD questions/answers match the visible FAQ item for item (SEO e2e). |
+| E6-populated | Config icon | populated | resolved | explicit | The Config landing card renders `FileTerminal` (`size-5 text-muted-foreground`, `aria-hidden`). |
+| E3-zero-one-many | FAQ summary count | zero-one-many | resolved | explicit | Label `FAQ ({faqItems.length} questions)`, never hard-coded; no singular form needed (>= 4 always). |
+| E5-zero-one-many | FAQPage JSON-LD | zero-one-many | resolved | explicit | One script per page regardless of item count (asserted `count === 1`). |
+| E6-zero-one-many | Landing card grid | zero-one-many | resolved | explicit | All registered tools (6) render a card with their own distinct icon. |
+| E2-loading | Worked-example disclosure | loading | dismissed | — | Static server-rendered HTML, outside the `ssr:false` tool loader; nothing loads. |
+| E3-loading | FAQ disclosure | loading | dismissed | — | Static server-rendered HTML; no loading state. |
+| E5-loading | FAQPage JSON-LD | loading | dismissed | — | Emitted in server HTML at build time. |
+| E6-loading | Config icon | loading | dismissed | — | Inline SVG from lucide, bundled; no async load. |
+| E2-error | Worked-example disclosure | error | dismissed | — | No runtime fetch or submit; Config example highlighting runs at build time and a failure fails the build. |
+| E3-error | FAQ disclosure | error | dismissed | — | Static data module; no runtime failure path. |
+| E5-error | FAQPage JSON-LD | error | dismissed | — | Built from the same static `faqItems`; a build/type error cannot reach users. |
+| E6-error | Config icon | error | dismissed | — | A missing icon is caught by the ICONS unit test, not at runtime. |
+| E3-partial | FAQ disclosure | partial | dismissed | — | `FaqItem` requires both `question` and `answer` (typed); no partial rows possible. |
+| E5-partial | FAQPage JSON-LD | partial | dismissed | — | Same typed source as the visible FAQ; no partial entries. |
+| E6-partial | Config icon | partial | dismissed | — | Single icon value per tool; no partial state. |
+| E5-overflow | FAQPage JSON-LD | overflow | dismissed | — | Non-visual `<script>`; no layout. |
+| E6-overflow | Config icon | overflow | dismissed | — | Fixed `size-5` icon in an existing card slot; card layout unchanged. |
+| E1-overflow | About section | overflow | resolved | backstop | `{ statement: "At 320px the About area causes no horizontal page overflow in light or dark mode", verification: backstop }` |
+| E1-long-text | About section | long-text | resolved | backstop | `{ statement: "Long FAQ answers and mono worked-example values wrap (break-all for mono) and are never truncated at 320px", verification: backstop }` |
+| E2-long-text | Worked-example summary | long-text | resolved | backstop | `{ statement: "Summary labels wrap rather than truncate at 320px; the chevron stays aligned with the first line", verification: backstop }` |
+| E3-overflow | FAQ disclosure | overflow | resolved | backstop | `{ statement: "The focus-visible ring on each <summary> is fully visible, not clipped (no overflow-hidden on details or its parent)", verification: backstop }` |
+| E3-long-text | FAQ items | long-text | resolved | backstop | `{ statement: "The longest FAQ question/answer reflows within max-w-3xl with no overflow at 320px", verification: backstop }` |
+| E4-overflow | Config code pane | overflow | resolved | backstop | `{ statement: "The Config example code pane scrolls horizontally inside its own container at 320px; the page itself does not scroll horizontally", verification: backstop }` |
+| E4-long-text | Config code pane | long-text | resolved | backstop | `{ statement: "Long config lines are not wrapped or truncated (w-max pre); they are reachable by horizontal scroll, and the pane is keyboard-focusable (tabIndex=0)", verification: backstop }` |
 
 ---
 
@@ -305,12 +326,12 @@ No new shadcn components are installed in this phase; no registry vetting requir
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
-- [ ] Dimension 7 Inventory Provenance: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
+- [x] Dimension 7 Inventory Provenance: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-11-11 (gsd-ui-checker, after 1 revision: Spacing mt-3 changed to mt-4)
