@@ -28,17 +28,19 @@ const SubnetTool = dynamic(
 );
 
 /**
- * Fixed-height placeholder matching the real result panel's approximate
- * height (CIDR input + family badge + hero row + one row of the field
- * grid), so there is no layout shift between this skeleton and the real
- * value painting in (SHELL-06 equivalent).
+ * Fixed-height placeholder matching the settled default island (/24 result),
+ * so there is no layout shift between this skeleton and the real value
+ * painting in (SHELL-06 equivalent). The heights are pinned per breakpoint
+ * to the measured default island: base at 375px, sm at 768px, lg at 1366px.
+ * subnet-layout.spec.ts fails when a pin drifts more than 4px; re-measure
+ * after any layout or typography change in SubnetTool.
  */
 function SubnetToolSkeleton() {
   return (
     <div
       aria-hidden="true"
       data-testid="subnet-tool-skeleton"
-      className="h-[420px] animate-pulse rounded-md border border-border bg-secondary"
+      className="h-[844px] sm:h-[542px] lg:h-[317px] animate-pulse rounded-md border border-border bg-secondary"
     />
   );
 }

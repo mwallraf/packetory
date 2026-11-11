@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
 /**
@@ -425,4 +427,51 @@ test.describe("Subnet narrow widths (SUBNET-10)", () => {
       });
     }
   }
+});
+
+/**
+ * Pinned skeleton heights live in SubnetToolLoader.tsx as
+ * `h-[Apx] sm:h-[Bpx] lg:h-[Cpx]`. Reading them from the source (rather than
+ * duplicating constants here) means a stale pin fails the gate.
+ */
+function readPinnedHeights(): { base: number; sm: number; lg: number } | null {
+  const source = readFileSync(
+    path.join(process.cwd(), "app/tools/subnet/SubnetToolLoader.tsx"),
+    "utf8",
+  );
+  const match = source.match(/h-\[(\d+)px\] sm:h-\[(\d+)px\] lg:h-\[(\d+)px\]/);
+  if (!match) return null;
+  return { base: Number(match[1]), sm: Number(match[2]), lg: Number(match[3]) };
+}
+
+test.describe("Subnet skeleton pin (no CLS)", () => {
+  test("skeleton pins match the settled default island at 375, 768 and 1366px wide", async ({
+    page,
+  }) => {
+    const measured: Record<string, number> = {};
+    for (const [width, height] of [
+      [375, 800],
+      [768, 800],
+      [1366, 650],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      await gotoSettled(page);
+      const box = await page.getByTestId("subnet-tool").boundingBox();
+      if (!box) throw new Error("subnet-tool has no bounding box");
+      measured[String(width)] = Math.round(box.height);
+    }
+    const pins = readPinnedHeights();
+    expect(pins, "measured island heights " + JSON.stringify(measured)).not.toBeNull();
+    if (!pins) return;
+    for (const [width, pin] of [
+      [375, pins.base],
+      [768, pins.sm],
+      [1366, pins.lg],
+    ] as const) {
+      expect(
+        Math.abs(measured[String(width)] - pin),
+        `island ${measured[String(width)]}px vs skeleton pin ${pin}px at ${width}px wide`,
+      ).toBeLessThanOrEqual(4);
+    }
+  });
 });
