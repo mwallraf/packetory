@@ -40,9 +40,9 @@
 ### Passphrase mode (PHR)
 
 - [x] **PHR-01**: User can switch Password / Passphrase via a toggle; Passphrase defaults to 6 words from the EFF Large Wordlist joined by `-`
-- [ ] **PHR-02**: User can set word count 3–20, separator (`-` `_` `.` space), capitalize words, and append a random number
+- [x] **PHR-02**: User can set word count 3–20, separator (`-` `_` `.` space), capitalize words, and append a random number
 - [x] **PHR-03**: The wordlist is loaded lazily (not in initial page JS) on first Passphrase use; a load failure shows an error with Retry and never falls back to another list
-- [ ] **PHR-04**: The EFF list (unmodified, 7,776 words) is attributed (CC BY) in the About area, and the FAQ mentions its 4 hyphenated words
+- [x] **PHR-04**: The EFF list (unmodified, 7,776 words) is attributed (CC BY) in the About area, and the FAQ mentions its 4 hyphenated words
 
 ### Strength (STR)
 
@@ -111,9 +111,9 @@
 | PWD-07 | Phase 13 | Complete |
 | PWD-08 | Phase 13 | Complete |
 | PHR-01 | Phase 14 | Complete |
-| PHR-02 | Phase 14 | Pending |
+| PHR-02 | Phase 14 | Complete |
 | PHR-03 | Phase 14 | Complete |
-| PHR-04 | Phase 14 | Pending |
+| PHR-04 | Phase 14 | Complete |
 | STR-01 | Phase 14 | Complete |
 | STR-02 | Phase 14 | Complete |
 | STR-03 | Phase 14 | Complete |
