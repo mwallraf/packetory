@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openAbout } from "./helpers/about";
 
 test.describe("Hash Generator FAQ content (INTG-02)", () => {
   test("FAQ is present and the FAQPage JSON-LD matches it exactly", async ({
@@ -118,6 +119,7 @@ test.describe("Hash Generator worked example (INTG-02)", () => {
   test("worked example does not overflow at 320px", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 800 });
     await page.goto("/tools/hash");
+    await openAbout(page, "hash", ["worked-example"]);
 
     const example = page.getByTestId("hash-worked-example");
     await expect(example).toBeVisible();

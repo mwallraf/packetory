@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SITE_URL } from "@/app/sitemap";
+import { ToolAbout } from "@/components/ToolAbout";
 import { HashToolLoader } from "./HashToolLoader";
 import { SAMPLE_DIGEST_HEX, SAMPLE_TEXT } from "@/lib/hash/sample";
 import { ECHO_HELLO_WORLD_SHA256, faqItems } from "./faq-data";
@@ -23,37 +24,16 @@ export const metadata: Metadata = {
 };
 
 /**
- * FAQPage JSON-LD (INTG-02), built from the SAME `faqItems` array rendered
- * below so structured data and on-screen content cannot drift. The `<` ->
- * `\u003c` escape mitigates the XSS vector documented in the official
- * Next.js JSON-LD guide (mirrors `app/tools/mac/page.tsx`); the source data
- * is a static, author-controlled build-time constant.
- */
-const faqJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: faqItems.map((item) => ({
-    "@type": "Question",
-    name: item.question,
-    acceptedAnswer: { "@type": "Answer", text: item.answer },
-  })),
-};
-
-/**
  * /tools/hash - Server Component shell. Renders the page chrome and the one
  * dynamic subtree (`HashToolLoader`, which never server-renders). This
  * component takes no props and reads no request-time query-string API, so the
  * route stays statically prerendered.
+ * The About area (worked example, FAQ and the FAQPage JSON-LD) comes from
+ * the shared `ToolAbout` (Phase 10, INFO-01/INFO-05).
  */
 export default function HashPage() {
   return (
     <div className="flex flex-1 flex-col bg-background">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c"),
-        }}
-      />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6 lg:px-8">
         <h1 className="text-[32px] leading-[1.2] font-semibold text-foreground">
           Hash Generator
@@ -62,11 +42,8 @@ export default function HashPage() {
           <HashToolLoader />
         </div>
 
-        <section className="mt-12" data-testid="hash-worked-example">
-          <h2 className="text-[20px] leading-[1.2] font-semibold text-foreground">
-            Worked example
-          </h2>
-          <div className="mt-4 space-y-4">
+        <ToolAbout slug="hash" faqItems={faqItems}>
+          <div className="space-y-4">
             <p className="text-[14px] leading-[1.4] font-semibold text-foreground">
               {SAMPLE_TEXT} hashed with SHA-256
             </p>
@@ -95,25 +72,7 @@ export default function HashPage() {
               </p>
             </div>
           </div>
-        </section>
-
-        <section className="mt-12">
-          <h2 className="text-[20px] leading-[1.2] font-semibold text-foreground">
-            FAQ
-          </h2>
-          <div className="mt-4 space-y-6">
-            {faqItems.map((item) => (
-              <div key={item.question} data-testid="hash-faq-item">
-                <p className="text-[14px] leading-[1.4] font-semibold text-foreground">
-                  {item.question}
-                </p>
-                <p className="mt-1 text-[16px] leading-[1.5] font-normal text-muted-foreground">
-                  {item.answer}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
+        </ToolAbout>
       </main>
     </div>
   );
