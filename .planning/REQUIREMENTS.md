@@ -29,11 +29,11 @@
 ### Password generator — random password (PWD)
 
 - [ ] **PWD-01**: Opening `/tools/password` immediately shows a fresh random 20-character password using all four character sets, generated client-side only (never present in the static HTML; different on every load)
-- [ ] **PWD-02**: User can set length 4–128 via slider and number input
-- [ ] **PWD-03**: User can toggle uppercase, lowercase, digits, and symbols; the last enabled set cannot be turned off
+- [x] **PWD-02**: User can set length 4–128 via slider and number input
+- [x] **PWD-03**: User can toggle uppercase, lowercase, digits, and symbols; the last enabled set cannot be turned off
 - [x] **PWD-04**: Every generated password contains at least one character from each enabled set, without biasing the distribution (whole-password rejection resampling)
-- [ ] **PWD-05**: User can edit the symbol set (deduplicated, printable ASCII only; emptying it restores the default `!@#$%^&*()-_=+[]{};:,.?`)
-- [ ] **PWD-06**: User can enable "avoid look-alikes", which removes `0 O o 1 l I |` from the pool
+- [x] **PWD-05**: User can edit the symbol set (deduplicated, printable ASCII only; emptying it restores the default `!@#$%^&*()-_=+[]{};:,.?`)
+- [x] **PWD-06**: User can enable "avoid look-alikes", which removes `0 O o 1 l I |` from the pool
 - [ ] **PWD-07**: All randomness comes from `crypto.getRandomValues` with unbiased rejection sampling; if Web Crypto is unavailable the tool shows an error instead of falling back to a weaker source
 - [x] **PWD-08**: Digits and symbols in the output are color-coded distinctly from letters; copied text is plain
 
@@ -103,11 +103,11 @@
 | SUBNET-09 | Phase 11 | Complete |
 | SUBNET-10 | Phase 11 | Complete |
 | PWD-01 | Phase 13 | Pending |
-| PWD-02 | Phase 13 | Pending |
-| PWD-03 | Phase 13 | Pending |
+| PWD-02 | Phase 13 | Complete |
+| PWD-03 | Phase 13 | Complete |
 | PWD-04 | Phase 12 | Complete |
-| PWD-05 | Phase 13 | Pending |
-| PWD-06 | Phase 13 | Pending |
+| PWD-05 | Phase 13 | Complete |
+| PWD-06 | Phase 13 | Complete |
 | PWD-07 | Phase 13 | Pending |
 | PWD-08 | Phase 13 | Complete |
 | PHR-01 | Phase 14 | Pending |
