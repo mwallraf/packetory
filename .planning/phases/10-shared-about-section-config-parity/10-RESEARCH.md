@@ -553,20 +553,30 @@ Use the four UI-SPEC FAQ questions, with answers corrected to shipped behavior (
 | A4 | Find-in-page behavior into closed `<details>` varies by browser; copy must not promise it (milestone-locked) | Anti-patterns | Low; nothing in copy should mention it |
 | A5 | After the change, CLS on the six pages will not regress versus the baseline numbers in Pitfall 7 | Pitfall 7 | Hidden Lighthouse regression surfacing in Phase 14; re-measure to confirm |
 
-## Open Questions
+**Assumption resolutions (2026-11-11, during /gsd-plan-phase; see 10-CONTEXT.md "Planning-time decisions"):**
+- A1 → **D-15** (user-approved): the Config privacy answer uses only the shipped "never uploaded or saved" claim; the Hash forbidden-phrase list does not apply. Implemented and test-pinned by 10-03 Task 2.
+- A2 → **D-17** (user-approved; amends D-12 and D-13 item 2): rich copy "should keep" colors and monospace formatting; the firm "keeps" claim does not ship. Implemented by 10-03 Task 1 (example sentence) and Task 2 (FAQ answer 2).
+- A3 → stays a manual Safari/VoiceOver check (10-06 Task 3 human-check; 10-VALIDATION.md Manual-Only table).
+- A4 → milestone lock, no new decision needed: no copy mentions find-in-page (10-03 Task 2 negative regex).
+- A5 → **D-18** (user-approved): the CLAUDE.md "no avoidable CLS" gate is deferred to Phase 14; Phase 10 re-measures CLS after the change and reports it against the Pitfall 7 baseline without gating on it (10-06 Task 3 human-check).
+
+## Open Questions (RESOLVED)
 
 1. **CFG-03 / ROADMAP SC-4 wording vs. UI-SPEC decision**
    - What we know: REQUIREMENTS.md CFG-03 and ROADMAP SC-4 say the icon appears "in nav, landing card and page". UI-SPEC records a user decision (2026-11-11): only the landing card (registry-driven) shows icons; `SiteHeader`, `MobileNav` and tool `<h1>`s stay text-only for all tools, to protect the seven-link nav fit at 640px for Phase 14. Verified: only `ToolCard` renders `tool.icon`.
    - What's unclear: the requirement text still reads as three surfaces.
    - Recommendation: include a small docs task in the plan that amends CFG-03 and SC-4 to "registry-driven landing card plus explicit `ICONS` entry; nav/h1 icons out of scope", so verification does not fail against stale wording.
+   - **RESOLVED:** D-16 (user-approved 2026-11-11, recorded in 10-CONTEXT.md) — icons appear only on landing cards; the no-silent-fallback rule stays. 10-02 Task 3 amends the CFG-03 and SC-4 wording; 10-02 Task 2 adds the explicit-`ICONS` registry test.
 
 2. **Should Config ship 4 FAQ items or up to 6?**
    - What we know: D-13 gives four topics; Claude may add up to two.
    - Recommendation: ship exactly 4 (meets 4–6, smallest unverified-claim surface). Tests should assert `4 <= n <= 6`, not `=== 4`.
+   - **RESOLVED:** ship exactly 4 items in D-13 order (Claude's discretion per CONTEXT.md). 10-03 Task 2 writes them and `app/tools/config/faq-data.test.ts` asserts `4 <= n <= 6`; 10-05 Task 2 (`app/tools/pages-about.test.ts` case d) re-asserts at least 4 (at most 6 for Config) across all tools.
 
 3. **RFC 5737 test and the default route**
    - What we know: the D-09 sample contains `0.0.0.0` (default route), netmask `255.255.255.252` and wildcard `0.0.0.255`, which are not RFC 5737 addresses; UI-SPEC accepts `0.0.0.0` explicitly.
    - Recommendation: the unit test extracts every IPv4 literal from `SAMPLE_CONFIG`, requires each to be inside 192.0.2.0/24, 198.51.100.0/24 or 203.0.113.0/24, EXCEPT an explicit allow-list for masks/wildcards/unspecified (`0.0.0.0`, anything starting `255.`, `0.0.0.255`). Document the allow-list in the test so the intent is visible.
+   - **RESOLVED:** per D-09, 10-03 Task 2 uses an exact-literal allow-list (`0.0.0.0`, `255.255.255.252`, `0.0.0.255`; narrower than "anything starting `255.`", because those are the only non-documentation literals in the D-09 baseline), documented in a comment in `app/tools/config/faq-data.test.ts`. Every other IPv4 literal must start with 192.0.2., 198.51.100. or 203.0.113.
 
 ## Environment Availability
 

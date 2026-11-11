@@ -56,6 +56,12 @@ Requirements: INFO-01..05, CFG-01..03. Success criteria are in `.planning/ROADMA
   4. Monochrome/printing: what the monochrome option is for (print, grayscale docs, accessibility).
 - **D-14:** Keep Config's intro paragraph under the h1 and the page's `max-w-6xl` width (the editor/preview needs it). Constrain only the About area to `max-w-3xl` so its line length matches the other tools.
 
+### Planning-time decisions (user-approved during /gsd-plan-phase, 2026-11-11)
+- **D-15:** Config privacy wording uses ONLY the shipped claim "never uploaded or saved". The UI-SPEC draft's stronger wording ("never uploaded, stored or sent... gone when you close or reload") is not used. Hash's forbidden-phrase list does not apply to Config.
+- **D-16:** Icons appear only on landing cards. CFG-03 and ROADMAP Phase 10 SC-4 are amended to say Config's `FileTerminal` icon shows on its landing card. The rule that every registered icon resolves explicitly, with no silent fallback, stays.
+- **D-17 (amends D-12 and D-13 item 2):** The rich-copy claim is softened: rich copy *should keep* colors and monospace formatting when pasted into email/docs. Nobody has checked this in Outlook, Word or Google Docs, so the firm "keeps" claim does not ship.
+- **D-18:** The CLAUDE.md "no avoidable CLS" constraint is deferred to Phase 14, which owns the Lighthouse/CLS gate. The baseline already has non-zero CLS (up to 0.183 at 375px on UUID, Subnet, DNS and MAC) before Phase 10. Phase 10 re-measures CLS after the change and reports it; it does not gate on it.
+
 ### Claude's Discretion
 - Exact FAQ answer wording for Config, accurate to the shipped `ConfigTool`/`lib/config` behavior. Claude may add at most 2 more items (to a 6 maximum) if a clearly useful topic appears while writing.
 - How per-tool worked-example markup is shared: a children/slot in `ToolAbout` vs a data-driven `ExampleFields` helper. Existing worked-example bodies should be preserved, not redesigned.
