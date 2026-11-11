@@ -140,11 +140,16 @@ test.describe("Subnet layout: full output without scrolling at laptop sizes (SUB
         );
       }
 
-      // Informational only (SUBNET-09 names 1366x650): log the 1280x600 result.
+      // Also gate the smaller laptop viewport, matching the IPv4 default gate.
       await page.setViewportSize({ width: 1280, height: 600 });
       await gotoSettled(page, sample);
       const small = await measureLayout(page);
       console.log(`[subnet-layout] ${sample} ${JSON.stringify(small)}`);
+      expect(small.scrollY).toBe(0);
+      expect(small.cardBottoms).toHaveLength(7);
+      expect(small.toolBottom, JSON.stringify(small)).toBeLessThanOrEqual(
+        small.innerHeight,
+      );
     });
   }
 });
