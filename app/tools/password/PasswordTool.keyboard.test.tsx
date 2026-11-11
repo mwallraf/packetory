@@ -9,8 +9,36 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { BATCH_MAX, BATCH_MIN, DEFAULT_SYMBOLS } from "@/lib/password";
+import { loadWordlist } from "@/lib/password/wordlist";
 import { PasswordTool } from "./PasswordTool";
 import { cycleFill } from "./password-test-utils";
+
+vi.mock("@/lib/password/wordlist", () => ({ loadWordlist: vi.fn() }));
+vi.mock("./reload", () => ({ reloadPage: vi.fn() }));
+
+const loader = vi.mocked(loadWordlist);
+
+/** Exactly 7,776 distinct, letters-only lowercase words. */
+function fixtureList(): string[] {
+  const letters = "abcdefghijklmnopqrstuvwxyz";
+  const words: string[] = [];
+  for (let i = 0; i < 7776; i++) {
+    let n = i;
+    let w = "";
+    do {
+      w = letters[n % 26]! + w;
+      n = Math.floor(n / 26);
+    } while (n > 0);
+    words.push(`x${w}`);
+  }
+  return words;
+}
+
+async function flush() {
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 10));
+  });
+}
 
 const SHORTCUT_TEXT =
   "Keyboard: / length · Enter regenerate · Esc reset options · Ctrl/Cmd+C copy (single password)";
@@ -50,6 +78,8 @@ function useCycleFill() {
 }
 
 beforeEach(() => {
+  loader.mockReset();
+  loader.mockResolvedValue(fixtureList());
   grv = vi.spyOn(globalThis.crypto, "getRandomValues");
   writeText = vi.fn().mockResolvedValue(undefined);
   Object.defineProperty(navigator, "clipboard", {
@@ -297,6 +327,102 @@ describe("Shortcut hint (D-14)", () => {
     mount();
     const hint = screen.getByTestId("password-shortcuts");
     expect(hint.textContent).toBe(SHORTCUT_TEXT);
+    expect(hint.querySelectorAll("kbd")).toHaveLength(5);
+  });
+});
+
+describe("Passphrase mode keyboard parity (PHR-01, D-02)", () => {
+  async function mountPassphrase(search = "?mode=passphrase") {
+    mount(search);
+    await flush();
+    await flush();
+  }
+
+  it("/ focuses and selects Word count", async () => {
+    await mountPassphrase("?mode=passphrase&words=12");
+    key({ key: "/" });
+    expect(document.activeElement).toBe(input("password-words"));
+    expect(input("password-words").selectionStart).toBe(0);
+    expect(input("password-words").selectionEnd).toBe(2);
+  });
+
+  it("Enter regenerates a passphrase and announces it", async () => {
+    await mountPassphrase();
+    const before = output();
+    key({ key: "Enter" });
+    await waitFor(() => expect(status()).toBe("New passphrase generated"));
+    expect(output().split("-")).toHaveLength(6);
+    expect(output()).not.toBe(before);
+  });
+
+  it("Ctrl+C copies the single passphrase", async () => {
+    await mountPassphrase();
+    key({ key: "c", ctrlKey: true });
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    expect(writeText).toHaveBeenCalledWith(output());
+  });
+
+  it("Esc resets the options but keeps Passphrase mode, focus and the URL mode", async () => {
+    await mountPassphrase();
+    fireEvent.change(input("password-words"), { target: { value: "10" } });
+    fireEvent.click(screen.getByTestId("password-separator-dot"));
+    expect(output().split(".")).toHaveLength(10);
+
+    const words = input("password-words");
+    words.focus();
+    key({ key: "Escape" }, words);
+    await flush();
+
+    expect(output().split("-")).toHaveLength(6);
+    expect(input("password-words").value).toBe("6");
+    expect(window.location.search).toBe("?mode=passphrase");
+    expect(
+      screen.getByTestId("password-mode-passphrase").getAttribute("aria-checked"),
+    ).toBe("true");
+    expect(document.activeElement).toBe(input("password-words"));
+    await waitFor(() =>
+      expect(status()).toBe("Options reset. New passphrase generated"),
+    );
+  });
+
+  it("Esc while the list is still loading keeps the load and announces no reset phrase", async () => {
+    let resolve!: (list: readonly string[]) => void;
+    loader.mockReset();
+    loader.mockImplementation(
+      () =>
+        new Promise<readonly string[]>((res) => {
+          resolve = res;
+        }),
+    );
+    mount("?mode=passphrase&words=10&sep=dot");
+    await flush();
+    expect(screen.getByTestId("password-wordlist-loading")).toBeTruthy();
+
+    key({ key: "Escape" });
+    await flush();
+    expect(status()).not.toBe("Options reset. New passphrase generated");
+    expect(screen.getByTestId("password-wordlist-loading")).toBeTruthy();
+
+    await act(async () => {
+      resolve(fixtureList());
+    });
+    await flush();
+    expect(output().split("-")).toHaveLength(6);
+    expect(status()).not.toBe("Options reset. New passphrase generated");
+  });
+
+  it("Esc in Password mode still gives a bare URL", () => {
+    mount("?len=40");
+    key({ key: "Escape" });
+    expect(window.location.search).toBe("");
+  });
+
+  it("renders the Passphrase shortcut line with five kbd elements", async () => {
+    await mountPassphrase();
+    const hint = screen.getByTestId("password-shortcuts");
+    expect(hint.textContent).toBe(
+      "Keyboard: / word count · Enter regenerate · Esc reset options · Ctrl/Cmd+C copy (single passphrase)",
+    );
     expect(hint.querySelectorAll("kbd")).toHaveLength(5);
   });
 });

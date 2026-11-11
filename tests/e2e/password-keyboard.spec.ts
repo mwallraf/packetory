@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { DEFAULT_SYMBOLS } from "../../lib/password";
+import { splitPassphrase } from "./helpers/passphrase";
 
 /** Counts every Web Crypto fill so a test can prove how many generations ran. */
 async function installCryptoCounter(page: Page) {
@@ -205,5 +206,80 @@ test.describe("Password keyboard shortcuts (POUT-04, D-14)", () => {
     );
     const clipboard = await page.evaluate(() => navigator.clipboard.readText());
     expect(clipboard).not.toBe(displayed);
+  });
+});
+
+test.describe("Passphrase mode keyboard (PHR-01, D-02)", () => {
+  test("/ focuses and selects Word count", async ({ page }) => {
+    await page.goto("/tools/password?mode=passphrase");
+    await expect(page.getByTestId("password-output")).toBeVisible();
+    await page.getByRole("heading", { level: 1 }).click();
+    await page.keyboard.press("/");
+
+    const words = page.getByTestId("password-words");
+    await expect(words).toBeFocused();
+    const selection = await words.evaluate((el: HTMLInputElement) => [
+      el.selectionStart,
+      el.selectionEnd,
+      el.value.length,
+    ]);
+    expect(selection).toEqual([0, selection[2], selection[2]]);
+    expect(selection[2]).toBeGreaterThan(0);
+  });
+
+  test("Enter regenerates the passphrase", async ({ page }) => {
+    await page.goto("/tools/password?mode=passphrase");
+    const output = page.getByTestId("password-output");
+    await expect(output).toBeVisible();
+    const first = (await output.textContent()) ?? "";
+    await page.getByRole("heading", { level: 1 }).click();
+    await page.keyboard.press("Enter");
+    await expect
+      .poll(async () => (await output.textContent()) ?? "")
+      .not.toBe(first);
+    await expect(page.getByTestId("password-status")).toHaveText(
+      "New passphrase generated",
+    );
+  });
+
+  test("Ctrl/Cmd+C copies the single passphrase", async ({ page, context }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.goto("/tools/password?mode=passphrase");
+    const output = page.getByTestId("password-output");
+    await expect(output).toBeVisible();
+    const displayed = (await output.textContent()) ?? "";
+
+    await page.getByRole("heading", { level: 1 }).click();
+    await page.keyboard.press("ControlOrMeta+c");
+
+    await expect(page.getByTestId("password-status")).toHaveText("Copied");
+    const clipboard = await page.evaluate(() => navigator.clipboard.readText());
+    expect(clipboard).toBe(displayed);
+  });
+
+  test("Esc restores 6 dash words, keeps Passphrase mode and focus", async ({
+    page,
+  }) => {
+    await page.goto("/tools/password?mode=passphrase&words=10&sep=dot&cap=1");
+    await expect(page.getByTestId("password-output")).toBeVisible();
+    const words = page.getByTestId("password-words");
+    await words.focus();
+    await page.keyboard.press("Escape");
+
+    await expect.poll(() => new URL(page.url()).search).toBe("?mode=passphrase");
+    await expect(words).toHaveValue("6");
+    await expect(words).toBeFocused();
+    const value = (
+      (await page.getByTestId("password-output").textContent()) ?? ""
+    ).trim();
+    expect(splitPassphrase(value, "-")).toHaveLength(6);
+    expect(value).toMatch(/^[a-z-]+$/);
+    await expect(page.getByTestId("password-mode-passphrase")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(page.getByTestId("password-status")).toHaveText(
+      "Options reset. New passphrase generated",
+    );
   });
 });

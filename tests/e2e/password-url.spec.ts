@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+import { parseOptions, serializeOptions } from "../../lib/password";
+import { splitPassphrase } from "./helpers/passphrase";
 
 const POOL_SYMBOLS = "!@#$%^&*()\\-_=+[\\]{};:,.?";
 
@@ -127,5 +129,53 @@ test.describe("Password URL state (POUT-03, D-13)", () => {
     }
     expect(JSON.stringify(state ?? null)).not.toContain(shown);
     await expectUrlClean(page, shown);
+  });
+});
+
+test.describe("Passphrase URL state (PHR-02, UI E3-partial)", () => {
+  test("a bookmark restores all four passphrase options", async ({ page }) => {
+    await page.goto("/tools/password?mode=passphrase&words=8&sep=dot&cap=1&num=1");
+    const out = page.getByTestId("password-output");
+    await expect(out).toBeVisible();
+    const value = ((await out.textContent()) ?? "").trim();
+    const tokens = splitPassphrase(value, ".");
+    expect(tokens).toHaveLength(8);
+    for (const t of tokens) expect(t).toMatch(/^[A-Z]/);
+    expect(value).toMatch(/[A-Za-z]\d$/);
+    await expect(page.getByTestId("password-words")).toHaveValue("8");
+    await expect(page.getByTestId("password-separator-dot")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(page.getByTestId("password-capitalize")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    await expect(page.getByTestId("password-append-number")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+    expect(new URL(page.url()).search).toBe(
+      "?mode=passphrase&words=8&sep=dot&cap=1&num=1",
+    );
+  });
+
+  test("hostile ?mode=passphrase&words=99&sep=evil loads canonical with no error", async ({
+    page,
+  }) => {
+    const hostile = "?mode=passphrase&words=99&sep=evil";
+    const canonical = `?${serializeOptions(parseOptions(hostile))}`;
+    await page.goto(`/tools/password${hostile}`);
+    await expect(page.getByTestId("password-output")).toBeVisible();
+    await expect(page.getByTestId("password-error")).toHaveCount(0);
+    await expect(page.getByTestId("password-wordlist-error")).toHaveCount(0);
+    await expect.poll(() => new URL(page.url()).search).toBe(canonical);
+    expect(canonical).toContain("mode=passphrase");
+
+    const opts = parseOptions(hostile);
+    const value = (
+      (await page.getByTestId("password-output").textContent()) ?? ""
+    ).trim();
+    expect(splitPassphrase(value, opts.separator)).toHaveLength(opts.words);
   });
 });
