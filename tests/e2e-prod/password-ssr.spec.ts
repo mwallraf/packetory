@@ -6,12 +6,19 @@ import {
   LOWERCASE,
   UPPERCASE,
 } from "../../lib/password";
+import { faqItems } from "../../app/tools/password/faq-data";
 
 /**
  * Phase 13 (PWD-01, E1-loading, E2-loading, E3-loading): the production
  * server HTML of /tools/password must hold only a text-free skeleton, never a
  * generated password, and the island must then generate one in the browser.
  */
+
+// An adjacent-word run from the vendored EFF list (D-18): it must never be in
+// the server HTML or any flight payload.
+const EFF_MARKER = "abacus abdomen abdominal";
+const DESCRIPTION =
+  "Generate strong random passwords and memorable EFF passphrases with a strength meter and crack-time estimate. Runs locally in your browser.";
 
 const POOL = UPPERCASE + LOWERCASE + DIGITS + DEFAULT_SYMBOLS;
 
@@ -64,13 +71,16 @@ function buildIds(html: string): string[] {
 /**
  * Build artifacts that sit in the flight data as whole string values and are
  * long mixed-class tokens, so they would false-positive: the build id, asset
- * paths (`.js`, `.css`, `.map`, `.woff2`) and CSS-module class names.
+ * paths (`.js`, `.css`, `.map`, `.woff2`), CSS-module class names and RSC
+ * element references such as `$14:props:children:0:props:iconNode` (the About
+ * area's chevron icons add these to the flight data, 14-02).
  */
 function isBuildArtifact(value: string, ids: string[]): boolean {
   return (
     ids.includes(value) ||
     /\.(?:js|css|map|woff2?)$/.test(value) ||
-    value.includes("-module__")
+    value.includes("-module__") ||
+    /^\$[0-9a-f]+(?::[A-Za-z]+|:\d+)+$/.test(value)
   );
 }
 
@@ -155,16 +165,24 @@ test.describe("Password page server HTML (PWD-01, E1-loading)", () => {
       expect(skeleton).not.toBeNull();
       expect(visibleText(skeleton![1]!).trim()).toBe("");
 
-      expect(html).toMatch(
-        /<meta name="robots" content="noindex, nofollow"\s*\/?>/,
-      );
-      expect(html).toContain("<title>Password Generator — Packetory</title>");
+      expect(html).not.toContain("noindex");
+      expect(html).not.toMatch(/<meta name="robots"/);
       expect(html).toContain(
-        'href="https://packetory.dev/tools/password"',
+        "<title>Password &amp; Passphrase Generator — Packetory</title>",
       );
-      expect(html).toContain(
-        'content="Generate strong random passwords in your browser, with length, character-set, symbol and batch options."',
-      );
+      expect(html).toContain('href="https://packetory.dev/tools/password"');
+      expect(html).toContain(`content="${DESCRIPTION}"`);
+
+      // About area (PREG-02, D-13): the attribution and every FAQ question are
+      // in the raw HTML, and neither the word list nor a sample secret is.
+      expect(html).toContain('data-testid="password-attribution"');
+      for (const item of faqItems) {
+        expect(html, item.question).toContain(item.question);
+      }
+      expect(html).not.toContain(EFF_MARKER);
+      for (const payload of flightPayloads(html)) {
+        expect(payload).not.toContain(EFF_MARKER);
+      }
 
       expect(hasAllSetsRun(visibleText(html))).toBe(false);
       // Non-vacuity: a Next change to the flight push format must not turn
@@ -188,6 +206,13 @@ test.describe("Password page server HTML (PWD-01, E1-loading)", () => {
 
     const clean = `<html><script>self.__next_f.push([1,"0:{\\"b\\":\\"Ab3-Cd4_Ef5-Gh6_Ij7-Kl\\",\\"p\\":\\"\\"}"])</script></html>`;
     expect(flightHasAllSetsRun(clean)).toBe(false);
+
+    // An RSC element reference is not a secret (the About chevrons emit one)...
+    const reference = `<html><script>self.__next_f.push([1,"3:[\\"$14:props:children:0:props:children:0:props:children:0:props:iconNode\\"]"])</script></html>`;
+    expect(flightHasAllSetsRun(reference)).toBe(false);
+    // ...but a password that merely starts with a dollar sign still is.
+    const dollar = `<html><script>self.__next_f.push([1,"3:{\\"pw\\":\\"$Aa0!Aa0!Aa0!Aa0!Aa0!\\"}"])</script></html>`;
+    expect(flightHasAllSetsRun(dollar)).toBe(true);
   });
 });
 
