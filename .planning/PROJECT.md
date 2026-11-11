@@ -86,14 +86,15 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 
 - ✓ Hash core (HASH-01..04) — `lib/hash/`: all 10 digests verified against published vectors (padding boundaries, SHA3-not-Keccak, exact UTF-8 bytes, chunk-split invariance vs node:crypto/zlib oracles), computed in a production-build Web Worker with `@noble/hashes` kept out of initial page JS — v1.2 Phase 8 (5 plans)
 - ✓ Hash Generator, text mode (TEXT-01..04, OUT-01..05, INT-01, INT-03, INTG-01, INTG-02) — `/tools/hash` paints sample digests for all 10 algorithms on load, hashes typed/pasted text live in a Web Worker, per-row copy + copy-all (labeled list or checksum lines), hex/HEX/Base64 without re-hashing, tolerant paste-to-verify, `?text=` restore with explicit capped Copy link (URL never written), `/`/Esc/SHA-256 copy shortcuts, registry/nav/sitemap/SEO with FAQPage JSON-LD, CLS-free pinned skeleton — Phase 9 (9 plans; 5/5 UAT items user-confirmed 2026-10-17; re-verified after the origin/main merge; digest wrapping made cross-platform by quick task 261017-f4s) — v1.2
-- ✓ Config Syntax Highlighter (`/tools/config`) — Cisco IOS/IOS-XE/IOS-XR config highlighting with rich-text and plain-text copy, fully client-side; contributed outside GSD by KoffeePi via PRs #14/#15 (merged to `main` 2026-08-26/31), merged into the v1.2 branch by quick task 261017-cnt and shipped with v1.2 (PR #16) — no GSD phase, requirements or SEO/FAQ instance of its own yet
+- ✓ Config Syntax Highlighter (`/tools/config`) — Cisco IOS/IOS-XE/IOS-XR config highlighting with rich-text and plain-text copy, fully client-side; contributed outside GSD by KoffeePi via PRs #14/#15 (merged to `main` 2026-08-26/31), merged into the v1.2 branch by quick task 261017-cnt and shipped with v1.2 (PR #16); SEO/FAQ parity added in Phase 10 (below)
+- ✓ Shared "About this tool" section (INFO-01..05) — one server component (`components/ToolAbout.tsx`) renders the Worked Example and FAQ as closed native `<details>` below the tool on all six pages, with the single escaped FAQPage JSON-LD builder in `lib/seo/jsonld.ts` (registry-driven guard in `app/tools/pages-about.test.ts`); Enter on a focused `<summary>` no longer fires a tool's global shortcut — v1.3 Phase 10 (6 plans; 743 unit + 142 e2e + 13 prod e2e; security 0 open threats)
+- ✓ Config Syntax Highlighter parity (CFG-01..03) — server-rendered highlighted worked example (RFC 5737 sample, shared `lib/config/token-classes.ts`), 4-item FAQ + JSON-LD, own `FileTerminal` landing-card icon with a throwing `assertToolIcon` (no fallback icon) — v1.3 Phase 10
 
 ### Active
 
-- [ ] Config Syntax Highlighter parity — worked example + FAQPage JSON-LD + distinct icon (it currently reuses `Network`, same as Subnet) — **v1.3**
 - [ ] Password Generator tool (`/tools/password`) — **v1.3**
 - [ ] Subnet Calculator compaction (output fits 1366×768 without scrolling) — **v1.3**
-- [ ] Tool-page info sections (Worked Example/FAQ) collapsible, muted, below the tool on every page — **v1.3**
+- [ ] Global Ctrl/Cmd+C and Esc shortcuts should not fire while the user has selected text or has focus inside the About area (Phase 10 review WR-01/WR-02; made newly reachable by the About prose) — candidate for a quick task
 - [ ] Related-tool links (part of per-tool SEO) — not yet built on any tool page (UUID, Subnet, DNS, or MAC); candidate for v1.1
 - [ ] Accessibility: full keyboard nav, contrast, labels, logical focus order, screen-reader announcements — shell-level focus order and focus-ring visibility manually verified in Phase 1 UAT; Phase 2 added accessible names to the UUID tool's Version/Export-format toggle groups; not re-audited per-tool since; candidate for a dedicated a11y pass in v1.1
 - [ ] Public developer API (`@packetory/core` style package reusing the same `lib/` modules) — deferred to a post-v1 milestone per Business Context; no work started
@@ -189,4 +190,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-11-11 after starting v1.3 milestone*
+*Last updated: 2026-11-11 after Phase 10*

@@ -142,6 +142,7 @@ None yet.
 
 - [v1.3]: The STR-02 example in REQUIREMENTS.md ("84 chars · 128 bits") doesn't match the PWD-05 default symbol set. That set has 23 symbols, so the default pool is 85 (about 128.2 bits at 20 chars). Displayed and FAQ numbers must come from `lib/password` constants, not from the requirement text
 - [v1.3 Phase 14]: The password privacy/clipboard FAQ wording needs explicit human approval (PREG-02; legal/privacy text is a human gate)
+- [Phase 10]: Code review WR-01/WR-02 open (advisory) — global Ctrl/Cmd+C and Esc still fire on selected About text / focus inside About; WR-03: prod About parity spec not in CI (Playwright removed from CI 2026-10-17). Manual checks pending: Safari chevron, VoiceOver, CLS re-measure (D-18)
 - Accepted (2026-10-17): analytics `redactBeforeSend` passes events through untouched when there's no `?`, so URL-fragment state would bypass redaction — no tool uses fragments today; v1.3 password state must stay in query params, never `#fragment`
 - Tech debt carried from v1.0: `/api/mac-vendor` interim API-proxy (build-time OUI dataset is the intended architecture); no rate limiting on it (AR-05-01); related-tool links and a per-tool accessibility re-audit still deferred.
 - Tech debt carried from v1.1: DOM-02 redirects and DOM-04 runbook deliberately descoped — revisit if duplicate-content SEO or the `www` TLS gap becomes a priority.
