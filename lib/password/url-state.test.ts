@@ -283,14 +283,10 @@ describe("properties (D-22)", () => {
 
 describe("no field can carry generated output (D-22)", () => {
   it("serializeOptions accepts only ToolOptions", () => {
-    expect(() => {
-      // @ts-expect-error serializeOptions takes ToolOptions only, never a generated string
-      serializeOptions("hunter2");
-    }).not.toThrow(/never/);
-    expect(() => {
-      // @ts-expect-error excess property: a password field is not part of ToolOptions
-      serializeOptions({ ...DEFAULT_OPTIONS, password: "hunter2" });
-    }).not.toThrow(/never/);
+    // @ts-expect-error serializeOptions takes ToolOptions only, never a generated string
+    expect(serializeOptions("hunter2")).toBe("");
+    // @ts-expect-error excess property: a password field is not part of ToolOptions
+    expect(serializeOptions({ ...DEFAULT_OPTIONS, password: "hunter2" })).toBe("");
   });
 
   it("an extra field never reaches the string", () => {
