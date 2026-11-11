@@ -147,14 +147,12 @@ function writeUrl(opts: ToolOptions) {
  * server execution has to fail loudly instead of silently generating a
  * password that would be baked into the prerendered HTML (RESEARCH Pattern 1).
  * It has no side effects (React StrictMode runs it twice in dev), and it does
- * not write the URL. The mode is coerced to password and the passphrase fields
- * pass through unchanged (D-07).
+ * not write the URL. The parsed mode is kept (D-03): a passphrase bookmark
+ * starts in the loading state with nothing drawn, and the one mount effect
+ * below starts the word-list load (D-05).
  */
 function initialState(): { options: ToolOptions; gen: Generated } {
-  const options = normalizeToolOptions({
-    ...parseOptions(window.location.search),
-    mode: "password",
-  });
+  const options = normalizeToolOptions(parseOptions(window.location.search));
   return { options, gen: generate(options, 0, null) };
 }
 
@@ -222,6 +220,24 @@ export function PasswordTool() {
   useEffect(() => {
     writeUrl(options);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only canonical rewrite; idempotent under StrictMode
+  }, []);
+
+  // The single effect that generates (D-05; a deliberate departure from
+  // Phase 13 D-02, which forbade any mount-time generation). A passphrase
+  // bookmark has no list yet, so the load must start after mount. The start is
+  // deferred a tick and cleared in the cleanup, so StrictMode's discarded first
+  // run never starts a load: exactly one promise is awaited and one result is
+  // applied (RESEARCH Pitfall 6). The cleanup also bumps the sequence token so
+  // an unmounted island ignores a late settle. The timer keeps the setState out
+  // of the effect body (react-hooks/set-state-in-effect).
+  useEffect(() => {
+    if (seed.options.mode !== "passphrase" || wordsRef.current !== null) return;
+    const timer = setTimeout(() => requestLoad(seed.options, true), 0);
+    return () => {
+      clearTimeout(timer);
+      seqRef.current += 1;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only load; requestLoad reads refs and stable setters only
   }, []);
 
   // The new generation and the copy-hook reset happen in the same handler, so

@@ -9,6 +9,12 @@ import {
 } from "@testing-library/react";
 import { PasswordTool } from "./PasswordTool";
 
+// The Passphrase bookmark tests only look at the loading state and the URL, so
+// the real loader is replaced by one that never settles.
+vi.mock("@/lib/password/wordlist", () => ({
+  loadWordlist: () => new Promise(() => {}),
+}));
+
 const PATH = "/tools/password";
 
 let replaceSpy: ReturnType<typeof vi.spyOn>;
@@ -86,10 +92,16 @@ describe("URL state on mount (POUT-03, D-07, D-13)", () => {
     expect(screen.getByTestId("password-output")).toBeTruthy();
   });
 
-  it("mode=passphrase is rewritten without mode (RESEARCH Pitfall 7)", () => {
+  it("mode=passphrase is restored and kept (D-03)", () => {
     mount("/tools/password?mode=passphrase");
-    expect(search()).toBe("");
+    expect(search()).toBe("?mode=passphrase");
     expect(window.location.pathname).toBe(PATH);
+    expect(screen.getByTestId("password-wordlist-loading")).toBeTruthy();
+  });
+
+  it("a passphrase bookmark with options is kept in canonical order (D-03)", () => {
+    mount("/tools/password?sep=dot&words=8&mode=passphrase");
+    expect(search()).toBe("?mode=passphrase&words=8&sep=dot");
   });
 
   it("the mount rewrite of an already canonical URL is idempotent", () => {

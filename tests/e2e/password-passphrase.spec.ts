@@ -91,4 +91,29 @@ test.describe("Passphrase mode (PHR-01, PHR-03)", () => {
       splitPassphrase(((await output.textContent()) ?? "").trim(), "-"),
     ).toHaveLength(6);
   });
+
+  test("a passphrase bookmark restores the mode and options (D-03)", async ({
+    page,
+  }) => {
+    await page.goto("/tools/password?mode=passphrase&words=8&sep=dot");
+    const output = page.getByTestId("password-output");
+    await expect(output).toBeVisible();
+    const value = ((await output.textContent()) ?? "").trim();
+    expect(splitPassphrase(value, ".")).toHaveLength(8);
+    expect(new URL(page.url()).search).toBe("?mode=passphrase&words=8&sep=dot");
+    await expect(page.getByTestId("password-mode-passphrase")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+  });
+
+  test("the default URL stays bare", async ({ page }) => {
+    await page.goto("/tools/password");
+    await expect(page.getByTestId("password-output")).toBeVisible();
+    expect(new URL(page.url()).search).toBe("");
+    await expect(page.getByTestId("password-mode-password")).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+  });
 });
