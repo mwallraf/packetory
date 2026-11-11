@@ -5,16 +5,16 @@ milestone_name: Password Generator & Tool Page Polish
 current_phase: 14
 current_phase_name: Passphrase, Strength & Launch
 status: executing
-stopped_at: Completed 14-05-PLAN.md
-last_updated: "2026-11-11T23:44:43.831Z"
+stopped_at: Completed 14-06-PLAN.md
+last_updated: "2026-11-11T23:48:44.211Z"
 last_activity: 2026-11-12
 last_activity_desc: Phase 14 execution started
-state_head: 168db8489468d72c5842db4c6a6e2b7242d886be
+state_head: 530fb638f42e74054b3da5e896bb31065f6581bd
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 26
-  completed_plans: 23
+  completed_plans: 24
   percent: 20
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-11-11)
 ## Current Position
 
 Phase: 14 (Passphrase, Strength & Launch) — EXECUTING
-Plan: 6 of 8
+Plan: 7 of 8
 Status: Ready to execute
 Last activity: 2026-11-12 — Phase 14 execution started
 
@@ -130,6 +130,7 @@ Progress: [██░░░░░░░░] 20%
 | Phase 14 P03 | 7min | 2 tasks | 7 files |
 | Phase 14 P04 | 12min | 2 tasks | 5 files |
 | Phase 14 P05 | 20min | 2 tasks | 11 files |
+| Phase 14 P06 | 15min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -172,6 +173,7 @@ Full decision log lives in PROJECT.md Key Decisions; v1.2 phase-level decisions 
 - [Phase 14]: 14-03: mount-time passphrase load deferred a tick and cancelled in effect cleanup so StrictMode awaits one load; Retry reloads page only for ChunkLoadError
 - [Phase 14]: 14-04: strength level from raw bits and all figures floored via formatBits (append-number shows 80 bits, not 81); scenario is display-only island state reset by Esc
 - [Phase 14]: 14-05: Esc keeps the current mode; word-count draft mirrors Length rules; shared RangeRow/BatchCountRow for both panels
+- [Phase 14]: 14-06: repeat-copy re-announce via post-copy counters in island/rows; lib/hooks unchanged
 
 ### Pending Todos
 
@@ -214,8 +216,8 @@ Per user instruction (2026-11-11): run phases 11–14 autonomously and batch all
 
 ## Session Continuity
 
-Last session: 2026-11-11T23:44:43.678Z
-Stopped at: Completed 14-05-PLAN.md
+Last session: 2026-11-11T23:48:44.063Z
+Stopped at: Completed 14-06-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

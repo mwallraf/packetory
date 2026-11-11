@@ -187,7 +187,7 @@ Plans:
      - an estimated time to crack, with its guess-rate assumption stated, switchable between a fast-hash (10^10 guesses/s) and a slow-hash (bcrypt-style) scenario
   4. The Password tool appears in the nav, the landing grid and the sitemap with a `KeyRound` icon, and all seven nav links fit at 640px. `/tools/password` has unique metadata and the shared About area with a worked example, the EFF CC BY attribution, and an FAQ whose numbers come from `lib/password` constants. The FAQ includes a note on the list's 4 hyphenated words and privacy wording the user has explicitly approved.
   5. Lighthouse scores 90+ in every category on both `/tools/password` and `/tools/subnet`, and the password page shows no layout shift on load (pinned skeleton). Every hard-coded tool count is updated from 6 to 7, and `npm run test:e2e` and `npm run test:e2e:prod` pass locally.
-**Plans**: 5/8 plans executed
+**Plans**: 6/8 plans executed
 
 Plans:
 **Wave 1**
@@ -204,7 +204,7 @@ Plans:
 - [x] 14-05-PLAN.md — Passphrase options (word count, separator, capitalize, append number, EFF credit), shared range rows (Fix 4/5), keyboard parity with Esc keeping the mode (PHR-02, PHR-01, PHR-04)
 
 **Wave 5** *(blocked on Wave 4 completion)*
-- [ ] 14-06-PLAN.md — Mode-aware output names and announcements, repeat-copy re-announce, word-boundary wrapping; passphrase privacy sweep and 320px proofs (PHR-01; D-20)
+- [x] 14-06-PLAN.md — Mode-aware output names and announcements, repeat-copy re-announce, word-boundary wrapping; passphrase privacy sweep and 320px proofs (PHR-01; D-20)
 
 **Wave 6** *(blocked on Wave 5 completion)*
 - [ ] 14-07-PLAN.md — Register the tool (KeyRound, Password sorts last), px-2 nav padding, every tool count 6 -> 7, seven links fit at 640/700px (PREG-01)
@@ -235,4 +235,4 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 11. Subnet Calculator Compaction | v1.3 | 1/1 | In Progress | - |
 | 12. Password Core Library | v1.3 | 5/5 | In Progress | - |
 | 13. Password Generator Page | v1.3 | 6/6 | In Progress | - |
-| 14. Passphrase, Strength & Launch | v1.3 | 5/8 | In Progress | - |
+| 14. Passphrase, Strength & Launch | v1.3 | 6/8 | In Progress | - |
