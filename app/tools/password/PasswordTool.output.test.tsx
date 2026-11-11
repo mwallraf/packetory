@@ -6,6 +6,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from "@testing-library/react";
 import { BATCH_MAX, BATCH_MIN } from "@/lib/password";
@@ -428,5 +429,129 @@ describe("POUT-05 attribute scan", () => {
       expect(el.getAttribute("spellcheck")).toBe("false");
       expect(el.closest("form")).toBeNull();
     }
+  });
+});
+
+describe("Live region (D-11, POUT-05)", () => {
+  it("is mounted at load: polite, sr-only, empty and outside the output zone", () => {
+    mount();
+    const el = screen.getByTestId("password-status");
+    expect(el.getAttribute("aria-live")).toBe("polite");
+    expect(el.className).toContain("sr-only");
+    expect(el.textContent).toBe("");
+    expect(
+      screen.getByTestId("password-output-zone").contains(el),
+    ).toBe(false);
+    expect(screen.getByTestId("password-tool").contains(el)).toBe(true);
+  });
+
+  it("hero Copy announces Copied", async () => {
+    mount();
+    await click(screen.getByTestId("password-copy"));
+    await waitFor(() => expect(status()).toBe("Copied"));
+  });
+
+  it("Copy all announces Copied all passwords", async () => {
+    mount("?n=3");
+    await click(screen.getByTestId("password-copy-all"));
+    await waitFor(() => expect(status()).toBe("Copied all passwords"));
+  });
+
+  it("a row copy announces Copied", async () => {
+    mount("?n=3");
+    await click(screen.getAllByTestId("password-row-copy")[0]!);
+    await waitFor(() => expect(status()).toBe("Copied"));
+  });
+
+  it("Regenerate announces New password generated at batch 1 and the count at batch 5", async () => {
+    mount();
+    await click(screen.getByTestId("password-regenerate"));
+    await waitFor(() => expect(status()).toBe("New password generated"));
+    cleanup();
+    mount("?n=5");
+    await click(screen.getByTestId("password-regenerate"));
+    await waitFor(() => expect(status()).toBe("5 new passwords generated"));
+  });
+
+  it("a batch commit announces the new count, and returning to 1 announces the singular", async () => {
+    mount();
+    await act(async () => {
+      setBatch("3");
+    });
+    await waitFor(() => expect(status()).toBe("3 new passwords generated"));
+    await act(async () => {
+      setBatch("1");
+    });
+    await waitFor(() => expect(status()).toBe("New password generated"));
+  });
+
+  it("a repeated identical announcement passes through empty and returns", async () => {
+    mount();
+    await click(screen.getByTestId("password-regenerate"));
+    await waitFor(() => expect(status()).toBe("New password generated"));
+    // Synchronous click: the clear to "" is visible before the next tick.
+    fireEvent.click(screen.getByTestId("password-regenerate"));
+    expect(status()).toBe("");
+    await waitFor(() => expect(status()).toBe("New password generated"));
+  });
+
+  it("slider, Length input, set switches, symbol draft and look-alikes never announce", async () => {
+    mount();
+    const slider = screen.getByTestId("password-length-slider");
+    fireEvent.change(slider, { target: { value: "40" } });
+    fireEvent.change(screen.getByTestId("password-length"), {
+      target: { value: "33" },
+    });
+    await click(screen.getByTestId("password-set-digits"));
+    fireEvent.change(screen.getByTestId("password-symbols"), {
+      target: { value: "!?" },
+    });
+    await click(screen.getByTestId("password-lookalikes"));
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 30));
+    });
+    expect(status()).toBe("");
+  });
+
+  it("an invalid batch draft does not announce", async () => {
+    mount("?n=3");
+    setBatch("99");
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 30));
+    });
+    expect(status()).toBe("");
+  });
+
+  it("a rejected clipboard write stays silent and keeps the values", async () => {
+    mount();
+    const before = displayed();
+    writeText.mockRejectedValue(new Error("denied"));
+    await click(screen.getByTestId("password-copy"));
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 30));
+    });
+    expect(status()).toBe("");
+    expect(screen.getByText(COPY_ERROR)).toBeTruthy();
+    expect(displayed()).toEqual(before);
+  });
+
+  it("stays mounted and empty in the error state", async () => {
+    vi.stubGlobal("crypto", undefined);
+    mount();
+    expect(screen.getByTestId("password-error")).toBeTruthy();
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 30));
+    });
+    expect(screen.getByTestId("password-status").textContent).toBe("");
+  });
+
+  it("never holds a displayed password after any action", async () => {
+    mount("?n=4");
+    await click(screen.getByTestId("password-copy-all"));
+    await waitFor(() => expect(status()).toBe("Copied all passwords"));
+    for (const v of displayed()) expect(status().includes(v)).toBe(false);
+    await click(screen.getByTestId("password-regenerate"));
+    await waitFor(() => expect(status()).toBe("4 new passwords generated"));
+    for (const v of displayed()) expect(status().includes(v)).toBe(false);
   });
 });
