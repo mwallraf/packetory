@@ -101,3 +101,93 @@ test.describe("About area without JavaScript (INFO-02, INFO-03)", () => {
     });
   }
 });
+
+/**
+ * Mocked DoH responses, copied from dns-lookup.spec.ts. Only the Cloudflare
+ * primary is counted; the Google fallback exists so no request ever leaves
+ * the browser.
+ */
+const CLOUDFLARE_A_RESPONSE = {
+  Status: 0,
+  Question: [{ name: "cloudflare.com", type: 1 }],
+  Answer: [
+    { name: "cloudflare.com", type: 1, TTL: 300, data: "104.16.132.229" },
+    { name: "cloudflare.com", type: 1, TTL: 300, data: "104.16.133.229" },
+  ],
+};
+
+const GOOGLE_A_RESPONSE = {
+  Status: 0,
+  Question: [{ name: "cloudflare.com.", type: 1 }],
+  Answer: [
+    { name: "cloudflare.com.", type: 1, TTL: 300, data: "104.16.132.229" },
+  ],
+};
+
+test.describe("Enter on a summary fires no tool shortcut (INFO-04)", () => {
+  test("uuid: Enter on the FAQ summary opens it and does not regenerate", async ({
+    page,
+  }) => {
+    await page.goto("/tools/uuid");
+
+    const hero = page.getByTestId("uuid-hero-value");
+    const first = await hero.textContent();
+
+    // Control: Enter on a non-interactive target regenerates, so the
+    // shortcut is live and a pass below cannot be vacuous.
+    await page.locator("h1").click();
+    await page.keyboard.press("Enter");
+    await expect(async () => {
+      expect(await hero.textContent()).not.toBe(first);
+    }).toPass();
+
+    const before = await hero.textContent();
+    const faq = page.getByTestId("uuid-faq");
+    await faq.locator("summary").focus();
+    await page.keyboard.press("Enter");
+
+    await expect(faq).toHaveAttribute("open", "");
+    await page.waitForTimeout(500);
+    expect(await hero.textContent()).toBe(before);
+  });
+
+  test("dns: Enter on the FAQ summary opens it and sends no lookup", async ({
+    page,
+  }) => {
+    let cloudflareCalls = 0;
+    await page.route("**/cloudflare-dns.com/**", (route) => {
+      cloudflareCalls += 1;
+      return route.fulfill({
+        status: 200,
+        contentType: "application/dns-json",
+        body: JSON.stringify(CLOUDFLARE_A_RESPONSE),
+      });
+    });
+    await page.route("**/dns.google/**", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(GOOGLE_A_RESPONSE),
+      })
+    );
+
+    await page.goto("/tools/dns");
+    await expect(page.getByTestId("dns-record-value").first()).toBeVisible();
+    // Let the debounced initial lookup settle before counting.
+    await page.waitForTimeout(800);
+    const before = cloudflareCalls;
+
+    const faq = page.getByTestId("dns-faq");
+    await faq.locator("summary").focus();
+    await page.keyboard.press("Enter");
+
+    await expect(faq).toHaveAttribute("open", "");
+    await page.waitForTimeout(800);
+    expect(cloudflareCalls).toBe(before);
+
+    // Control: Enter on a non-interactive target runs a new lookup.
+    await page.locator("h1").click();
+    await page.keyboard.press("Enter");
+    await expect.poll(() => cloudflareCalls).toBeGreaterThan(before);
+  });
+});
