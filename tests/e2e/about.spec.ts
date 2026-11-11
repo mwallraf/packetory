@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { tools } from "../../tools/registry";
+import { expectServerAboutParity } from "./helpers/about-parity";
 
 const SLUGS = tools.filter((t) => t.status !== "planned").map((t) => t.slug);
 
@@ -84,6 +85,19 @@ test.describe("About area structure (INFO-01, INFO-02, INFO-05)", () => {
       await exampleSummary.focus();
       await page.keyboard.press("Tab");
       await expect(faqSummary).toBeFocused();
+    });
+  }
+});
+
+test.describe("About area without JavaScript (INFO-02, INFO-03)", () => {
+  test.use({ javaScriptEnabled: false });
+
+  for (const slug of SLUGS) {
+    test(`${slug}: server HTML holds the collapsed content and one matching FAQPage JSON-LD`, async ({
+      page,
+      request,
+    }) => {
+      await expectServerAboutParity(page, request, slug);
     });
   }
 });
