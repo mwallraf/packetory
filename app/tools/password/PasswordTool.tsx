@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BATCH_MAX,
   BATCH_MIN,
@@ -20,6 +20,21 @@ import { PasswordOptionsPanel, type SetKey } from "./PasswordOptionsPanel";
 import { PasswordOutput } from "./PasswordOutput";
 
 export type GenError = "crypto" | "exhausted" | null;
+
+/**
+ * The only strings the live region may ever hold (D-11, POUT-05). A union of
+ * fixed phrases plus one numeric template, so a password cannot be passed in.
+ */
+export type StatusPhrase =
+  | "Copied"
+  | "Copied all passwords"
+  | "New password generated"
+  | `${number} new passwords generated`
+  | "Options reset. New password generated";
+
+function generatedPhrase(n: number): StatusPhrase {
+  return n === 1 ? "New password generated" : `${n} new passwords generated`;
+}
 
 export type Generated = {
   results: string[];
@@ -107,6 +122,39 @@ export function PasswordTool() {
   const [gen, setGen] = useState<Generated>(seed.gen);
   const heroCopy = useCopyToClipboard();
   const allCopy = useCopyToClipboard();
+  const [status, setStatus] = useState<"" | StatusPhrase>("");
+  const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clear first and set the phrase on the next tick, so an identical repeated
+  // announcement is read again. Stable, so effects and rows can depend on it.
+  const announce = useCallback((phrase: StatusPhrase) => {
+    if (statusTimer.current) clearTimeout(statusTimer.current);
+    setStatus("");
+    statusTimer.current = setTimeout(() => setStatus(phrase), 0);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (statusTimer.current) clearTimeout(statusTimer.current);
+    };
+  }, []);
+
+  // Copy announcements follow the hook state, never the click: `copy()` cannot
+  // report success, so a rejected write stays silent. The timer keeps the
+  // setState out of the effect body (react-hooks/set-state-in-effect).
+  useEffect(() => {
+    if (!heroCopy.copied) return;
+    const timer = setTimeout(() => announce("Copied"), 0);
+    return () => clearTimeout(timer);
+  }, [heroCopy.copied, announce]);
+
+  useEffect(() => {
+    if (!allCopy.copied) return;
+    const timer = setTimeout(() => announce("Copied all passwords"), 0);
+    return () => clearTimeout(timer);
+  }, [allCopy.copied, announce]);
+
+  const onRowCopied = useCallback(() => announce("Copied"), [announce]);
 
   useEffect(() => {
     writeUrl(options);
@@ -123,7 +171,9 @@ export function PasswordTool() {
   }
 
   function regenerate() {
-    applyGenerated(generate(options, gen.generation + 1));
+    const next = generate(options, gen.generation + 1);
+    applyGenerated(next);
+    if (next.error === null) announce(generatedPhrase(next.results.length));
   }
 
   // The one path every option change takes (D-06): normalize with the mode
@@ -167,6 +217,12 @@ export function PasswordTool() {
     commit({ ...options, length: n });
   }
 
+  // A batch commit announces how many passwords there are now; every other
+  // option commit stays silent (D-11).
+  function announceCommit(applied: Generated) {
+    if (applied.error === null) announce(generatedPhrase(applied.results.length));
+  }
+
   // Batch count: the same draft rules as Length (D-05, D-10).
   function onBatchDraftChange(value: string) {
     setBatchDraft(value);
@@ -176,7 +232,7 @@ export function PasswordTool() {
       return;
     }
     setBatchError(false);
-    if (n !== options.batch) commit({ ...options, batch: n });
+    if (n !== options.batch) announceCommit(commit({ ...options, batch: n }));
   }
 
   function onBatchBlur() {
@@ -184,7 +240,9 @@ export function PasswordTool() {
     const result = /^\d+$/.test(trimmed)
       ? clampInt(Number(trimmed), BATCH_MIN, BATCH_MAX, options.batch)
       : options.batch;
-    if (result !== options.batch) commit({ ...options, batch: result });
+    if (result !== options.batch) {
+      announceCommit(commit({ ...options, batch: result }));
+    }
     setBatchDraft(String(result));
     setBatchError(false);
   }
@@ -209,9 +267,6 @@ export function PasswordTool() {
   function onLookalikesChange(checked: boolean) {
     commit({ ...options, avoidLookalikes: checked });
   }
-
-  // Wired to the live region in Task 2.
-  function onRowCopied() {}
 
   return (
     <div data-testid="password-tool" className="flex flex-col gap-8">
@@ -241,6 +296,13 @@ export function PasswordTool() {
         onBatchDraftChange={onBatchDraftChange}
         onBatchBlur={onBatchBlur}
       />
+      <span
+        aria-live="polite"
+        className="sr-only"
+        data-testid="password-status"
+      >
+        {status}
+      </span>
     </div>
   );
 }

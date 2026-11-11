@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { Check, Copy } from "lucide-react";
 import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
 import { ColoredPassword } from "./ColoredPassword";
@@ -21,8 +22,16 @@ type Props = {
  * `onCopied` tells the island a copy succeeded so it can announce the fixed
  * phrase; it fires from the hook's `copied` flag, never from the click.
  */
-export function PasswordRow({ value, index }: Props) {
+export function PasswordRow({ value, index, onCopied }: Props) {
   const { copy, copied, error } = useCopyToClipboard();
+
+  // The announcement is scheduled through a timer so no state is set
+  // synchronously in the effect body (react-hooks/set-state-in-effect).
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(onCopied, 0);
+    return () => clearTimeout(timer);
+  }, [copied, onCopied]);
 
   return (
     <li
