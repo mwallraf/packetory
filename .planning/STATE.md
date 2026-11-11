@@ -5,16 +5,16 @@ milestone_name: Password Generator & Tool Page Polish
 current_phase: 12
 current_phase_name: Password Core Library
 status: executing
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-11-11T20:42:08.401Z"
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-11-11T20:45:36.759Z"
 last_activity: 2026-11-11
-last_activity_desc: Phase 11 execution started
-state_head: d2e2d7b8d8fd899e6331686c4a509a89f7e08d7a
+last_activity_desc: Phase 12 execution started
+state_head: 42180e2098f6d26ba7a119569c14880f0066fae4
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 12
-  completed_plans: 7
+  completed_plans: 8
   percent: 20
 ---
 
@@ -25,14 +25,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-11)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Phase 11 — Subnet Calculator Compaction
+**Current focus:** Phase 12 — Password Core Library
 
 ## Current Position
 
-Phase: 12 (Password Core Library) — READY TO EXECUTE
-Plan: 1 of 1
+Phase: 12 (Password Core Library) — EXECUTING
+Plan: 2 of 5
 Status: Ready to execute
-Last activity: 2026-11-11 — Phase 11 execution started
+Last activity: 2026-11-11 — Phase 12 execution started
 
 Progress: [██░░░░░░░░] 20%
 
@@ -114,6 +114,7 @@ Progress: [██░░░░░░░░] 20%
 | Phase 10 P05 | 6 min | 2 tasks | 3 files |
 | Phase 10 P06 | 5 min | 3 tasks | 3 files |
 | Phase 11 P01 | 20min | 3 tasks | 6 files |
+| Phase 12 P01 | 3 min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -137,6 +138,7 @@ Full decision log lives in PROJECT.md Key Decisions; v1.2 phase-level decisions 
 - [Phase 11]: Subnet main widens to max-w-6xl at lg; CIDR block shares a row with the hero; field cards are one row with 3 columns at lg (P-1, P-3, P-4)
 - [Phase 11]: 12px IPv4/IPv6 family badge stays 12px; SUBNET-10 reworded to body text (U-1)
 - [Phase 11]: Lighthouse before/after capture deferred to milestone UAT after Phase 14; SUMMARY holds PENDING rows (U-2)
+- [Phase 12]: Password option normalization lives in charset.ts with resolveAlphabet; ToolOptions field names and constants are the cross-phase contract
 
 ### Pending Todos
 
@@ -177,8 +179,8 @@ Per user instruction (2026-11-11): run phases 11–14 autonomously and batch all
 
 ## Session Continuity
 
-Last session: 2026-11-11T19:39:04.730Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-11-11T20:45:36.700Z
+Stopped at: Completed 12-01-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
