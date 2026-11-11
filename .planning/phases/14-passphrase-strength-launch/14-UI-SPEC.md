@@ -1,7 +1,7 @@
 ---
 phase: "14"
 slug: passphrase-strength-launch
-status: draft
+status: approved
 shadcn_initialized: true
 preset: b2fA
 created: "2026-11-11"
