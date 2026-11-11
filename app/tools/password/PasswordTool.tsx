@@ -7,6 +7,7 @@ import {
   LENGTH_MIN,
   clampInt,
   generateBatch,
+  normalizeSymbols,
   normalizeToolOptions,
   parseOptions,
   type ToolOptions,
@@ -82,6 +83,7 @@ export function PasswordTool() {
   const [options, setOptions] = useState<ToolOptions>(seed.options);
   const [lengthDraft, setLengthDraft] = useState(String(seed.options.length));
   const [lengthError, setLengthError] = useState(false);
+  const [symbolDraft, setSymbolDraft] = useState(seed.options.symbolSet);
   const [gen, setGen] = useState<Generated>(seed.gen);
   const heroCopy = useCopyToClipboard();
 
@@ -138,6 +140,23 @@ export function PasswordTool() {
     commit({ ...options, [key]: checked });
   }
 
+  // Live generation from the normalized draft. The draft itself is never
+  // rewritten while typing (D-05), and a keystroke that normalizes to the same
+  // set does not regenerate (RESEARCH Pitfall 13).
+  function onSymbolDraftChange(value: string) {
+    setSymbolDraft(value);
+    const next = normalizeSymbols(value);
+    if (next !== options.symbolSet) commit({ ...options, symbolSet: next });
+  }
+
+  function onSymbolBlur() {
+    setSymbolDraft(normalizeSymbols(symbolDraft));
+  }
+
+  function onLookalikesChange(checked: boolean) {
+    commit({ ...options, avoidLookalikes: checked });
+  }
+
   return (
     <div data-testid="password-tool" className="flex flex-col gap-8">
       <div data-testid="password-output-zone">
@@ -151,10 +170,14 @@ export function PasswordTool() {
         options={options}
         lengthDraft={lengthDraft}
         lengthError={lengthError}
+        symbolDraft={symbolDraft}
         onLengthDraftChange={onLengthDraftChange}
         onLengthBlur={onLengthBlur}
         onSliderChange={onSliderChange}
         onSetToggle={onSetToggle}
+        onSymbolDraftChange={onSymbolDraftChange}
+        onSymbolBlur={onSymbolBlur}
+        onLookalikesChange={onLookalikesChange}
       />
     </div>
   );

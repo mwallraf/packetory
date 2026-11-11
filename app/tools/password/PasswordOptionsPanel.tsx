@@ -3,7 +3,14 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { LENGTH_MAX, LENGTH_MIN, type ToolOptions } from "@/lib/password";
+import {
+  LENGTH_MAX,
+  LENGTH_MIN,
+  LOOK_ALIKES,
+  SYMBOL_SET_MAX,
+  normalizeSymbols,
+  type ToolOptions,
+} from "@/lib/password";
 
 export type SetKey = "uppercase" | "lowercase" | "digits" | "symbols";
 
@@ -11,10 +18,14 @@ type Props = {
   options: ToolOptions;
   lengthDraft: string;
   lengthError: boolean;
+  symbolDraft: string;
   onLengthDraftChange: (value: string) => void;
   onLengthBlur: () => void;
   onSliderChange: (length: number) => void;
   onSetToggle: (key: SetKey, checked: boolean) => void;
+  onSymbolDraftChange: (value: string) => void;
+  onSymbolBlur: () => void;
+  onLookalikesChange: (checked: boolean) => void;
 };
 
 /**
@@ -49,6 +60,25 @@ const SET_ROWS: ReadonlyArray<{
 ];
 
 /**
+ * True when the draft holds at least one character the library would keep.
+ * It derives the rule from `normalizeSymbols` instead of restating it
+ * (RESEARCH Pattern 5).
+ */
+function hasUsableSymbol(draft: string): boolean {
+  for (const ch of draft) {
+    if (normalizeSymbols(ch) === ch) return true;
+  }
+  return false;
+}
+
+/** The symbol hint has exactly one state, in this priority order. */
+function symbolHint(symbolsOn: boolean, draft: string): string {
+  if (!symbolsOn) return "Turn on Symbols to use this set";
+  if (!hasUsableSymbol(draft)) return "Empty, so the default set is used";
+  return `Up to ${SYMBOL_SET_MAX} printable ASCII symbols. Letters, digits, spaces and repeats are removed when you leave the field.`;
+}
+
+/**
  * Presentational options section (PWD-02, PWD-03). It holds no state: the
  * island owns the options and the drafts and passes the handlers. There is no
  * form, fieldset or output element in here (D-08, RESEARCH Pitfall 8).
@@ -57,10 +87,14 @@ export function PasswordOptionsPanel({
   options,
   lengthDraft,
   lengthError,
+  symbolDraft,
   onLengthDraftChange,
   onLengthBlur,
   onSliderChange,
   onSetToggle,
+  onSymbolDraftChange,
+  onSymbolBlur,
+  onLookalikesChange,
 }: Props) {
   const enabled = SET_ROWS.filter((row) => options[row.key]).length;
   const locked = enabled === 1;
@@ -180,6 +214,56 @@ export function PasswordOptionsPanel({
               At least one character set must stay on
             </p>
           )}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="password-symbols" className={LABEL_CLASS}>
+            Symbol set
+          </Label>
+          <Input
+            id="password-symbols"
+            data-testid="password-symbols"
+            type="text"
+            className="h-11 font-mono text-base md:text-base"
+            value={symbolDraft}
+            disabled={!options.symbols}
+            aria-describedby="password-symbols-hint"
+            onChange={(e) => onSymbolDraftChange(e.target.value)}
+            onBlur={onSymbolBlur}
+            {...TEXT_INPUT_GUARDS}
+          />
+          <p
+            id="password-symbols-hint"
+            data-testid="password-symbols-hint"
+            className={HINT_CLASS}
+          >
+            {symbolHint(options.symbols, symbolDraft)}
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <div className="flex min-h-11 items-center gap-4">
+            <Switch
+              id="password-lookalikes"
+              data-testid="password-lookalikes"
+              checked={options.avoidLookalikes}
+              aria-describedby="password-lookalikes-hint"
+              onCheckedChange={onLookalikesChange}
+            />
+            <Label htmlFor="password-lookalikes" className={LABEL_CLASS}>
+              Avoid look-alikes
+            </Label>
+          </div>
+          <p
+            id="password-lookalikes-hint"
+            data-testid="password-lookalikes-hint"
+            className={HINT_CLASS}
+          >
+            Removes{" "}
+            <span className="font-mono">
+              {LOOK_ALIKES.split("").join(" ")}
+            </span>
+          </p>
         </div>
       </div>
     </section>
