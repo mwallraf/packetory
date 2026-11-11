@@ -100,6 +100,19 @@ export const tools: ToolDefinition[] = [
     clientOnly: true,
     featured: false,
   },
+  {
+    slug: "password",
+    name: "Password Generator",
+    shortName: "Password",
+    description:
+      "Generate strong random passwords or memorable EFF passphrases, with a strength meter and crack-time estimate, all in your browser.",
+    category: "generate",
+    keywords: ["password", "passphrase", "generator", "diceware", "eff", "random"],
+    icon: "KeyRound",
+    status: "active",
+    clientOnly: true,
+    featured: false,
+  },
 ];
 
 /**

@@ -4,9 +4,9 @@ import { getSortedTools, getToolBySlug, tools } from "./registry";
 
 describe("tools/registry", () => {
   it("contains the active tool entries", () => {
-    expect(tools).toHaveLength(6);
+    expect(tools).toHaveLength(7);
     const slugs = tools.map((t) => t.slug).sort();
-    expect(slugs).toEqual(["config", "dns", "hash", "mac", "subnet", "uuid"]);
+    expect(slugs).toEqual(["config", "dns", "hash", "mac", "password", "subnet", "uuid"]);
   });
 
   it("getSortedTools() sorts by featured desc, then name asc (case-insensitive)", () => {
@@ -18,6 +18,7 @@ describe("tools/registry", () => {
       "dns",
       "hash",
       "mac",
+      "password",
     ]);
   });
 
@@ -52,6 +53,7 @@ describe("tools/registry", () => {
       mac: "active",
       hash: "active",
       config: "active",
+      password: "active",
     });
   });
 

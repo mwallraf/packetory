@@ -7,6 +7,7 @@ import { faqItems as configFaq } from "./config/faq-data";
 import { faqItems as dnsFaq } from "./dns/faq-data";
 import { faqItems as hashFaq } from "./hash/faq-data";
 import { faqItems as macFaq } from "./mac/faq-data";
+import { faqItems as passwordFaq } from "./password/faq-data";
 import { faqItems as subnetFaq } from "./subnet/faq-data";
 import { faqItems as uuidFaq } from "./uuid/faq-data";
 
@@ -20,6 +21,7 @@ const FAQ_BY_SLUG: Record<
   mac: macFaq,
   hash: hashFaq,
   config: configFaq,
+  password: passwordFaq,
 };
 
 const ACTIVE_TOOLS = tools.filter((t) => t.status !== "planned");

@@ -174,7 +174,7 @@ describe("ToolCard", () => {
       classes.push(icons[0].getAttribute("class") ?? "");
       unmount();
     }
-    expect(classes).toHaveLength(6);
-    expect(new Set(classes).size).toBe(6);
+    expect(classes).toHaveLength(7);
+    expect(new Set(classes).size).toBe(7);
   });
 });

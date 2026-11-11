@@ -34,6 +34,7 @@ describe("app/sitemap", () => {
         `${BASE_URL}/tools/mac`,
         `${BASE_URL}/tools/hash`,
         `${BASE_URL}/tools/config`,
+        `${BASE_URL}/tools/password`,
       ].sort()
     );
   });
@@ -81,7 +82,7 @@ describe("app/sitemap", () => {
 
   it("does not hardcode a tool slug literal in app/sitemap.ts (registry-derived only)", () => {
     const source = readFileSync(path.join(__dirname, "sitemap.ts"), "utf-8");
-    const registrySlugs = ["uuid", "subnet", "dns", "mac", "hash", "config"];
+    const registrySlugs = ["uuid", "subnet", "dns", "mac", "hash", "config", "password"];
 
     for (const slug of registrySlugs) {
       const quotedLiteral = new RegExp(`["'\`]${slug}["'\`]`);
