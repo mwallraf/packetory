@@ -102,7 +102,6 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-**Wave 1**
 - [ ] 11-01-PLAN.md — Tracer: measure the 1366x650 budget, compact the Subnet island (lg-wide main, CIDR beside hero, one-row field cards, 3-column grid) under a new subnet-layout e2e; IPv6 /64 target, field/copy/font/order integrity, 320/375 overflow; skeleton re-pin and the release gate
 **UI hint**: yes
 
