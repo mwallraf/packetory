@@ -22,9 +22,9 @@
 
 ### Subnet compaction (SUBNET)
 
-- [ ] **SUBNET-08**: With the default IPv4 /24 result, the full generated output is visible without scrolling at a 1366×650 viewport (also checked at 1280×600)
-- [ ] **SUBNET-09**: An IPv6 /64 result has a stated and measured no-scroll target at 1366×650
-- [ ] **SUBNET-10**: Compaction removes no fields, keeps body text ≥14px (the 12px IPv4/IPv6 family badge chip is not body text), keeps all copy controls and existing testids, and introduces no horizontal overflow at 320/375px
+- [x] **SUBNET-08**: With the default IPv4 /24 result, the full generated output is visible without scrolling at a 1366×650 viewport (also checked at 1280×600)
+- [x] **SUBNET-09**: An IPv6 /64 result has a stated and measured no-scroll target at 1366×650
+- [x] **SUBNET-10**: Compaction removes no fields, keeps body text ≥14px (the 12px IPv4/IPv6 family badge chip is not body text), keeps all copy controls and existing testids, and introduces no horizontal overflow at 320/375px
 
 ### Password generator — random password (PWD)
 
@@ -99,9 +99,9 @@
 | CFG-01 | Phase 10 | Complete |
 | CFG-02 | Phase 10 | Complete |
 | CFG-03 | Phase 10 | Complete |
-| SUBNET-08 | Phase 11 | Pending |
-| SUBNET-09 | Phase 11 | Pending |
-| SUBNET-10 | Phase 11 | Pending |
+| SUBNET-08 | Phase 11 | Complete |
+| SUBNET-09 | Phase 11 | Complete |
+| SUBNET-10 | Phase 11 | Complete |
 | PWD-01 | Phase 13 | Pending |
 | PWD-02 | Phase 13 | Pending |
 | PWD-03 | Phase 13 | Pending |

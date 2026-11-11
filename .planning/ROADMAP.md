@@ -99,10 +99,10 @@ Plans:
   2. The plan states a no-scroll target for an IPv6 /64 result before implementation starts, and the layout spec measures and enforces it at 1366×650.
   3. Every IPv4 and IPv6 field shown before compaction is still shown, untruncated. Body text stays at 14px or larger, every per-field copy control still copies with visible confirmation, and all existing subnet testids and subnet e2e specs pass unchanged. `lib/subnet` is not modified.
   4. At 320px and 375px widths the page has no horizontal overflow (`scrollWidth <= innerWidth`) and the About area still renders below the tool. `npm run test:e2e` and `npm run test:e2e:prod` pass locally.
-**Plans**: 1 plan
+**Plans**: 1/1 plans executed
 
 Plans:
-- [ ] 11-01-PLAN.md — Tracer: measure the 1366x650 budget, compact the Subnet island (lg-wide main, CIDR beside hero, one-row field cards, 3-column grid) under a new subnet-layout e2e; IPv6 /64 target, field/copy/font/order integrity, 320/375 overflow; skeleton re-pin and the release gate
+- [x] 11-01-PLAN.md — Tracer: measure the 1366x650 budget, compact the Subnet island (lg-wide main, CIDR beside hero, one-row field cards, 3-column grid) under a new subnet-layout e2e; IPv6 /64 target, field/copy/font/order integrity, 320/375 overflow; skeleton re-pin and the release gate
 **UI hint**: yes
 
 **Research flags**: Before cutting anything, measure where the vertical pixels go at 1366×650 (header, hero, CIDR row, field grid). If the page pins a skeleton, re-measure its height. Capture a Lighthouse baseline for `/tools/subnet` on a Vercel preview now; the 90+ gate itself is PREG-03, enforced in Phase 14.
@@ -180,7 +180,7 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 8. Hash Core & Worker Runtime | v1.2 | 5/5 | Complete | 2026-10-15 |
 | 9. Hash Tool Page & Text Hashing | v1.2 | 9/9 | Complete | 2026-10-17 |
 | 10. Shared About Section & Config Parity | v1.3 | 6/6 | Complete    | 2026-11-11 |
-| 11. Subnet Calculator Compaction | v1.3 | 0/TBD | Not started | - |
+| 11. Subnet Calculator Compaction | v1.3 | 1/1 | In Progress | - |
 | 12. Password Core Library | v1.3 | 0/TBD | Not started | - |
 | 13. Password Generator Page | v1.3 | 0/TBD | Not started | - |
 | 14. Passphrase, Strength & Launch | v1.3 | 0/TBD | Not started | - |
