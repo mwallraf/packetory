@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   GenerationExhaustedError,
   LENGTH_MAX,
@@ -10,6 +10,7 @@ import {
   normalizeSymbols,
   normalizeToolOptions,
   parseOptions,
+  serializeOptions,
   type ToolOptions,
 } from "@/lib/password";
 import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
@@ -62,6 +63,21 @@ function parseIntInRange(value: string, min: number, max: number): number | null
 }
 
 /**
+ * Mirrors the options, and only the options, into the address bar (POUT-03,
+ * D-13). Raw History API with a null state and no fragment: no router call, no
+ * history push, and nothing generated ever reaches the URL because
+ * `serializeOptions` accepts `ToolOptions` only. Idempotent, so StrictMode's
+ * double mount writes the same canonical URL twice.
+ */
+function writeUrl(opts: ToolOptions) {
+  const qs = serializeOptions(opts);
+  const path = qs
+    ? `${window.location.pathname}?${qs}`
+    : window.location.pathname;
+  window.history.replaceState(null, "", path);
+}
+
+/**
  * Single lazy initializer for the island's first state (D-02). `window` is
  * deliberately NOT guarded: this component must never run on the server, so a
  * server execution has to fail loudly instead of silently generating a
@@ -87,6 +103,11 @@ export function PasswordTool() {
   const [gen, setGen] = useState<Generated>(seed.gen);
   const heroCopy = useCopyToClipboard();
 
+  useEffect(() => {
+    writeUrl(options);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only canonical rewrite; idempotent under StrictMode
+  }, []);
+
   // The new generation and the copy-hook reset happen in the same handler, so
   // a stale "Copied!" never survives next to a value it no longer matches
   // (WR-02, D-11) and no effect is needed.
@@ -100,12 +121,14 @@ export function PasswordTool() {
   }
 
   // The one path every option change takes (D-06): normalize with the mode
-  // forced to password, set, generate, then reset the copy confirmation.
+  // forced to password, set, write the URL, generate, then reset the copy
+  // confirmation.
   // Synchronous, so the displayed output already obeys the new options when
   // the handler returns.
   function commit(next: ToolOptions) {
     const normalized = normalizeToolOptions({ ...next, mode: "password" });
     setOptions(normalized);
+    writeUrl(normalized);
     applyGenerated(generate(normalized, gen.generation + 1));
   }
 
