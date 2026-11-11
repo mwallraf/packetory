@@ -10,78 +10,49 @@ files_reviewed_list:
   - tests/e2e/subnet-layout.spec.ts
 findings:
   critical: 0
-  warning: 2
-  info: 3
-  total: 5
+  warning: 0
+  info: 2
+  total: 2
   necessity: 0
 status: issues_found
 ---
 
-# Phase 11: Code Review Report
+# Phase 11: Code Review Report (iteration 2)
 
 **Reviewed:** 2026-11-11
 **Depth:** standard
 **Files Reviewed:** 4
-**Status:** issues_found
+**Status:** issues_found (info only)
 
 ## Summary
 
-The diff since c254f83 compacts the subnet result into a 3-column grid at `lg`, widens `main` to `lg:max-w-6xl`, moves the copy button beside the label and value inside each card, and re-pins the loader skeleton per breakpoint. A new Playwright spec gates the result fitting at 1366x650, field integrity, copy behaviour and the skeleton pins.
+Re-review after fix commits 85bee5f (WR-01) and 19d739a (WR-02).
 
-No correctness or security defects were found in the component logic. The DOM change keeps copy, aria-live and error semantics intact: the `sr-only` status span is absolutely positioned, so it adds no flex gap. The `ToolAbout` `max-w-3xl` claim in `page.tsx` holds (`components/ToolAbout.tsx:55`). `ToolAbout` has no `mx-auto`, so it is left-aligned inside the wider `main`, consistent with the h1.
+**WR-01 (skeleton pins at three widths only): resolved.** `SubnetToolLoader.tsx:52` now carries a `min-[Npx]` ladder (868/844/820/566/542/317 at 0/331/446/640/658/1024). I fetched the compiled CSS from the running dev server and confirmed that all six rules are generated and emitted in ascending breakpoint order, so the cascade resolves as intended. `readPinnedHeights` parses the whole ladder from the loader source, and the pin test samples 15 widths, including both sides of the 640 and 1024 breakpoints and the interior of every band. The previous review's claim of growth between 1024 and 1151px is not reproduced by the test. Its stated 4px tolerance holds at every sampled width.
 
-The main weakness is that the CLS guarantee, a project non-negotiable, is pinned and tested at a single width per breakpoint, while the real island height depends on width within each breakpoint band.
+**WR-02 (IPv6 1280x600 only logged): resolved.** `subnet-layout.spec.ts:148-152` now asserts scrollY 0, 7 cards and tool bottom within the viewport.
 
-## Warnings
+I ran `npx playwright test tests/e2e/subnet-layout.spec.ts` against the live dev server: 21 passed.
 
-### WR-01: Skeleton pins hold only at the three measured widths, so CLS remains at other widths in each band
-
-**File:** `app/tools/subnet/SubnetToolLoader.tsx:43`
-**Issue:** `h-[844px] sm:h-[542px] lg:h-[317px]` is a single fixed height per Tailwind breakpoint, measured at 375, 768 and 1366px. The island height is not constant within a band, because the field values use `break-all` and wrap by card width.
-- At `lg` (>=1024px) `main` is `max-w-6xl` (1152px). Viewports >=1152px all render at the same width, which is why 1280 and 1366 agree. Between 1024 and 1151px the content narrows to roughly 960-1088px, so the 3-column cards narrow. The 35-character binary value and the reverse-DNS value wrap further and the island grows past 317px.
-- At `sm` (640-767px) the content is narrower than at the measured 768px, so the island is taller than 542px.
-- At base, the island at 320px is taller than 844px. At 639px, where `binary` no longer wraps, it is shorter than the 375px pin.
-
-Each case causes a layout shift when the skeleton is swapped for the island. The pin test (`subnet-layout.spec.ts:447-477`) samples only 375, 768 and 1366, so it cannot catch these.
-**Fix:** Either pin at the narrowest width of each band, which biases towards a one-direction shift, or add the intermediate widths to the pin test and accept a larger tolerance. Alternatively, use `min-h` pins rather than exact `h`.
-```ts
-for (const [width, height] of [
-  [320, 800], [375, 800], [639, 800],
-  [640, 800], [768, 800], [1024, 650], [1151, 650], [1366, 650],
-] as const) { /* measure and compare against the band's pin with an agreed tolerance */ }
-```
-
-### WR-02: The layout test never asserts the IPv6 1280x600 case but still re-navigates, and it only logs
-
-**File:** `tests/e2e/subnet-layout.spec.ts:143-147`
-**Issue:** After the real assertions, the IPv6 test resizes to 1280x600, reloads the page and measures, then only `console.log`s the result. A test whose second half asserts nothing gives false assurance. A regression at 1280x600 for IPv6 passes silently, even though the IPv4 default is gated at that size. The comment says "informational only", but the task is a layout gate, and the extra navigation adds run time for zero signal.
-**Fix:** Either assert it, if the requirement covers 1280x600, or remove the block. A `test.info().annotations.push(...)` is better than `console.log` if the data is truly informational.
-```ts
-await page.setViewportSize({ width: 1280, height: 600 });
-await gotoSettled(page, sample);
-const small = await measureLayout(page);
-expect(small.toolBottom, JSON.stringify(small)).toBeLessThanOrEqual(small.innerHeight);
-```
+No regressions were found in the fix commits. `SubnetTool.tsx` and `page.tsx` are unchanged by them. I found no correctness or security defects in the component logic: copy state is isolated per field, the aria-live and error semantics are intact, and the URL is read only client-side. Two minor test-quality items remain.
 
 ## Info
 
-### IN-01: Skeleton pin applies only to the default /24 island
-
-**File:** `app/tools/subnet/SubnetToolLoader.tsx:38-46`
-**Issue:** A shared `?cidr=` link for an IPv6 CIDR (7 cards, plus the subdivision section and a boundary note for some prefixes) or an IPv4 /32 (boundary note) renders a different height than the default-sized skeleton, so those visits shift. This is a known limitation of a static skeleton, and `page.tsx` and the loader cannot read the query string server-side by design. Worth a note in the doc comment so the "no CLS" claim is not over-read.
-**Fix:** Qualify the comment: "no layout shift for the default URL only".
-
-### IN-02: Debug `console.log` left in the committed spec
+### IN-01: Debug `console.log` still committed in the spec (carry-over, previously IN-02)
 
 **File:** `tests/e2e/subnet-layout.spec.ts:114, 133, 147`
-**Issue:** Three `console.log("[subnet-layout] ...")` calls print on every run. They are useful while re-measuring pins but become noise in CI output.
-**Fix:** Gate on `process.env.DEBUG_LAYOUT`, or attach the data with `test.info().attach`.
+**Issue:** Three `[subnet-layout]` `console.log` calls print on every run, including CI. The fix report intentionally left this out of scope. The 1280x600 log at line 147 is now redundant, since the same data is asserted and any failure message already embeds `JSON.stringify(small)`.
+**Fix:** Remove the logs, or gate them with `if (process.env.DEBUG_LAYOUT)`. Alternatively, use `test.info().attach("layout", { body: JSON.stringify(m) })`.
 
-### IN-03: Pin test is coupled to the exact class-string formatting in the loader
+### IN-02: Pin test checks the parsed source text, not the rendered skeleton, and its parser is loosely anchored
 
-**File:** `tests/e2e/subnet-layout.spec.ts:437-445`
-**Issue:** `readPinnedHeights` extracts pins with the regex `/h-\[(\d+)px\] sm:h-\[(\d+)px\] lg:h-\[(\d+)px\]/`. If a later edit reorders the Tailwind utilities, adds a variant, or switches to a `const` or `clsx`, the regex returns `null` and the test fails with a misleading "measured island heights" message. `process.cwd()` also assumes the test is run from the repo root. The coupling is intentional, as the comment explains, but the failure message should say what to fix.
-**Fix:** Improve the assertion message when `pins === null`, for example "could not parse pinned heights from SubnetToolLoader.tsx; expected `h-[Apx] sm:h-[Bpx] lg:h-[Cpx]`".
+**File:** `tests/e2e/subnet-layout.spec.ts:443-453`, `tests/e2e/subnet-layout.spec.ts:460-463`
+**Issue:**
+- The test compares the island height with numbers regex-parsed from the loader file. It never measures the skeleton as rendered. If Tailwind stopped emitting a rule or reordered the ladder, or a non-ladder class such as `sm:h-[...]` or `max-h-[...]` were added, the test would still pass or silently mis-parse. The regex `(?:min-\[(\d+)px\]:)?h-\[(\d+)px\]` also matches the `h-[` inside `min-h-[` or `max-h-[`, and gives any other variant prefix `minWidth` 0.
+- The loader doc comment says to keep the pins in ascending order. The test sorts them, so it cannot enforce that.
+- The sampled widths sit 8-16px from the 331, 446 and 658 steps. If font metrics shift a step by a few pixels, the 24px mismatch inside that window goes undetected. This is low risk while the font is self-hosted.
+
+**Fix:** In the test, inject the real skeleton (or read `getComputedStyle(...).height` on a rendered `subnet-tool-skeleton`, for example via a route-delayed chunk) and compare it with the settled island at each width. At minimum, anchor the regex with `(?<![\w-])` before `h-` and, as a quick stopgap, add samples at 331, 446 and 658 and at each value minus 1.
 
 ---
 
