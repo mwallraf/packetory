@@ -16,6 +16,7 @@ import {
   normalizeToolOptions,
   parseOptions,
   serializeOptions,
+  type GuessRateKey,
   type Mode,
   type ToolOptions,
 } from "@/lib/password";
@@ -26,6 +27,7 @@ import { reloadPage } from "./reload";
 import { ModeToggle } from "./ModeToggle";
 import { PasswordOptionsPanel, type SetKey } from "./PasswordOptionsPanel";
 import { PasswordOutput } from "./PasswordOutput";
+import { StrengthPanel } from "./StrengthPanel";
 
 export type GenError = "crypto" | "exhausted" | "unexpected" | null;
 
@@ -166,6 +168,9 @@ export function PasswordTool() {
   const [batchDraft, setBatchDraft] = useState(String(seed.options.batch));
   const [batchError, setBatchError] = useState(false);
   const [gen, setGen] = useState<Generated>(seed.gen);
+  // Attack scenario (D-09): local display state only. It never regenerates,
+  // is never written to the URL and is never announced.
+  const [scenario, setScenario] = useState<GuessRateKey>("fast");
   const heroCopy = useCopyToClipboard();
   const allCopy = useCopyToClipboard();
   const [status, setStatus] = useState<"" | StatusPhrase>("");
@@ -428,6 +433,7 @@ export function PasswordTool() {
     setSymbolDraft(DEFAULT_OPTIONS.symbolSet);
     setBatchDraft(String(DEFAULT_OPTIONS.batch));
     setBatchError(false);
+    setScenario("fast");
     const next = commit({ ...DEFAULT_OPTIONS, mode: options.mode });
     if (next.status === "ready" && next.error === null) {
       announce(
@@ -475,6 +481,11 @@ export function PasswordTool() {
             onRowCopied={onRowCopied}
           />
         </div>
+        <StrengthPanel
+          options={options}
+          scenario={scenario}
+          onScenarioChange={setScenario}
+        />
       </div>
       <PasswordOptionsPanel
         options={options}
