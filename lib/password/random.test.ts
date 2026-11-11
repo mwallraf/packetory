@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { fc, it as fcIt } from "@fast-check/vitest";
-import { MAX_FILL_BYTES } from "./constants";
+import { DEFAULT_OPTIONS, MAX_FILL_BYTES } from "./constants";
+import { CryptoUnavailableError } from "./errors";
+import { generateBatch, generatePassword } from "./generate";
 import { randomInt, resolveFill } from "./random";
 import { constantFill, queueFill, recordingFill } from "./test-utils";
 
@@ -122,5 +124,113 @@ describe("fill byte cap (SC-2, D-02)", () => {
     for (let i = 0; i < 1000; i++) randomInt(85, fill);
     expect(fill.calls).toBeGreaterThanOrEqual(1000);
     expect(fill.requestedBytes.every((bytes) => bytes === 4)).toBe(true);
+  });
+});
+
+/**
+ * Runs `fn` with `globalThis.crypto` replaced, restoring the saved value in a
+ * `finally` so no later test sees a broken global.
+ */
+function withoutWebCrypto<T>(replacement: unknown, fn: () => T): T {
+  const saved = globalThis.crypto;
+  Object.defineProperty(globalThis, "crypto", {
+    value: replacement,
+    configurable: true,
+    writable: true,
+  });
+  try {
+    return fn();
+  } finally {
+    Object.defineProperty(globalThis, "crypto", {
+      value: saved,
+      configurable: true,
+      writable: true,
+    });
+  }
+}
+
+function expectCryptoUnavailable(call: () => unknown): void {
+  expect(call).toThrow(CryptoUnavailableError);
+  let caught: unknown;
+  try {
+    call();
+  } catch (error) {
+    caught = error;
+  }
+  expect((caught as Error).name).toBe("CryptoUnavailableError");
+}
+
+describe("fail-closed Web Crypto (SC-2, D-02, PWD-07 guarantee)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    ["randomInt(85)", () => randomInt(85)],
+    ["randomInt(1)", () => randomInt(1)],
+    [
+      "generatePassword(DEFAULT_OPTIONS)",
+      () => generatePassword(DEFAULT_OPTIONS),
+    ],
+    [
+      "generateBatch(DEFAULT_OPTIONS, 5)",
+      () => generateBatch(DEFAULT_OPTIONS, 5),
+    ],
+  ])(
+    "%s with crypto undefined throws CryptoUnavailableError, no output, Math random never used",
+    (_label, call) => {
+      const spy = vi.spyOn(Math, "random");
+      withoutWebCrypto(undefined, () => {
+        expectCryptoUnavailable(call);
+      });
+      expect(spy).toHaveBeenCalledTimes(0);
+    },
+  );
+
+  it("crypto without the fill method (an empty object) throws CryptoUnavailableError", () => {
+    const spy = vi.spyOn(Math, "random");
+    withoutWebCrypto({}, () => {
+      expectCryptoUnavailable(() => randomInt(85));
+      expectCryptoUnavailable(() => generatePassword(DEFAULT_OPTIONS));
+    });
+    expect(spy).toHaveBeenCalledTimes(0);
+  });
+
+  it("an explicit fill still works when crypto is undefined", () => {
+    withoutWebCrypto(undefined, () => {
+      expect(randomInt(85, queueFill([3]))).toBe(3);
+      const upperOnly = {
+        ...DEFAULT_OPTIONS,
+        length: 4,
+        lowercase: false,
+        digits: false,
+        symbols: false,
+      };
+      expect(
+        generatePassword(upperOnly, { fill: queueFill([0, 1, 2, 3]) }),
+      ).toBe("ABCD");
+    });
+  });
+
+  it("restoring crypto restores generation (call-time resolution)", () => {
+    withoutWebCrypto(undefined, () => {
+      expectCryptoUnavailable(() => randomInt(85));
+    });
+    expect(generatePassword(DEFAULT_OPTIONS)).toHaveLength(20);
+  });
+
+  it("the default fill is bound to a crypto object installed after import (call-time binding)", () => {
+    const stub = {
+      getRandomValues(this: unknown, buf: Uint32Array): Uint32Array {
+        if (this !== stub) {
+          throw new TypeError("Illegal invocation");
+        }
+        buf.fill(7);
+        return buf;
+      },
+    };
+    withoutWebCrypto(stub, () => {
+      expect(randomInt(85)).toBe(7);
+    });
   });
 });

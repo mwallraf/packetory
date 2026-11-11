@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { fc, it as fcIt } from "@fast-check/vitest";
 import { normalizePasswordOptions, resolveAlphabet } from "./charset";
 import {
@@ -271,5 +271,22 @@ describe("generateBatch (D-04)", () => {
   it("batch elements are independent draws: 20 default passwords are pairwise distinct", () => {
     const batch = generateBatch(DEFAULT_OPTIONS, 20);
     expect(new Set(batch).size).toBe(20);
+  });
+});
+
+describe("import-time silence (D-04)", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("importing random, charset and generate in a fresh module graph draws no randomness", async () => {
+    vi.resetModules();
+    const cryptoSpy = vi.spyOn(globalThis.crypto, "getRandomValues");
+    const mathSpy = vi.spyOn(Math, "random");
+    await import("./random");
+    await import("./charset");
+    await import("./generate");
+    expect(cryptoSpy).toHaveBeenCalledTimes(0);
+    expect(mathSpy).toHaveBeenCalledTimes(0);
   });
 });
