@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openAbout } from "./helpers/about";
 
 test.describe("DNS Lookup SEO metadata (DNS-07, DNS-09)", () => {
   test("metadata is unique and complete", async ({ page }) => {
@@ -32,6 +33,7 @@ test.describe("DNS Lookup FAQ content and resolver disclosure (DNS-09, D-02)", (
     page,
   }) => {
     await page.goto("/tools/dns");
+    await openAbout(page, "dns", ["faq"]);
 
     const faqItems = page.getByTestId("dns-faq-item");
     const visibleCount = await faqItems.count();
@@ -80,6 +82,7 @@ test.describe("DNS Lookup worked example (DNS-07)", () => {
     page,
   }) => {
     await page.goto("/tools/dns");
+    await openAbout(page, "dns", ["worked-example"]);
 
     const workedExample = page.getByTestId("dns-worked-example");
     await expect(workedExample).toBeVisible();

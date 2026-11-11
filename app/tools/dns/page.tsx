@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SITE_URL } from "@/app/sitemap";
+import { ToolAbout } from "@/components/ToolAbout";
 import { DnsToolLoader } from "./DnsToolLoader";
 import {
   faqItems,
@@ -28,25 +29,6 @@ export const metadata: Metadata = {
 };
 
 /**
- * FAQPage JSON-LD (DNS-09/DNS-07 content parity with QUAL-02's precedent),
- * built from the SAME `faqItems` array rendered below — structured data and
- * on-screen content cannot drift. The `<` -> `<` escape mitigates the
- * XSS vector documented in the official Next.js JSON-LD guide (T-04-01,
- * mirrors T-03-01/T-02-04); this is the only `dangerouslySetInnerHTML`
- * usage in this file, and the source data is a static, author-controlled
- * build-time constant.
- */
-const faqJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: faqItems.map((item) => ({
-    "@type": "Question",
-    name: item.question,
-    acceptedAnswer: { "@type": "Answer", text: item.answer },
-  })),
-};
-
-/**
  * /tools/dns — Server Component shell (04-01 walking skeleton, extended in
  * 04-03 with metadata + worked example + FAQ, mirroring
  * `app/tools/subnet/page.tsx`'s full shape). Renders the page chrome and
@@ -54,16 +36,12 @@ const faqJsonLd = {
  * see `DnsToolLoader.tsx`). This component takes no props and reads no
  * request-time query-string API here, so the route stays statically
  * prerendered.
+ * The About area (worked example, FAQ and the FAQPage JSON-LD) comes from
+ * the shared `ToolAbout` (Phase 10, INFO-01/INFO-05).
  */
 export default function DnsPage() {
   return (
     <div className="flex flex-1 flex-col bg-background">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(faqJsonLd).replace(/</g, "\\u003c"),
-        }}
-      />
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6 lg:px-8">
         <h1 className="text-[32px] leading-[1.2] font-semibold text-foreground">
           DNS Lookup
@@ -72,11 +50,8 @@ export default function DnsPage() {
           <DnsToolLoader />
         </div>
 
-        <section className="mt-12" data-testid="dns-worked-example">
-          <h2 className="text-[20px] leading-[1.2] font-semibold text-foreground">
-            Worked example
-          </h2>
-          <div className="mt-4 space-y-2">
+        <ToolAbout slug="dns" faqItems={faqItems}>
+          <div className="space-y-2">
             <span className="text-[14px] leading-[1.4] font-semibold text-foreground">
               {sampleRecordType} record for {sampleDomain}
             </span>
@@ -118,25 +93,7 @@ export default function DnsPage() {
               {workedExampleNote}
             </p>
           </div>
-        </section>
-
-        <section className="mt-12">
-          <h2 className="text-[20px] leading-[1.2] font-semibold text-foreground">
-            FAQ
-          </h2>
-          <div className="mt-4 space-y-6">
-            {faqItems.map((item) => (
-              <div key={item.question} data-testid="dns-faq-item">
-                <p className="text-[14px] leading-[1.4] font-semibold text-foreground">
-                  {item.question}
-                </p>
-                <p className="mt-1 text-[16px] leading-[1.5] font-normal text-muted-foreground">
-                  {item.answer}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
+        </ToolAbout>
       </main>
     </div>
   );
