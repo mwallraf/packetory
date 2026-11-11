@@ -29,12 +29,12 @@ test.describe("Mobile nav drawer (320px, D-04, SHELL-06)", () => {
     await expect(drawer).toBeVisible();
 
     // All active registry entries render as real links using their shortName.
-    for (const shortName of ["Subnet", "UUID", "Config", "DNS", "Hash", "MAC"]) {
+    for (const shortName of ["Subnet", "UUID", "Config", "DNS", "Hash", "MAC", "Password"]) {
       await expect(
         drawer.getByText(shortName, { exact: true })
       ).toBeVisible();
     }
-    await expect(drawer.locator("a")).toHaveCount(6);
+    await expect(drawer.locator("a")).toHaveCount(7);
     await expect(
       drawer.getByTestId("mobile-nav-link").getByText("UUID", { exact: true })
     ).toBeVisible();
@@ -49,6 +49,11 @@ test.describe("Mobile nav drawer (320px, D-04, SHELL-06)", () => {
     ).toBeVisible();
     await expect(
       drawer.getByTestId("mobile-nav-link").getByText("MAC", { exact: true })
+    ).toBeVisible();
+    await expect(
+      drawer
+        .getByTestId("mobile-nav-link")
+        .getByText("Password", { exact: true })
     ).toBeVisible();
 
     // Logo and theme toggle remain visible outside the drawer while it's open (D-04).
@@ -82,34 +87,67 @@ test.describe("Mobile nav drawer (320px, D-04, SHELL-06)", () => {
   });
 });
 
-test.describe("Desktop nav fits six tools at 640px (INTG-01, research A5)", () => {
-  test.use({ viewport: { width: 640, height: 800 } });
+for (const width of [640, 700]) {
+  test.describe(`Desktop nav fits seven tools at 640px and 700px (PREG-01, D-11) - ${width}px`, () => {
+    test.use({ viewport: { width, height: 800 } });
 
-  test("the six nav links are visible and neither the page nor the header overflows horizontally", async ({
-    page,
-  }) => {
-    await page.goto("/");
+    test("seven nav links share one row, nothing overflows and the theme toggle keeps 8px clearance", async ({
+      page,
+    }) => {
+      await page.goto("/");
 
-    const links = page.getByTestId("nav-link");
-    await expect(links).toHaveCount(6);
-    for (let i = 0; i < 6; i++) {
-      await expect(links.nth(i)).toBeVisible();
-    }
+      const links = page.getByTestId("nav-link");
+      await expect(links).toHaveCount(7);
+      for (let i = 0; i < 7; i++) {
+        await expect(links.nth(i)).toBeVisible();
+      }
+      await expect(page.getByTestId("site-logo")).toBeVisible();
+      await expect(page.getByTestId("theme-toggle")).toBeVisible();
 
-    const overflow = await page.evaluate(() => {
-      const header = document.querySelector("header");
-      return {
-        pageScrollWidth: document.documentElement.scrollWidth,
-        pageClientWidth: document.documentElement.clientWidth,
-        headerScrollWidth: header?.scrollWidth ?? 0,
-        headerClientWidth: header?.clientWidth ?? 0,
-      };
+      expect(await links.allTextContents()).toEqual([
+        "Subnet",
+        "UUID",
+        "Config",
+        "DNS",
+        "Hash",
+        "MAC",
+        "Password",
+      ]);
+
+      const metrics = await page.evaluate(() => {
+        const header = document.querySelector("header");
+        const navLinks = Array.from(
+          document.querySelectorAll('[data-testid="nav-link"]')
+        ) as HTMLElement[];
+        const toggle = document.querySelector(
+          '[data-testid="theme-toggle"]'
+        ) as HTMLElement;
+        const rects = navLinks.map((l) => l.getBoundingClientRect());
+        return {
+          offsetTops: navLinks.map((l) => l.offsetTop),
+          widths: rects.map((r) => Math.round(r.width * 10) / 10),
+          lastRight: rects[rects.length - 1].right,
+          toggleLeft: toggle.getBoundingClientRect().left,
+          pageScrollWidth: document.documentElement.scrollWidth,
+          pageClientWidth: document.documentElement.clientWidth,
+          headerScrollWidth: header?.scrollWidth ?? 0,
+          headerClientWidth: header?.clientWidth ?? 0,
+        };
+      });
+
+      expect(new Set(metrics.offsetTops).size).toBe(1);
+      expect(metrics.pageScrollWidth).toBeLessThanOrEqual(
+        metrics.pageClientWidth
+      );
+      expect(metrics.headerScrollWidth).toBeLessThanOrEqual(
+        metrics.headerClientWidth
+      );
+
+      const slack = metrics.toggleLeft - metrics.lastRight;
+      console.log(
+        `[nav-fit ${width}px] link widths=${JSON.stringify(metrics.widths)} slack=${slack.toFixed(1)}px`
+      );
+      expect(metrics.lastRight + 8).toBeLessThanOrEqual(metrics.toggleLeft);
     });
-    expect(overflow.pageScrollWidth).toBeLessThanOrEqual(
-      overflow.pageClientWidth
-    );
-    expect(overflow.headerScrollWidth).toBeLessThanOrEqual(
-      overflow.headerClientWidth
-    );
   });
-});
+}
