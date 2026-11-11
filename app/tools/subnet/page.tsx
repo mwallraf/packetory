@@ -35,13 +35,16 @@ export const metadata: Metadata = {
  * server-renders — see RESEARCH.md Pattern 1). This component takes no
  * props and reads no request-time query-string API here, so the route
  * stays statically prerendered.
+ * The main widens to max-w-6xl at lg so the field grid gets three columns and
+ * the full result fits a 1366x650 viewport (Phase 11, SUBNET-08), while
+ * ToolAbout keeps its own max-w-3xl.
  * The About area (worked example, FAQ and the FAQPage JSON-LD) comes from
  * the shared `ToolAbout` (Phase 10, INFO-01/INFO-05).
  */
 export default function SubnetPage() {
   return (
     <div className="flex flex-1 flex-col bg-background">
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6 lg:max-w-6xl lg:px-8">
         <h1 className="text-[32px] leading-[1.2] font-semibold text-foreground">
           IP Subnet Calculator
         </h1>
