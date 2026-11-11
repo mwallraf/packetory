@@ -248,8 +248,10 @@ describe("Character set switches and the last-set lock (PWD-03, D-05)", () => {
     await toggle("digits");
     await toggle("symbols");
     await toggle("uppercase");
-    const label = document.querySelector('label[for="password-set-lowercase"]');
-    expect(label?.className).toContain("peer-disabled:opacity-100");
+    for (const key of SETS) {
+      const label = document.querySelector(`label[for="password-set-${key}"]`);
+      expect(label?.className).toContain("peer-disabled:opacity-100");
+    }
   });
 
   it.each(SETS)("when %s is the last set left it is the disabled switch", async (last) => {

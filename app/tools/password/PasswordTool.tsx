@@ -3,12 +3,16 @@
 import { useState } from "react";
 import {
   GenerationExhaustedError,
+  LENGTH_MAX,
+  LENGTH_MIN,
+  clampInt,
   generateBatch,
   normalizeToolOptions,
   parseOptions,
   type ToolOptions,
 } from "@/lib/password";
 import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
+import { PasswordOptionsPanel, type SetKey } from "./PasswordOptionsPanel";
 import { PasswordOutput } from "./PasswordOutput";
 
 export type GenError = "crypto" | "exhausted" | null;
@@ -42,6 +46,21 @@ function generate(opts: ToolOptions, generation: number): Generated {
 }
 
 /**
+ * Parses a draft that must be a plain ASCII integer in [min, max]; returns null
+ * for anything else (empty, signs, decimals, exponents, hex, non-ASCII digits,
+ * out of range). JS `\d` matches ASCII digits only, so full-width and
+ * Arabic-Indic digits fail. A 400-digit string becomes Infinity and fails the
+ * range check.
+ */
+function parseIntInRange(value: string, min: number, max: number): number | null {
+  const trimmed = value.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const n = Number(trimmed);
+  if (n < min || n > max) return null;
+  return n;
+}
+
+/**
  * Single lazy initializer for the island's first state (D-02). `window` is
  * deliberately NOT guarded: this component must never run on the server, so a
  * server execution has to fail loudly instead of silently generating a
@@ -60,7 +79,9 @@ function initialState(): { options: ToolOptions; gen: Generated } {
 
 export function PasswordTool() {
   const [seed] = useState(initialState);
-  const [options] = useState<ToolOptions>(seed.options);
+  const [options, setOptions] = useState<ToolOptions>(seed.options);
+  const [lengthDraft, setLengthDraft] = useState(String(seed.options.length));
+  const [lengthError, setLengthError] = useState(false);
   const [gen, setGen] = useState<Generated>(seed.gen);
   const heroCopy = useCopyToClipboard();
 
@@ -76,6 +97,47 @@ export function PasswordTool() {
     applyGenerated(generate(options, gen.generation + 1));
   }
 
+  // The one path every option change takes (D-06): normalize with the mode
+  // forced to password, set, generate, then reset the copy confirmation.
+  // Synchronous, so the displayed output already obeys the new options when
+  // the handler returns.
+  function commit(next: ToolOptions) {
+    const normalized = normalizeToolOptions({ ...next, mode: "password" });
+    setOptions(normalized);
+    applyGenerated(generate(normalized, gen.generation + 1));
+  }
+
+  function onLengthDraftChange(value: string) {
+    setLengthDraft(value);
+    const n = parseIntInRange(value, LENGTH_MIN, LENGTH_MAX);
+    if (n === null) {
+      setLengthError(true);
+      return;
+    }
+    setLengthError(false);
+    if (n !== options.length) commit({ ...options, length: n });
+  }
+
+  function onLengthBlur() {
+    const trimmed = lengthDraft.trim();
+    const result = /^\d+$/.test(trimmed)
+      ? clampInt(Number(trimmed), LENGTH_MIN, LENGTH_MAX, options.length)
+      : options.length;
+    if (result !== options.length) commit({ ...options, length: result });
+    setLengthDraft(String(result));
+    setLengthError(false);
+  }
+
+  function onSliderChange(n: number) {
+    setLengthDraft(String(n));
+    setLengthError(false);
+    commit({ ...options, length: n });
+  }
+
+  function onSetToggle(key: SetKey, checked: boolean) {
+    commit({ ...options, [key]: checked });
+  }
+
   return (
     <div data-testid="password-tool" className="flex flex-col gap-8">
       <div data-testid="password-output-zone">
@@ -85,6 +147,15 @@ export function PasswordTool() {
           onRegenerate={regenerate}
         />
       </div>
+      <PasswordOptionsPanel
+        options={options}
+        lengthDraft={lengthDraft}
+        lengthError={lengthError}
+        onLengthDraftChange={onLengthDraftChange}
+        onLengthBlur={onLengthBlur}
+        onSliderChange={onSliderChange}
+        onSetToggle={onSetToggle}
+      />
     </div>
   );
 }

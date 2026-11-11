@@ -1,0 +1,187 @@
+"use client";
+
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { LENGTH_MAX, LENGTH_MIN, type ToolOptions } from "@/lib/password";
+
+export type SetKey = "uppercase" | "lowercase" | "digits" | "symbols";
+
+type Props = {
+  options: ToolOptions;
+  lengthDraft: string;
+  lengthError: boolean;
+  onLengthDraftChange: (value: string) => void;
+  onLengthBlur: () => void;
+  onSliderChange: (length: number) => void;
+  onSetToggle: (key: SetKey, checked: boolean) => void;
+};
+
+/**
+ * Attributes that keep password managers, autofill and spellcheck away from an
+ * option input (D-08). No `name`, no `type="password"`, and never inside a form.
+ */
+const TEXT_INPUT_GUARDS = {
+  autoComplete: "off",
+  spellCheck: false,
+  autoCorrect: "off",
+  autoCapitalize: "off",
+  "data-1p-ignore": true,
+  "data-lpignore": "true",
+  "data-bwignore": true,
+  "data-form-type": "other",
+} as const;
+
+const LABEL_CLASS = "text-[14px] leading-[1.4] font-semibold";
+const SET_LABEL_CLASS = `${LABEL_CLASS} peer-disabled:opacity-100`;
+const HINT_CLASS =
+  "text-[14px] leading-[1.4] font-normal text-muted-foreground";
+
+const SET_ROWS: ReadonlyArray<{
+  key: SetKey;
+  label: string;
+  example: string | null;
+}> = [
+  { key: "uppercase", label: "Uppercase", example: "A–Z" },
+  { key: "lowercase", label: "Lowercase", example: "a–z" },
+  { key: "digits", label: "Digits", example: "0–9" },
+  { key: "symbols", label: "Symbols", example: null },
+];
+
+/**
+ * Presentational options section (PWD-02, PWD-03). It holds no state: the
+ * island owns the options and the drafts and passes the handlers. There is no
+ * form, fieldset or output element in here (D-08, RESEARCH Pitfall 8).
+ */
+export function PasswordOptionsPanel({
+  options,
+  lengthDraft,
+  lengthError,
+  onLengthDraftChange,
+  onLengthBlur,
+  onSliderChange,
+  onSetToggle,
+}: Props) {
+  const enabled = SET_ROWS.filter((row) => options[row.key]).length;
+  const locked = enabled === 1;
+
+  return (
+    <section
+      data-testid="password-options"
+      aria-labelledby="password-options-heading"
+    >
+      <h2
+        id="password-options-heading"
+        className="text-[20px] leading-[1.2] font-semibold text-foreground"
+      >
+        Options
+      </h2>
+      <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div className="flex flex-col gap-2 sm:col-span-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Label
+              htmlFor="password-length"
+              id="password-length-label"
+              className={LABEL_CLASS}
+            >
+              Length
+            </Label>
+            <Input
+              id="password-length"
+              data-testid="password-length"
+              type="text"
+              inputMode="numeric"
+              className="h-11 w-20 text-base md:text-base"
+              value={lengthDraft}
+              aria-invalid={lengthError}
+              aria-describedby={lengthError ? "password-length-hint" : undefined}
+              onChange={(e) => onLengthDraftChange(e.target.value)}
+              onBlur={onLengthBlur}
+              {...TEXT_INPUT_GUARDS}
+            />
+            <span className={HINT_CLASS}>characters</span>
+          </div>
+          <input
+            type="range"
+            data-testid="password-length-slider"
+            aria-labelledby="password-length-label"
+            min={LENGTH_MIN}
+            max={LENGTH_MAX}
+            step={1}
+            value={options.length}
+            autoComplete="off"
+            className="h-11 w-full cursor-pointer rounded-full accent-primary outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            onChange={(e) => onSliderChange(Number(e.target.value))}
+          />
+          <div
+            aria-hidden="true"
+            className="flex justify-between text-[14px] leading-[1.4] font-normal tabular-nums text-muted-foreground"
+          >
+            <span>{LENGTH_MIN}</span>
+            <span>{LENGTH_MAX}</span>
+          </div>
+          {lengthError && (
+            <span
+              id="password-length-hint"
+              data-testid="password-length-hint"
+              className={HINT_CLASS}
+            >
+              {`Enter a number between ${LENGTH_MIN} and ${LENGTH_MAX}`}
+            </span>
+          )}
+        </div>
+
+        <div
+          role="group"
+          aria-labelledby="password-sets-label"
+          className="flex flex-col gap-2"
+        >
+          <span
+            id="password-sets-label"
+            className="text-[14px] leading-[1.4] font-semibold text-foreground"
+          >
+            Character sets
+          </span>
+          {SET_ROWS.map(({ key, label, example }) => {
+            const checked = options[key];
+            const isLast = locked && checked;
+            return (
+              <div key={key} className="flex min-h-11 items-center gap-4">
+                <Switch
+                  id={`password-set-${key}`}
+                  data-testid={`password-set-${key}`}
+                  checked={checked}
+                  disabled={isLast}
+                  aria-describedby={
+                    isLast ? "password-sets-lock-hint" : undefined
+                  }
+                  onCheckedChange={(next) => onSetToggle(key, next)}
+                />
+                <Label
+                  htmlFor={`password-set-${key}`}
+                  className={SET_LABEL_CLASS}
+                >
+                  {label}
+                  {example && (
+                    <span className="font-mono font-normal text-muted-foreground">
+                      {example}
+                    </span>
+                  )}
+                </Label>
+              </div>
+            );
+          })}
+          {locked && (
+            <p
+              id="password-sets-lock-hint"
+              data-testid="password-sets-lock-hint"
+              className={HINT_CLASS}
+            >
+              At least one character set must stay on
+            </p>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
