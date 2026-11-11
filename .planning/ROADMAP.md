@@ -152,7 +152,7 @@ Plans:
      - Ctrl/Cmd+C copies a single result and is disabled for batches
   4. Changing options updates the address bar, so a bookmark restores them, and the URL never contains generated output. A hand-crafted hostile URL (out-of-range length, unknown keys, junk symbols) loads with clamped/whitelisted options and no error. Password option params never appear in analytics events.
   5. The password renders in a non-form element marked `translate="no"` with spellcheck off. It never appears in a form field value, a `title` or `aria-*` attribute, or a live-region announcement; the copy confirmation announces only that something was copied. Functional e2e coverage for all of the above passes via `npm run test:e2e` and `npm run test:e2e:prod` locally.
-**Plans**: 5/6 plans executed
+**Plans**: 6/6 plans executed
 
 Plans:
 **Wave 1**
@@ -169,7 +169,7 @@ Plans:
 - [x] 13-05-PLAN.md — Keyboard: / focus, Enter regenerate (no double fire, e2e call-count proof), Esc reset without focus loss, Ctrl/Cmd+C single-only with selection guard (POUT-04)
 
 **Wave 5** *(blocked on Wave 4 completion)*
-- [ ] 13-06-PLAN.md — End-to-end privacy sweep, 320px light/dark overflow, measured skeleton pin, full local release gate (test:e2e + test:e2e:prod), manual UAT items queued (PWD-01, POUT-03, POUT-05)
+- [x] 13-06-PLAN.md — End-to-end privacy sweep, 320px light/dark overflow, measured skeleton pin, full local release gate (test:e2e + test:e2e:prod), manual UAT items queued (PWD-01, POUT-03, POUT-05)
 **UI hint**: yes
 
 **Research flags**: Generate passwords in event handlers and store them in state, never in render or `useMemo`. Write URL state with `history.replaceState(null, ...)` using options only, never `router.replace` and never a `#fragment`. Manually check with a browser password manager (no save-password prompt or autofill) and with page translation turned on. The registry/nav entry is deliberately left to Phase 14 so the tool is only advertised once it is complete. The route is reachable directly for e2e in the meantime. Measure skeleton heights now, but do the final no-CLS pin in Phase 14, once the strength meter and passphrase controls exist.
@@ -211,5 +211,5 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 10. Shared About Section & Config Parity | v1.3 | 6/6 | Complete    | 2026-11-11 |
 | 11. Subnet Calculator Compaction | v1.3 | 1/1 | In Progress | - |
 | 12. Password Core Library | v1.3 | 5/5 | In Progress | - |
-| 13. Password Generator Page | v1.3 | 5/6 | In Progress | - |
+| 13. Password Generator Page | v1.3 | 6/6 | In Progress | - |
 | 14. Passphrase, Strength & Launch | v1.3 | 0/TBD | Not started | - |

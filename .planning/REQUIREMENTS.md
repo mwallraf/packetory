@@ -28,7 +28,7 @@
 
 ### Password generator — random password (PWD)
 
-- [ ] **PWD-01**: Opening `/tools/password` immediately shows a fresh random 20-character password using all four character sets, generated client-side only (never present in the static HTML; different on every load)
+- [x] **PWD-01**: Opening `/tools/password` immediately shows a fresh random 20-character password using all four character sets, generated client-side only (never present in the static HTML; different on every load)
 - [x] **PWD-02**: User can set length 4–128 via slider and number input
 - [x] **PWD-03**: User can toggle uppercase, lowercase, digits, and symbols; the last enabled set cannot be turned off
 - [x] **PWD-04**: Every generated password contains at least one character from each enabled set, without biasing the distribution (whole-password rejection resampling)
@@ -55,9 +55,9 @@
 
 - [x] **POUT-01**: User can click Regenerate, and copy each result with one click and visible confirmation
 - [x] **POUT-02**: User can generate a batch of 1–20 results and Copy all (one per line)
-- [ ] **POUT-03**: Options — never the generated output — persist in the URL so a bookmark restores them; the URL parser clamps/whitelists hostile values; password option params are never sent to analytics
+- [x] **POUT-03**: Options — never the generated output — persist in the URL so a bookmark restores them; the URL parser clamps/whitelists hostile values; password option params are never sent to analytics
 - [x] **POUT-04**: Keyboard: `/` focuses length, Enter regenerates, Esc resets to defaults, Ctrl/Cmd+C copies the result when there is a single result (disabled for batches)
-- [ ] **POUT-05**: The generated password never appears in a form field, `title`, `aria-*` attribute, or live-region announcement, and its element is marked `translate="no"` with spellcheck off
+- [x] **POUT-05**: The generated password never appears in a form field, `title`, `aria-*` attribute, or live-region announcement, and its element is marked `translate="no"` with spellcheck off
 
 ### Registration & SEO (PREG)
 
@@ -102,7 +102,7 @@
 | SUBNET-08 | Phase 11 | Complete |
 | SUBNET-09 | Phase 11 | Complete |
 | SUBNET-10 | Phase 11 | Complete |
-| PWD-01 | Phase 13 | Pending |
+| PWD-01 | Phase 13 | Complete |
 | PWD-02 | Phase 13 | Complete |
 | PWD-03 | Phase 13 | Complete |
 | PWD-04 | Phase 12 | Complete |
@@ -120,9 +120,9 @@
 | STR-04 | Phase 14 | Pending |
 | POUT-01 | Phase 13 | Complete |
 | POUT-02 | Phase 13 | Complete |
-| POUT-03 | Phase 13 | Pending |
+| POUT-03 | Phase 13 | Complete |
 | POUT-04 | Phase 13 | Complete |
-| POUT-05 | Phase 13 | Pending |
+| POUT-05 | Phase 13 | Complete |
 | PREG-01 | Phase 14 | Pending |
 | PREG-02 | Phase 14 | Pending |
 | PREG-03 | Phase 14 | Pending |
