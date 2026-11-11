@@ -167,6 +167,9 @@ test.describe("Password page server HTML (PWD-01, E1-loading)", () => {
       );
 
       expect(hasAllSetsRun(visibleText(html))).toBe(false);
+      // Non-vacuity: a Next change to the flight push format must not turn
+      // the scan below into a silent no-op (IN-09).
+      expect(flightPayloads(html).length).toBeGreaterThan(0);
       expect(flightHasAllSetsRun(html)).toBe(false);
     });
   }
