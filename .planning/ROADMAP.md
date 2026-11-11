@@ -152,7 +152,7 @@ Plans:
      - Ctrl/Cmd+C copies a single result and is disabled for batches
   4. Changing options updates the address bar, so a bookmark restores them, and the URL never contains generated output. A hand-crafted hostile URL (out-of-range length, unknown keys, junk symbols) loads with clamped/whitelisted options and no error. Password option params never appear in analytics events.
   5. The password renders in a non-form element marked `translate="no"` with spellcheck off. It never appears in a form field value, a `title` or `aria-*` attribute, or a live-region announcement; the copy confirmation announces only that something was copied. Functional e2e coverage for all of the above passes via `npm run test:e2e` and `npm run test:e2e:prod` locally.
-**Plans**: 3/6 plans executed
+**Plans**: 4/6 plans executed
 
 Plans:
 **Wave 1**
@@ -163,7 +163,7 @@ Plans:
 - [x] 13-03-PLAN.md — Source guards: WALK_DIRS extended to the page, plus page bans (storage, router/fragment, analytics/console/network, form/title surfaces, generation location, barrel-only imports) with in-memory teeth (PWD-01, PWD-07, POUT-03, POUT-05)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 13-04-PLAN.md — Batch 1-20 with per-row copy and Copy all, batch-count input, one polite live region with fixed phrases only, RTL attribute scan (POUT-01, POUT-02, POUT-05)
+- [x] 13-04-PLAN.md — Batch 1-20 with per-row copy and Copy all, batch-count input, one polite live region with fixed phrases only, RTL attribute scan (POUT-01, POUT-02, POUT-05)
 
 **Wave 4** *(blocked on Wave 3 completion)*
 - [ ] 13-05-PLAN.md — Keyboard: / focus, Enter regenerate (no double fire, e2e call-count proof), Esc reset without focus loss, Ctrl/Cmd+C single-only with selection guard (POUT-04)
@@ -211,5 +211,5 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 10. Shared About Section & Config Parity | v1.3 | 6/6 | Complete    | 2026-11-11 |
 | 11. Subnet Calculator Compaction | v1.3 | 1/1 | In Progress | - |
 | 12. Password Core Library | v1.3 | 5/5 | In Progress | - |
-| 13. Password Generator Page | v1.3 | 3/6 | In Progress | - |
+| 13. Password Generator Page | v1.3 | 4/6 | In Progress | - |
 | 14. Passphrase, Strength & Launch | v1.3 | 0/TBD | Not started | - |

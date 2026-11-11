@@ -53,8 +53,8 @@
 
 ### Output, state & keyboard (POUT)
 
-- [ ] **POUT-01**: User can click Regenerate, and copy each result with one click and visible confirmation
-- [ ] **POUT-02**: User can generate a batch of 1–20 results and Copy all (one per line)
+- [x] **POUT-01**: User can click Regenerate, and copy each result with one click and visible confirmation
+- [x] **POUT-02**: User can generate a batch of 1–20 results and Copy all (one per line)
 - [ ] **POUT-03**: Options — never the generated output — persist in the URL so a bookmark restores them; the URL parser clamps/whitelists hostile values; password option params are never sent to analytics
 - [ ] **POUT-04**: Keyboard: `/` focuses length, Enter regenerates, Esc resets to defaults, Ctrl/Cmd+C copies the result when there is a single result (disabled for batches)
 - [ ] **POUT-05**: The generated password never appears in a form field, `title`, `aria-*` attribute, or live-region announcement, and its element is marked `translate="no"` with spellcheck off
@@ -118,8 +118,8 @@
 | STR-02 | Phase 14 | Pending |
 | STR-03 | Phase 14 | Pending |
 | STR-04 | Phase 14 | Pending |
-| POUT-01 | Phase 13 | Pending |
-| POUT-02 | Phase 13 | Pending |
+| POUT-01 | Phase 13 | Complete |
+| POUT-02 | Phase 13 | Complete |
 | POUT-03 | Phase 13 | Pending |
 | POUT-04 | Phase 13 | Pending |
 | POUT-05 | Phase 13 | Pending |
