@@ -100,11 +100,12 @@ function ErrorPanel({
 }
 
 /**
- * Pinned to the hero's current height pair so Loading and Error never move the
- * layout; 14-08 re-pins it to the measured default passphrase hero (D-16).
+ * Pinned to the measured default 6-word passphrase hero so Loading and Error
+ * never move the layout (D-16, D-17). Measured (14-08, Chromium, fonts loaded,
+ * most frequent of 200 samples): 178px at 320px wide, 122px at 1280px wide.
  */
-const WORDLIST_STATE_HEIGHT = "h-[124px] sm:h-[124px]";
-const WORDLIST_STATE_MIN_HEIGHT = "min-h-[124px] sm:min-h-[124px]";
+const WORDLIST_STATE_HEIGHT = "h-[178px] sm:h-[122px]";
+const WORDLIST_STATE_MIN_HEIGHT = "min-h-[178px] sm:min-h-[122px]";
 
 /** Text-free placeholder while the EFF list loads (D-04): no value, no controls. */
 function WordlistLoading() {

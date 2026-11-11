@@ -17,20 +17,26 @@ const PasswordTool = dynamic(
 );
 
 /**
- * Text-free placeholder for the island (D-17). It holds no text, digits or
- * symbols. Measured (13-06, Chromium, default state, fonts loaded): 320px wide 977.9px, 1280px wide 708.4px; pinned h-[980px] sm:h-[712px].
- * The hero block measured 122px at both widths and is pinned h-[124px] sm:h-[124px].
- * Phase 14 makes the final pin and adds the CLS gate once the strength meter
- * and passphrase controls exist.
+ * Text-free placeholder for the island (D-16, D-17). It holds no text, digits
+ * or symbols, and mirrors the settled default island: the mode row, the hero
+ * and the strength panel, with the options panel's space reserved by the root
+ * height.
+ * Measured (14-08, Chromium, default state, fonts loaded): 320px wide 1374.3px, 1280px wide 960.3px; pinned h-[1374px] sm:h-[960px]
+ * Blocks (Password mode, batch 1): mode row 44px, hero 122px at both widths, strength panel 348px at 320px and 225px at 1280px.
+ * Passphrase hero (6 words, most frequent of 200 samples): 178px at 320px, 122px at 1280px; pinned in PasswordOutput.tsx.
  */
 function PasswordToolSkeleton() {
   return (
     <div
       aria-hidden="true"
       data-testid="password-skeleton"
-      className="flex flex-col gap-8 h-[980px] sm:h-[712px]"
+      className="flex flex-col gap-8 h-[1374px] sm:h-[960px]"
     >
-      <div className="h-[124px] sm:h-[124px] animate-pulse rounded-md border border-border bg-secondary motion-reduce:animate-none" />
+      <div className="flex flex-col gap-4">
+        <div className="h-11 w-56 rounded-lg bg-secondary" />
+        <div className="h-[122px] animate-pulse rounded-md border border-border bg-secondary motion-reduce:animate-none" />
+        <div className="h-[348px] sm:h-[225px] rounded-md border border-border bg-background" />
+      </div>
     </div>
   );
 }
