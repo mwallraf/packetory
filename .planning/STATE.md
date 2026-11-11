@@ -25,7 +25,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-11)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Phase 10 — Shared About Section & Config Parity
+**Current focus:** Phase 11 — Subnet Calculator Compaction
 
 ## Current Position
 
