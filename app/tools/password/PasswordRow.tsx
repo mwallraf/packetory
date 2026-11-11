@@ -1,0 +1,65 @@
+"use client";
+
+import { Check, Copy } from "lucide-react";
+import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
+import { ColoredPassword } from "./ColoredPassword";
+
+/** Shown next to any control whose clipboard write was rejected. */
+export const COPY_ERROR_TEXT =
+  "Couldn't copy — select the text and copy manually.";
+
+type Props = {
+  value: string;
+  index: number;
+  onCopied: () => void;
+};
+
+/**
+ * One batch row (POUT-02, D-10). It owns its own copy hook, so a confirmation
+ * never bleeds into another row. The accessible name carries the 1-based
+ * position only; the password is never in an aria-label, title, data-* or key.
+ * `onCopied` tells the island a copy succeeded so it can announce the fixed
+ * phrase; it fires from the hook's `copied` flag, never from the click.
+ */
+export function PasswordRow({ value, index }: Props) {
+  const { copy, copied, error } = useCopyToClipboard();
+
+  return (
+    <li
+      data-testid="password-row"
+      className="flex flex-wrap items-start gap-2 py-1"
+    >
+      <div
+        data-testid="password-row-value"
+        translate="no"
+        spellCheck={false}
+        className="min-w-0 flex-1 py-2 font-mono text-[16px] leading-[1.5] font-normal break-all select-all text-foreground"
+      >
+        <ColoredPassword value={value} />
+      </div>
+      <button
+        type="button"
+        data-testid="password-row-copy"
+        aria-label={copied ? "Copied!" : `Copy password ${index + 1}`}
+        onClick={() => void copy(value)}
+        className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-full px-2.5 text-primary outline-none transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      >
+        {copied ? (
+          <>
+            <Check aria-hidden="true" className="size-4" />
+            <span className="text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
+              Copied!
+            </span>
+          </>
+        ) : (
+          <Copy aria-hidden="true" className="size-5" />
+        )}
+      </button>
+      {error && (
+        <p className="w-full text-[14px] leading-[1.4] font-normal text-foreground">
+          {COPY_ERROR_TEXT}
+        </p>
+      )}
+    </li>
+  );
+}

@@ -57,7 +57,7 @@ function displayed(): string[] {
 }
 
 function status(): string {
-  return screen.getByTestId("password-status").textContent ?? "";
+  return screen.queryByTestId("password-status")?.textContent ?? "";
 }
 
 async function click(el: HTMLElement) {

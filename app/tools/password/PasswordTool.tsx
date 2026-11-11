@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import {
+  BATCH_MAX,
+  BATCH_MIN,
   GenerationExhaustedError,
   LENGTH_MAX,
   LENGTH_MIN,
@@ -100,8 +102,11 @@ export function PasswordTool() {
   const [lengthDraft, setLengthDraft] = useState(String(seed.options.length));
   const [lengthError, setLengthError] = useState(false);
   const [symbolDraft, setSymbolDraft] = useState(seed.options.symbolSet);
+  const [batchDraft, setBatchDraft] = useState(String(seed.options.batch));
+  const [batchError, setBatchError] = useState(false);
   const [gen, setGen] = useState<Generated>(seed.gen);
   const heroCopy = useCopyToClipboard();
+  const allCopy = useCopyToClipboard();
 
   useEffect(() => {
     writeUrl(options);
@@ -114,6 +119,7 @@ export function PasswordTool() {
   function applyGenerated(next: Generated) {
     setGen(next);
     heroCopy.reset();
+    allCopy.reset();
   }
 
   function regenerate() {
@@ -125,11 +131,13 @@ export function PasswordTool() {
   // confirmation.
   // Synchronous, so the displayed output already obeys the new options when
   // the handler returns.
-  function commit(next: ToolOptions) {
+  function commit(next: ToolOptions): Generated {
     const normalized = normalizeToolOptions({ ...next, mode: "password" });
     setOptions(normalized);
     writeUrl(normalized);
-    applyGenerated(generate(normalized, gen.generation + 1));
+    const applied = generate(normalized, gen.generation + 1);
+    applyGenerated(applied);
+    return applied;
   }
 
   function onLengthDraftChange(value: string) {
@@ -159,6 +167,28 @@ export function PasswordTool() {
     commit({ ...options, length: n });
   }
 
+  // Batch count: the same draft rules as Length (D-05, D-10).
+  function onBatchDraftChange(value: string) {
+    setBatchDraft(value);
+    const n = parseIntInRange(value, BATCH_MIN, BATCH_MAX);
+    if (n === null) {
+      setBatchError(true);
+      return;
+    }
+    setBatchError(false);
+    if (n !== options.batch) commit({ ...options, batch: n });
+  }
+
+  function onBatchBlur() {
+    const trimmed = batchDraft.trim();
+    const result = /^\d+$/.test(trimmed)
+      ? clampInt(Number(trimmed), BATCH_MIN, BATCH_MAX, options.batch)
+      : options.batch;
+    if (result !== options.batch) commit({ ...options, batch: result });
+    setBatchDraft(String(result));
+    setBatchError(false);
+  }
+
   function onSetToggle(key: SetKey, checked: boolean) {
     commit({ ...options, [key]: checked });
   }
@@ -180,13 +210,18 @@ export function PasswordTool() {
     commit({ ...options, avoidLookalikes: checked });
   }
 
+  // Wired to the live region in Task 2.
+  function onRowCopied() {}
+
   return (
     <div data-testid="password-tool" className="flex flex-col gap-8">
       <div data-testid="password-output-zone">
         <PasswordOutput
           gen={gen}
           heroCopy={heroCopy}
+          allCopy={allCopy}
           onRegenerate={regenerate}
+          onRowCopied={onRowCopied}
         />
       </div>
       <PasswordOptionsPanel
@@ -194,6 +229,8 @@ export function PasswordTool() {
         lengthDraft={lengthDraft}
         lengthError={lengthError}
         symbolDraft={symbolDraft}
+        batchDraft={batchDraft}
+        batchError={batchError}
         onLengthDraftChange={onLengthDraftChange}
         onLengthBlur={onLengthBlur}
         onSliderChange={onSliderChange}
@@ -201,6 +238,8 @@ export function PasswordTool() {
         onSymbolDraftChange={onSymbolDraftChange}
         onSymbolBlur={onSymbolBlur}
         onLookalikesChange={onLookalikesChange}
+        onBatchDraftChange={onBatchDraftChange}
+        onBatchBlur={onBatchBlur}
       />
     </div>
   );

@@ -4,16 +4,17 @@ import { Check, Copy, RefreshCw, TriangleAlert } from "lucide-react";
 import type { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
 import { ColoredPassword } from "./ColoredPassword";
 import type { Generated } from "./PasswordTool";
+import { COPY_ERROR_TEXT, PasswordRow } from "./PasswordRow";
 
 type CopyState = ReturnType<typeof useCopyToClipboard>;
 
 type Props = {
   gen: Generated;
   heroCopy: CopyState;
+  allCopy: CopyState;
   onRegenerate: () => void;
+  onRowCopied: () => void;
 };
-
-const COPY_ERROR_TEXT = "Couldn't copy — select the text and copy manually.";
 
 /**
  * The fail-closed copy (D-03). Plain JS strings, not JSX text, so the
@@ -122,19 +123,109 @@ function Hero({
   );
 }
 
+function Batch({
+  gen,
+  allCopy,
+  onRegenerate,
+  onRowCopied,
+}: {
+  gen: Generated;
+  allCopy: CopyState;
+  onRegenerate: () => void;
+  onRowCopied: () => void;
+}) {
+  return (
+    <div data-testid="password-batch" className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="mr-auto text-[14px] leading-[1.4] font-semibold text-muted-foreground">
+          {gen.results.length} passwords
+        </p>
+        <button
+          type="button"
+          data-testid="password-copy-all"
+          aria-label={allCopy.copied ? "Copied!" : "Copy all passwords"}
+          onClick={() => void allCopy.copy(gen.results.join("\n"))}
+          className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-full px-4 text-primary outline-none transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          {allCopy.copied ? (
+            <>
+              <Check aria-hidden="true" className="size-4" />
+              <span className="text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
+                Copied!
+              </span>
+            </>
+          ) : (
+            <>
+              <Copy aria-hidden="true" className="size-5" />
+              <span className="text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
+                Copy all
+              </span>
+            </>
+          )}
+        </button>
+        <button
+          type="button"
+          data-testid="password-regenerate"
+          onClick={onRegenerate}
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-border px-4 text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          <RefreshCw aria-hidden="true" className="size-5" />
+          <span className="text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
+            Regenerate
+          </span>
+        </button>
+      </div>
+      {allCopy.error && (
+        <p className="text-[14px] leading-[1.4] font-normal text-muted-foreground">
+          {COPY_ERROR_TEXT}
+        </p>
+      )}
+      <ul
+        data-testid="password-batch-list"
+        className="flex flex-col divide-y divide-border rounded-md border border-border bg-secondary px-4"
+      >
+        {gen.results.map((value, index) => (
+          <PasswordRow
+            key={`${gen.generation}-${index}`}
+            value={value}
+            index={index}
+            onCopied={onRowCopied}
+          />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /**
- * Renders exactly one of the hero or the fail-closed error panel (D-03,
- * D-10). The password never appears in a title, aria-*, data-* or key. The
- * batch list for more than one result is plan 13-04's (POUT-02); until then
- * the hero shows `results[0]`.
+ * Renders exactly one of the hero, the batch list or the fail-closed error
+ * panel (D-03, D-10). A generation is all-or-nothing, so the list never shows
+ * a partial result. The password never appears in a title, aria-*, data-* or
+ * key: rows are keyed by generation and index.
  */
-export function PasswordOutput({ gen, heroCopy, onRegenerate }: Props) {
+export function PasswordOutput({
+  gen,
+  heroCopy,
+  allCopy,
+  onRegenerate,
+  onRowCopied,
+}: Props) {
   if (gen.error !== null) {
     return <ErrorPanel error={gen.error} />;
   }
   const value = gen.results[0];
   if (value === undefined) {
     return <ErrorPanel error="crypto" />;
+  }
+  if (gen.results.length > 1) {
+    return (
+      <Batch
+        gen={gen}
+        allCopy={allCopy}
+        onRegenerate={onRegenerate}
+        onRowCopied={onRowCopied}
+      />
+    );
   }
   return (
     <Hero value={value} heroCopy={heroCopy} onRegenerate={onRegenerate} />

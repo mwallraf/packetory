@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
+  BATCH_MAX,
+  BATCH_MIN,
   LENGTH_MAX,
   LENGTH_MIN,
   LOOK_ALIKES,
@@ -19,6 +21,8 @@ type Props = {
   lengthDraft: string;
   lengthError: boolean;
   symbolDraft: string;
+  batchDraft: string;
+  batchError: boolean;
   onLengthDraftChange: (value: string) => void;
   onLengthBlur: () => void;
   onSliderChange: (length: number) => void;
@@ -26,6 +30,8 @@ type Props = {
   onSymbolDraftChange: (value: string) => void;
   onSymbolBlur: () => void;
   onLookalikesChange: (checked: boolean) => void;
+  onBatchDraftChange: (value: string) => void;
+  onBatchBlur: () => void;
 };
 
 /**
@@ -88,6 +94,8 @@ export function PasswordOptionsPanel({
   lengthDraft,
   lengthError,
   symbolDraft,
+  batchDraft,
+  batchError,
   onLengthDraftChange,
   onLengthBlur,
   onSliderChange,
@@ -95,6 +103,8 @@ export function PasswordOptionsPanel({
   onSymbolDraftChange,
   onSymbolBlur,
   onLookalikesChange,
+  onBatchDraftChange,
+  onBatchBlur,
 }: Props) {
   const enabled = SET_ROWS.filter((row) => options[row.key]).length;
   const locked = enabled === 1;
@@ -264,6 +274,38 @@ export function PasswordOptionsPanel({
               {LOOK_ALIKES.split("").join(" ")}
             </span>
           </p>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Label htmlFor="password-batch-count" className={LABEL_CLASS}>
+              Batch count
+            </Label>
+            <Input
+              id="password-batch-count"
+              data-testid="password-batch-count"
+              type="text"
+              inputMode="numeric"
+              className="h-11 w-20 text-base md:text-base"
+              value={batchDraft}
+              aria-invalid={batchError}
+              aria-describedby={
+                batchError ? "password-batch-count-hint" : undefined
+              }
+              onChange={(e) => onBatchDraftChange(e.target.value)}
+              onBlur={onBatchBlur}
+              {...TEXT_INPUT_GUARDS}
+            />
+          </div>
+          {batchError && (
+            <span
+              id="password-batch-count-hint"
+              data-testid="password-batch-count-hint"
+              className={HINT_CLASS}
+            >
+              {`Enter a number between ${BATCH_MIN} and ${BATCH_MAX}`}
+            </span>
+          )}
         </div>
       </div>
     </section>
