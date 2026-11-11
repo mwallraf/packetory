@@ -387,6 +387,18 @@ describe("guards have teeth - in-memory mutants (D-05)", () => {
     expect(a.wordlistStaticImporters).toEqual([PROBE]);
   });
 
+  it("detects a static import of the vendored list from the Password island (D-04)", () => {
+    // Phase 14 lets the island import the lazy loader, never the list itself.
+    const island = "app/tools/password/PasswordTool.tsx";
+    const a = mutate(
+      new Map(real),
+      island,
+      `import list from "@/${LIST_MODULE}";\nexport default list;`,
+    );
+    expect(a.wordlistStaticImporters).toEqual([island]);
+    expect(realAnalysis.wordlistStaticImporters).toEqual([]);
+  });
+
   it("detects a static import of the vendored list in the barrel", () => {
     const a = mutate(new Map(real), "lib/password/index.ts", `import "./wordlist/eff-large";`);
     expect(a.wordlistStaticImporters).toEqual(["lib/password/index.ts"]);

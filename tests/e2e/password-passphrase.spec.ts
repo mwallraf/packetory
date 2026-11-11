@@ -1,32 +1,11 @@
 import { expect, test } from "@playwright/test";
 import { EFF_HYPHENATED_WORDS } from "../../lib/password";
+import { splitPassphrase } from "./helpers/passphrase";
 
 /**
  * Passphrase mode tracer (PHR-01, PHR-03): choosing Passphrase lazy-loads the
  * EFF list, shows a 6-word passphrase and mirrors only the mode into the URL.
  */
-
-const PLACEHOLDER = (i: number) => `\u0000${i}\u0000`;
-
-/**
- * Splits a passphrase on its separator while protecting the four EFF words
- * that contain a hyphen (RESEARCH Pitfall 5): each is swapped for a
- * placeholder, the string is split, and the placeholders are restored.
- */
-function splitPassphrase(value: string, separator: string): string[] {
-  let protectedValue = value;
-  EFF_HYPHENATED_WORDS.forEach((w, i) => {
-    protectedValue = protectedValue.split(w).join(PLACEHOLDER(i));
-  });
-  return protectedValue
-    .split(separator)
-    .map((token) =>
-      EFF_HYPHENATED_WORDS.reduce(
-        (acc, w, i) => acc.split(PLACEHOLDER(i)).join(w),
-        token,
-      ),
-    );
-}
 
 const WORD_RE = new RegExp(
   `^(?:[a-z]+|${EFF_HYPHENATED_WORDS.join("|")})$`,
