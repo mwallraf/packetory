@@ -64,6 +64,52 @@ function ErrorPanel({
   );
 }
 
+/**
+ * Pinned to the hero's current height pair so Loading and Error never move the
+ * layout; 14-08 re-pins it to the measured default passphrase hero (D-16).
+ */
+const WORDLIST_STATE_HEIGHT = "h-[124px] sm:h-[124px]";
+const WORDLIST_STATE_MIN_HEIGHT = "min-h-[124px] sm:min-h-[124px]";
+
+/** Text-free placeholder while the EFF list loads (D-04): no value, no controls. */
+function WordlistLoading() {
+  return (
+    <div
+      data-testid="password-wordlist-loading"
+      aria-hidden="true"
+      className={`${WORDLIST_STATE_HEIGHT} animate-pulse rounded-md border border-border bg-secondary motion-reduce:animate-none`}
+    />
+  );
+}
+
+/**
+ * Fail-closed word-list failure (D-04, D-05): no passphrase from any source and
+ * no copy or regenerate controls. The Retry action arrives with 14-03.
+ */
+function WordlistError() {
+  return (
+    <div
+      data-testid="password-wordlist-error"
+      className={`flex ${WORDLIST_STATE_MIN_HEIGHT} flex-col items-start gap-4 rounded-md border border-destructive/30 bg-background p-4`}
+    >
+      <div className="flex items-start gap-2">
+        <TriangleAlert
+          aria-hidden="true"
+          className="mt-1 size-4 shrink-0 text-destructive"
+        />
+        <div role="alert" className="flex flex-col gap-2">
+          <p className="text-[16px] leading-[1.5] font-normal text-destructive">
+            {"Couldn't load the word list, so no passphrase was generated."}
+          </p>
+          <p className="text-[14px] leading-[1.4] font-normal text-muted-foreground">
+            Check your connection and try again.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Hero({
   value,
   heroCopy,
@@ -218,6 +264,8 @@ export function PasswordOutput({
   onRegenerate,
   onRowCopied,
 }: Props) {
+  if (gen.status === "loading") return <WordlistLoading />;
+  if (gen.status === "wordlist-error") return <WordlistError />;
   if (gen.error !== null) {
     return <ErrorPanel error={gen.error} />;
   }

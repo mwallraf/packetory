@@ -11,14 +11,18 @@ import {
   DEFAULT_OPTIONS,
   clampInt,
   generateBatch,
+  generatePassphraseBatch,
   normalizeSymbols,
   normalizeToolOptions,
   parseOptions,
   serializeOptions,
+  type Mode,
   type ToolOptions,
 } from "@/lib/password";
+import { loadWordlist } from "@/lib/password/wordlist";
 import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
 import { useKeyboardShortcut } from "@/lib/hooks/useKeyboardShortcut";
+import { ModeToggle } from "./ModeToggle";
 import { PasswordOptionsPanel, type SetKey } from "./PasswordOptionsPanel";
 import { PasswordOutput } from "./PasswordOutput";
 
@@ -31,18 +35,37 @@ export type GenError = "crypto" | "exhausted" | "unexpected" | null;
 export type StatusPhrase =
   | "Copied"
   | "Copied all passwords"
+  | "Copied all passphrases"
   | "New password generated"
+  | "New passphrase generated"
   | `${number} new passwords generated`
-  | "Options reset. New password generated";
+  | `${number} new passphrases generated`
+  | "Options reset. New password generated"
+  | "Options reset. New passphrase generated"
+  | "Loading word list"
+  | "Word list loaded. New passphrase generated";
 
-function generatedPhrase(n: number): StatusPhrase {
+function generatedPhrase(n: number, mode: Mode): StatusPhrase {
+  if (mode === "passphrase") {
+    return n === 1
+      ? "New passphrase generated"
+      : `${n} new passphrases generated`;
+  }
   return n === 1 ? "New password generated" : `${n} new passwords generated`;
 }
+
+/**
+ * "ready": results or a fail-closed error. "loading": the EFF list is on its
+ * way and nothing was drawn. "wordlist-error": the list could not be loaded,
+ * and no passphrase exists from any source (D-04).
+ */
+export type GenStatus = "ready" | "loading" | "wordlist-error";
 
 export type Generated = {
   results: string[];
   error: GenError;
   generation: number;
+  status: GenStatus;
 };
 
 /**
@@ -52,11 +75,23 @@ export type Generated = {
  * copy; any other throw gets a neutral message, so a non-crypto failure is
  * never mislabelled as a missing Web Crypto (WR-01).
  */
-function generate(opts: ToolOptions, generation: number): Generated {
+function generate(
+  opts: ToolOptions,
+  generation: number,
+  list: readonly string[] | null,
+): Generated {
+  if (opts.mode === "passphrase" && list === null) {
+    // No list yet: nothing is drawn, so no randomness is consumed.
+    return { results: [], error: null, status: "loading", generation };
+  }
   try {
     return {
-      results: generateBatch(opts, opts.batch),
+      results:
+        opts.mode === "passphrase" && list !== null
+          ? generatePassphraseBatch(opts, list, opts.batch)
+          : generateBatch(opts, opts.batch),
       error: null,
+      status: "ready",
       generation,
     };
   } catch (e) {
@@ -66,7 +101,7 @@ function generate(opts: ToolOptions, generation: number): Generated {
         : e instanceof CryptoUnavailableError
           ? "crypto"
           : "unexpected";
-    return { results: [], error, generation };
+    return { results: [], error, status: "ready", generation };
   }
 }
 
@@ -120,7 +155,7 @@ function initialState(): { options: ToolOptions; gen: Generated } {
     ...parseOptions(window.location.search),
     mode: "password",
   });
-  return { options, gen: generate(options, 0) };
+  return { options, gen: generate(options, 0, null) };
 }
 
 export function PasswordTool() {
@@ -137,6 +172,13 @@ export function PasswordTool() {
   const [status, setStatus] = useState<"" | StatusPhrase>("");
   const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lengthRef = useRef<HTMLInputElement>(null);
+  // Async word-list loading (D-04, RESEARCH Pattern 1). Refs, not closures: a
+  // load continuation outlives the render that started it, so it must read the
+  // newest sequence token and generation, never a stale captured copy.
+  const seqRef = useRef(0);
+  const wordsRef = useRef<readonly string[] | null>(null);
+  const generationRef = useRef(seed.gen.generation);
+  const lastLoadErrorRef = useRef<unknown>(null);
 
   // Clear first and set the phrase on the next tick, so an identical repeated
   // announcement is read again. Stable, so effects and rows can depend on it.
@@ -163,9 +205,17 @@ export function PasswordTool() {
 
   useEffect(() => {
     if (!allCopy.copied) return;
-    const timer = setTimeout(() => announce("Copied all passwords"), 0);
+    const timer = setTimeout(
+      () =>
+        announce(
+          options.mode === "passphrase"
+            ? "Copied all passphrases"
+            : "Copied all passwords",
+        ),
+      0,
+    );
     return () => clearTimeout(timer);
-  }, [allCopy.copied, announce]);
+  }, [allCopy.copied, announce, options.mode]);
 
   const onRowCopied = useCallback(() => announce("Copied"), [announce]);
 
@@ -178,29 +228,79 @@ export function PasswordTool() {
   // a stale "Copied!" never survives next to a value it no longer matches
   // (WR-02, D-11) and no effect is needed.
   function applyGenerated(next: Generated) {
+    generationRef.current = next.generation;
     setGen(next);
     heroCopy.reset();
     allCopy.reset();
   }
 
-  function regenerate() {
-    const next = generate(options, gen.generation + 1);
-    applyGenerated(next);
-    if (next.error === null) announce(generatedPhrase(next.results.length));
+  // Starts a word-list load and applies its result only while it is still the
+  // newest request (D-04). Both settle paths are handled; nothing is ever
+  // generated inside a setState updater. The list itself is a plain cache, so
+  // a stale-but-valid list is kept for the next activation.
+  function requestLoad(opts: ToolOptions, announceStart: boolean) {
+    const token = ++seqRef.current;
+    if (announceStart) announce("Loading word list");
+    loadWordlist().then(
+      (list) => {
+        wordsRef.current = list;
+        if (token !== seqRef.current || opts.mode !== "passphrase") return;
+        const applied = generate(opts, generationRef.current + 1, list);
+        applyGenerated(applied);
+        if (applied.status === "ready" && applied.error === null) {
+          announce("Word list loaded. New passphrase generated");
+        }
+      },
+      (e: unknown) => {
+        if (token !== seqRef.current) return;
+        lastLoadErrorRef.current = e;
+        applyGenerated({
+          results: [],
+          error: null,
+          status: "wordlist-error",
+          generation: generationRef.current + 1,
+        });
+      },
+    );
   }
 
-  // The one path every option change takes (D-06): normalize with the mode
-  // forced to password, set, generate, reset the copy confirmation, and only
-  // then mirror the options into the URL (best-effort, CR-01).
-  // Synchronous, so the displayed output already obeys the new options when
+  function regenerate() {
+    // Loading or failed: there is no list to draw from, so do nothing and say
+    // nothing (UI-SPEC decision 23).
+    if (options.mode === "passphrase" && wordsRef.current === null) return;
+    const next = generate(options, generationRef.current + 1, wordsRef.current);
+    applyGenerated(next);
+    if (next.error === null) {
+      announce(generatedPhrase(next.results.length, options.mode));
+    }
+  }
+
+  // The one path every option change takes (D-06): normalize, invalidate any
+  // in-flight word-list load, set, generate, reset the copy confirmation, and
+  // only then mirror the options into the URL (best-effort, CR-01). Synchronous
+  // except for the first Passphrase use, which applies a loading state and
+  // starts the load; the displayed output already obeys the new options when
   // the handler returns.
   function commit(next: ToolOptions): Generated {
-    const normalized = normalizeToolOptions({ ...next, mode: "password" });
+    const normalized = normalizeToolOptions(next);
+    seqRef.current += 1;
     setOptions(normalized);
-    const applied = generate(normalized, gen.generation + 1);
+    const words = wordsRef.current;
+    if (normalized.mode === "passphrase" && words === null) {
+      const loading = generate(normalized, generationRef.current + 1, null);
+      applyGenerated(loading);
+      requestLoad(normalized, gen.status !== "loading");
+      writeUrl(normalized);
+      return loading;
+    }
+    const applied = generate(normalized, generationRef.current + 1, words);
     applyGenerated(applied);
     writeUrl(normalized);
     return applied;
+  }
+
+  function onModeChange(next: Mode) {
+    commit({ ...options, mode: next });
   }
 
   function onLengthDraftChange(value: string) {
@@ -233,7 +333,9 @@ export function PasswordTool() {
   // A batch commit announces how many passwords there are now; every other
   // option commit stays silent (D-11).
   function announceCommit(applied: Generated) {
-    if (applied.error === null) announce(generatedPhrase(applied.results.length));
+    if (applied.status === "ready" && applied.error === null) {
+      announce(generatedPhrase(applied.results.length, options.mode));
+    }
   }
 
   // Batch count: the same draft rules as Length (D-05, D-10).
@@ -290,14 +392,22 @@ export function PasswordTool() {
     setSymbolDraft(DEFAULT_OPTIONS.symbolSet);
     setBatchDraft(String(DEFAULT_OPTIONS.batch));
     setBatchError(false);
-    const next = commit({ ...DEFAULT_OPTIONS });
-    if (next.error === null) announce("Options reset. New password generated");
+    const next = commit({ ...DEFAULT_OPTIONS, mode: options.mode });
+    if (next.status === "ready" && next.error === null) {
+      announce(
+        options.mode === "passphrase"
+          ? "Options reset. New passphrase generated"
+          : "Options reset. New password generated",
+      );
+    }
   }
 
   // Ctrl/Cmd+C is defined for exactly one result (WR-03 precedent) and never
   // overrides a text selection the user made (D-14, T-13-17).
   const singleResult =
-    gen.error === null && gen.results.length === 1 ? gen.results[0]! : null;
+    gen.status === "ready" && gen.error === null && gen.results.length === 1
+      ? gen.results[0]!
+      : null;
 
   useKeyboardShortcut({
     slash: () => {
@@ -317,14 +427,17 @@ export function PasswordTool() {
 
   return (
     <div data-testid="password-tool" className="flex flex-col gap-8">
-      <div data-testid="password-output-zone">
-        <PasswordOutput
-          gen={gen}
-          heroCopy={heroCopy}
-          allCopy={allCopy}
-          onRegenerate={regenerate}
-          onRowCopied={onRowCopied}
-        />
+      <div className="flex flex-col gap-4">
+        <ModeToggle mode={options.mode} onModeChange={onModeChange} />
+        <div data-testid="password-output-zone">
+          <PasswordOutput
+            gen={gen}
+            heroCopy={heroCopy}
+            allCopy={allCopy}
+            onRegenerate={regenerate}
+            onRowCopied={onRowCopied}
+          />
+        </div>
       </div>
       <PasswordOptionsPanel
         options={options}

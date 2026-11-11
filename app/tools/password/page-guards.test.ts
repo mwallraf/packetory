@@ -30,6 +30,10 @@ const ISLAND = `${PAGE_DIR}/PasswordTool.tsx`;
 const OUTPUT = `${PAGE_DIR}/PasswordOutput.tsx`;
 const TEST_HELPER = `${PAGE_DIR}/password-test-utils`;
 const BARREL = "lib/password";
+// The one deep import the island may make (D-04): the lazy, memoized loader.
+// The vendored list module behind it, and every other lib/password sub-path,
+// stay forbidden everywhere.
+const WORDLIST_LOADER = `${BARREL}/wordlist`;
 
 // Forbidden words, assembled so they never sit verbatim in this file.
 const LS = "local" + "Storage";
@@ -52,6 +56,8 @@ const CE = "content" + "Editable";
 const USE_MEMO = "use" + "Memo";
 const GEN_BATCH = "generate" + "Batch";
 const GEN_ONE = "generate" + "Password";
+const GEN_PHRASE_BATCH = "generatePass" + "phraseBatch";
+const GEN_PHRASE = "generatePass" + "phrase";
 const CONSOLE = "con" + "sole";
 const FETCH = "fe" + "tch";
 const TRACK = "tra" + "ck";
@@ -225,7 +231,9 @@ const OUTPUT_SURFACE_RULES: readonly Rule[] = [
   ["title attribute", new RegExp(String.raw`\sti${"tle"}\s*=\s*["'{]`)],
 ];
 
-const GENERATION_RE = new RegExp(String.raw`\b(?:${GEN_BATCH}|${GEN_ONE})\s*\(`);
+const GENERATION_RE = new RegExp(
+  String.raw`\b(?:${GEN_PHRASE_BATCH}|${GEN_PHRASE}|${GEN_BATCH}|${GEN_ONE})\s*\(`,
+);
 const USE_MEMO_RE = word(USE_MEMO);
 const TYPEOF_WINDOW_RE = new RegExp(String.raw`\btypeof\s+window\b`);
 const SSR_FALSE_RE = /ssr\s*:\s*false/;
@@ -291,6 +299,7 @@ function analyzePage(sources: Sources): PageAnalysis {
       allSpecifiers(codeFor(f))
         .filter((s) => {
           const r = resolveSpecifier(f, s);
+          if (f === ISLAND && r === WORDLIST_LOADER) return false;
           return r !== BARREL && r.startsWith(`${BARREL}/`);
         })
         .map((s) => `${f}::${s}`),
@@ -364,6 +373,11 @@ describe("password page bans (D-12, D-13, D-15)", () => {
     expect(GENERATION_RE.test(realPage.codeOf(ISLAND))).toBe(true);
     expect(SSR_FALSE_RE.test(realPage.codeOf(LOADER))).toBe(true);
     expect(allSpecifiers(realPage.codeOf(ISLAND))).toContain("@/lib/password");
+    // The relaxation is non-vacuous: the island really makes the one allowed
+    // deep import, exactly once (D-04).
+    expect(
+      allSpecifiers(realPage.codeOf(ISLAND)).filter((s) => s === `@/${WORDLIST_LOADER}`),
+    ).toHaveLength(1);
   });
 });
 
@@ -488,6 +502,16 @@ describe("page guards have teeth - in-memory mutants", () => {
     expect(a.generationOutsideIsland).toEqual([OUTPUT]);
   });
 
+  it("detects Passphrase batch generation outside the island", () => {
+    const a = mutatePage(OUTPUT, `export const g = () => ${GEN_PHRASE_BATCH}({} as never, [], 1);`);
+    expect(a.generationOutsideIsland).toEqual([OUTPUT]);
+  });
+
+  it("detects single Passphrase generation in the server page", () => {
+    const a = mutatePage(PAGE, `export const g = () => ${GEN_PHRASE}({} as never, []);`);
+    expect(a.generationOutsideIsland).toEqual([PAGE]);
+  });
+
   it("detects single generation in the server page", () => {
     const a = mutatePage(PAGE, `export const g = () => ${GEN_ONE}({} as never);`);
     expect(a.generationOutsideIsland).toEqual([PAGE]);
@@ -504,9 +528,38 @@ describe("page guards have teeth - in-memory mutants", () => {
   });
 
   // import boundaries
-  it("detects a deep import of the word-list loader", () => {
-    const a = mutatePage(ISLAND, `import { x } from "@/${BARREL}/wordlist";\nexport { x };`);
-    expect(a.deepLibImports).toEqual([`${ISLAND}::@/${BARREL}/wordlist`]);
+  it("detects a deep import of the word-list loader from the output component", () => {
+    const a = mutatePage(OUTPUT, `import { x } from "@/${WORDLIST_LOADER}";\nexport { x };`);
+    expect(a.deepLibImports).toEqual([`${OUTPUT}::@/${WORDLIST_LOADER}`]);
+  });
+
+  it("allows exactly the loader specifier from the island, and only there (D-04)", () => {
+    const a = mutatePage(ISLAND, `import { x } from "@/${WORDLIST_LOADER}";\nexport { x };`);
+    expect(a.deepLibImports).toEqual([]);
+    expect(realPage.deepLibImports).toEqual([]);
+  });
+
+  it("detects the word-list loader imported from the server page", () => {
+    const a = mutatePage(PAGE, `import { x } from "@/${WORDLIST_LOADER}";\nexport { x };`);
+    expect(a.deepLibImports).toEqual([`${PAGE}::@/${WORDLIST_LOADER}`]);
+  });
+
+  it("detects the word-list loader imported from the FAQ data or the worked example", () => {
+    const snippet = `import { x } from "@/${WORDLIST_LOADER}";\nexport { x };`;
+    for (const file of [`${PAGE_DIR}/faq-data.ts`, `${PAGE_DIR}/PasswordExample.tsx`]) {
+      const a = mutatePage(file, snippet);
+      expect(a.deepLibImports).toEqual([`${file}::@/${WORDLIST_LOADER}`]);
+    }
+  });
+
+  it("detects a static import of the vendored list from the island, loader exception or not", () => {
+    const a = mutatePage(ISLAND, `import list from "@/${WORDLIST_LOADER}/eff-large";\nexport default list;`);
+    expect(a.deepLibImports).toEqual([`${ISLAND}::@/${WORDLIST_LOADER}/eff-large`]);
+  });
+
+  it("detects a dynamic import of the vendored list from the island", () => {
+    const a = mutatePage(ISLAND, `export const l = () => import("@/${WORDLIST_LOADER}/eff-large");`);
+    expect(a.deepLibImports).toEqual([`${ISLAND}::@/${WORDLIST_LOADER}/eff-large`]);
   });
 
   it("detects a deep import of the library test helpers", () => {
