@@ -167,6 +167,14 @@ Items acknowledged and carried forward from previous milestone close:
 | verification_gap | Phase 08 VERIFICATION.md stale at v1.2 close (override_closeout, user choice) | acknowledged | 2026-10-17 |
 | verification_gap | Phase 09 VERIFICATION.md stale at v1.2 close (override_closeout, user choice) | acknowledged | 2026-10-17 |
 
+## Deferred Verification
+
+Per user instruction (2026-11-11): run phases 11–14 autonomously and batch all manual UAT after Phase 14.
+
+| Phase | State | Resume |
+|-------|-------|--------|
+| 11 | verification_deferred_human | /gsd-verify-work 11 |
+
 ## Session Continuity
 
 Last session: 2026-11-11T19:39:04.730Z
