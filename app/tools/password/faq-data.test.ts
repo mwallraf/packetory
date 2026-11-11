@@ -67,7 +67,8 @@ describe("password faqItems (PREG-02, D-14)", () => {
     expect(a).toContain(BITS_PER_WORD.toFixed(1));
     expect(a).toContain(APPEND_NUMBER_BITS.toFixed(1));
     expect(a).toContain(formatBits(passphraseBits));
-    expect(a).toContain("crypto.getRandomValues");
+    expect(a).toContain("cryptographically secure random number generator (the Web Crypto API)");
+    expect(a).not.toContain("getRandomValues");
   });
 
   it("Q3 names every hyphenated word in order and stays honest", () => {

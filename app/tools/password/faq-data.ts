@@ -104,7 +104,7 @@ export const faqItems: FaqItem[] = [
   },
   {
     question: "How are passphrases generated?",
-    answer: `Each word is picked uniformly at random, with replacement, from the ${wordCount}-word EFF Large Wordlist using crypto.getRandomValues, so each word adds about ${bitsPerWord} bits. The default ${WORDS_DEFAULT} words give about ${formatBits(f.passphraseBits)} (${f.passphraseLabel}). Capitalizing words and the choice of separator add 0 bits, because they follow a fixed pattern. Appending a random digit adds about ${appendBits} bits.`,
+    answer: `Each word is picked uniformly at random, with replacement, from the ${wordCount}-word EFF Large Wordlist using your browser's cryptographically secure random number generator (the Web Crypto API), so each word adds about ${bitsPerWord} bits. The default ${WORDS_DEFAULT} words give about ${formatBits(f.passphraseBits)} (${f.passphraseLabel}). Capitalizing words and the choice of separator add 0 bits, because they follow a fixed pattern. Appending a random digit adds about ${appendBits} bits.`,
   },
   {
     question: "Why does the word list contain hyphenated words?",
