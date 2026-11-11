@@ -19,8 +19,11 @@ import path from "node:path";
  */
 
 const ROOT = path.resolve(__dirname, "../..");
-// Phase 13 appends "app/tools/password" here (D-05).
-const WALK_DIRS = ["lib/password"];
+// Phase 13 added the page here (D-15). The randomness and word-list rules now
+// cover app/tools/password too; the framework, side-channel, loader and
+// test-utils rules stay scoped to LIB_PREFIX because the page legitimately
+// imports React and Next.
+const WALK_DIRS = ["lib/password", "app/tools/password"];
 const SKIP_DIRS = new Set(["node_modules", ".next"]);
 const SELF = "lib/password/boundaries.test.ts";
 const LIB_PREFIX = "lib/password/";
@@ -310,8 +313,23 @@ describe("password library boundaries (D-05, SC-2)", () => {
   });
 });
 
+describe("password page walk (D-15)", () => {
+  it("walks the password page (D-15)", () => {
+    for (const f of [
+      "app/tools/password/page.tsx",
+      "app/tools/password/PasswordToolLoader.tsx",
+      "app/tools/password/PasswordTool.tsx",
+      "app/tools/password/PasswordOutput.tsx",
+    ]) {
+      expect(realAnalysis.files).toContain(f);
+    }
+    expect(realAnalysis.codeOf("app/tools/password/PasswordTool.tsx")).toContain("generateBatch");
+  });
+});
+
 describe("guards have teeth - in-memory mutants (D-05)", () => {
   const PROBE = "lib/password/probe.ts";
+  const PAGE = "app/tools/password";
 
   it("detects the member form of the Math random call", () => {
     const a = mutate(new Map(real), PROBE, `export const r = ${M}.random();`, false);
@@ -451,5 +469,38 @@ describe("guards have teeth - in-memory mutants (D-05)", () => {
     const a = analyze(mutant);
     expect(a.mathRandom).toEqual(["app/tools/password/Tool.tsx"]);
     expect(a.grvOutsideRandom).toEqual(["app/tools/password/Tool.tsx"]);
+  });
+
+  it("page: detects a Math random call appended to the real island", () => {
+    const a = mutate(new Map(real), `${PAGE}/PasswordTool.tsx`, `export const leak = ${M}.random();`);
+    expect(a.mathRandom).toEqual([`${PAGE}/PasswordTool.tsx`]);
+  });
+
+  it("page: detects the Web Crypto method appended to a non-test helper", () => {
+    const a = mutate(
+      new Map(real),
+      `${PAGE}/password-test-utils.ts`,
+      `export const f = (b: Uint32Array) => crypto.${GRV}(b);`,
+    );
+    expect(a.grvOutsideRandom).toEqual([`${PAGE}/password-test-utils.ts`]);
+  });
+
+  it("page: allows the Web Crypto method in a test file but not a Math random reference", () => {
+    const probe = `${PAGE}/Probe.test.tsx`;
+    const withCrypto: Sources = new Map(real);
+    withCrypto.set(probe, `vi.spyOn(crypto, "${GRV}");`);
+    expect(analyze(withCrypto).grvOutsideRandom).toEqual([]);
+    const withMath: Sources = new Map(real);
+    withMath.set(probe, `const r = ${M}.random();`);
+    expect(analyze(withMath).mathRandom).toEqual([probe]);
+  });
+
+  it("page: detects a static import of the vendored list appended to the real page", () => {
+    const a = mutate(
+      new Map(real),
+      `${PAGE}/page.tsx`,
+      `import list from "@/${LIST_MODULE}";\nexport default list;`,
+    );
+    expect(a.wordlistStaticImporters).toEqual([`${PAGE}/page.tsx`]);
   });
 });
