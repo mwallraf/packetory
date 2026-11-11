@@ -92,7 +92,7 @@ function Hero({
           data-testid="password-copy"
           aria-label={heroCopy.copied ? "Copied!" : "Copy password"}
           onClick={() => void heroCopy.copy(value)}
-          className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-full px-4 text-primary outline-none transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-4 text-primary-foreground outline-none transition-colors hover:bg-primary/90 focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           {heroCopy.copied ? (
             <>
@@ -153,7 +153,7 @@ function Batch({
           data-testid="password-copy-all"
           aria-label={allCopy.copied ? "Copied!" : "Copy all passwords"}
           onClick={() => void allCopy.copy(gen.results.join("\n"))}
-          className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-full px-4 text-primary outline-none transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-4 text-primary-foreground outline-none transition-colors hover:bg-primary/90 focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
           {allCopy.copied ? (
             <>
