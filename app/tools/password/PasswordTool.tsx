@@ -22,6 +22,7 @@ import {
 import { loadWordlist } from "@/lib/password/wordlist";
 import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
 import { useKeyboardShortcut } from "@/lib/hooks/useKeyboardShortcut";
+import { reloadPage } from "./reload";
 import { ModeToggle } from "./ModeToggle";
 import { PasswordOptionsPanel, type SetKey } from "./PasswordOptionsPanel";
 import { PasswordOutput } from "./PasswordOutput";
@@ -280,6 +281,25 @@ export function PasswordTool() {
     );
   }
 
+  // Retry after a word-list failure (D-04). The Turbopack production runtime
+  // caches a rejected chunk import, so calling the loader again cannot recover
+  // from a ChunkLoadError: reload the page instead (the options are already in
+  // the URL, so the reload lands on the D-05 bookmark path). Any other failure
+  // starts a fresh load. No fallback list and no previous value is ever shown.
+  function retryLoad() {
+    const last = lastLoadErrorRef.current;
+    if (
+      typeof last === "object" &&
+      last !== null &&
+      (last as { name?: unknown }).name === "ChunkLoadError"
+    ) {
+      reloadPage();
+      return;
+    }
+    applyGenerated(generate(options, generationRef.current + 1, null));
+    requestLoad(options, true);
+  }
+
   function regenerate() {
     // Loading or failed: there is no list to draw from, so do nothing and say
     // nothing (UI-SPEC decision 23).
@@ -451,6 +471,7 @@ export function PasswordTool() {
             heroCopy={heroCopy}
             allCopy={allCopy}
             onRegenerate={regenerate}
+            onRetry={retryLoad}
             onRowCopied={onRowCopied}
           />
         </div>

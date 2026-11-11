@@ -9,8 +9,10 @@ import {
 } from "@testing-library/react";
 import { loadWordlist } from "@/lib/password/wordlist";
 import { PasswordTool } from "./PasswordTool";
+import { reloadPage } from "./reload";
 
 vi.mock("@/lib/password/wordlist", () => ({ loadWordlist: vi.fn() }));
+vi.mock("./reload", () => ({ reloadPage: vi.fn() }));
 
 const PATH = "/tools/password";
 
@@ -236,5 +238,89 @@ describe("sequence token (PHR-01, PHR-03; D-04)", () => {
     await fail(pending[0], new Error("net"));
     expect(screen.getByTestId("password-wordlist-error")).toBeTruthy();
     expect(zoneChildren()).toBe(1);
+  });
+});
+
+const D04_SENTENCE = "Couldn't load the word list, so no passphrase was generated.";
+const D04_NEXT_STEP = "Check your connection and try again.";
+
+function chunkError(): Error {
+  const e = new Error("Loading chunk failed");
+  e.name = "ChunkLoadError";
+  return e;
+}
+
+async function failedMount() {
+  mount("/tools/password?mode=passphrase");
+  await flush();
+  await fail(pending[0], new Error("network down"));
+}
+
+describe("word-list error and Retry (PHR-03, D-04)", () => {
+  it("a plain failure shows the D-04 copy and Retry, and no controls or value", async () => {
+    await failedMount();
+    const panel = screen.getByTestId("password-wordlist-error");
+    const alert = panel.querySelector('[role="alert"]')!;
+    expect(alert.textContent).toContain(D04_SENTENCE);
+    expect(alert.textContent).toContain(D04_NEXT_STEP);
+    const retry = screen.getByTestId("password-wordlist-retry");
+    expect(retry.textContent).toBe("Retry");
+    expect(alert.contains(retry)).toBe(false);
+    expect(screen.queryByTestId("password-output")).toBeNull();
+    expect(screen.queryByTestId("password-copy")).toBeNull();
+    expect(screen.queryByTestId("password-copy-all")).toBeNull();
+    expect(screen.queryByTestId("password-regenerate")).toBeNull();
+  });
+
+  it("Retry after a plain failure loads again and recovers", async () => {
+    await failedMount();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("password-wordlist-retry"));
+    });
+    expect(screen.getByTestId("password-wordlist-loading")).toBeTruthy();
+    expect(screen.queryByTestId("password-wordlist-error")).toBeNull();
+    await flush();
+    expect(status()).toBe("Loading word list");
+    expect(loader).toHaveBeenCalledTimes(2);
+    await settle(pending[1], fixtureList());
+    const value = screen.getByTestId("password-output").textContent ?? "";
+    expect(value.split("-")).toHaveLength(6);
+    expect(status()).toBe("Word list loaded. New passphrase generated");
+    expect(reloadPage).not.toHaveBeenCalled();
+  });
+
+  it("a second failure shows the same error panel again", async () => {
+    await failedMount();
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("password-wordlist-retry"));
+    });
+    await fail(pending[1], new Error("still down"));
+    const panel = screen.getByTestId("password-wordlist-error");
+    expect(panel.textContent).toContain(D04_SENTENCE);
+    expect(screen.getByTestId("password-wordlist-retry")).toBeTruthy();
+    expect(zoneChildren()).toBe(1);
+  });
+
+  it("a ChunkLoadError makes Retry reload the page and not call the loader", async () => {
+    mount("/tools/password?mode=passphrase");
+    await flush();
+    await fail(pending[0], chunkError());
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("password-wordlist-retry"));
+    });
+    expect(reloadPage).toHaveBeenCalledTimes(1);
+    expect(loader).toHaveBeenCalledTimes(1);
+  });
+
+  it("Enter while the error panel shows neither loads nor announces", async () => {
+    await failedMount();
+    const before = status();
+    await act(async () => {
+      fireEvent.keyDown(window, { key: "Enter" });
+    });
+    await flush();
+    expect(loader).toHaveBeenCalledTimes(1);
+    expect(status()).toBe(before);
+    expect(screen.getByTestId("password-wordlist-error")).toBeTruthy();
   });
 });

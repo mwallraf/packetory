@@ -86,4 +86,59 @@ test.describe("Word list chunk (PHR-03, D-18)", () => {
       .toBe(6);
     expect(markerChunks(seen)).toHaveLength(1);
   });
+
+  test("(c) a failed load shows the error and Retry recovers", async ({
+    page,
+  }) => {
+    // Abort only the FIRST marker-bearing chunk response. Route handlers
+    // survive the Retry reload, so the second request is fulfilled normally.
+    let markerResponses = 0;
+    await page.route("**/_next/static/chunks/**", async (route) => {
+      const url = new URL(route.request().url());
+      if (!/\.js$/.test(url.pathname)) {
+        await route.continue();
+        return;
+      }
+      const response = await route.fetch();
+      const body = await response.text();
+      if (body.includes(EFF_MARKER)) {
+        markerResponses += 1;
+        if (markerResponses === 1) {
+          await route.abort();
+          return;
+        }
+      }
+      await route.fulfill({ response, body });
+    });
+
+    await page.goto("/tools/password");
+    await expect(page.getByTestId("password-output")).toBeVisible();
+    await page.getByTestId("password-mode-passphrase").click();
+
+    const error = page.getByTestId("password-wordlist-error");
+    await expect(error).toBeVisible();
+    await expect(error.getByRole("alert")).toContainText(
+      "Couldn't load the word list",
+    );
+    await expect(page.getByTestId("password-wordlist-retry")).toBeVisible();
+    await expect(page.getByTestId("password-output")).toHaveCount(0);
+    await expect(page.getByTestId("password-copy")).toHaveCount(0);
+    await expect(page.getByTestId("password-copy-all")).toHaveCount(0);
+
+    // A ChunkLoadError makes Retry reload the page (Turbopack caches the
+    // rejected import); the options are in the URL, so the reload lands on the
+    // bookmark path and loads the list for real.
+    await page.getByTestId("password-wordlist-retry").click();
+    const output = page.getByTestId("password-output");
+    await expect(output).toBeVisible();
+    await expect
+      .poll(
+        async () =>
+          splitPassphrase(((await output.textContent()) ?? "").trim(), "-")
+            .length,
+      )
+      .toBe(6);
+    expect(new URL(page.url()).search).toContain("mode=passphrase");
+    expect(markerResponses).toBeGreaterThanOrEqual(2);
+  });
 });

@@ -13,6 +13,7 @@ type Props = {
   heroCopy: CopyState;
   allCopy: CopyState;
   onRegenerate: () => void;
+  onRetry: () => void;
   onRowCopied: () => void;
 };
 
@@ -84,9 +85,10 @@ function WordlistLoading() {
 
 /**
  * Fail-closed word-list failure (D-04, D-05): no passphrase from any source and
- * no copy or regenerate controls. The Retry action arrives with 14-03.
+ * no copy or regenerate controls. Retry sits outside the alert node and does
+ * not take focus when the panel appears (UI-SPEC "Wordlist states").
  */
-function WordlistError() {
+function WordlistError({ onRetry }: { onRetry: () => void }) {
   return (
     <div
       data-testid="password-wordlist-error"
@@ -106,6 +108,17 @@ function WordlistError() {
           </p>
         </div>
       </div>
+      <button
+        type="button"
+        data-testid="password-wordlist-retry"
+        onClick={onRetry}
+        className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-border px-4 text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      >
+        <RefreshCw aria-hidden="true" className="size-5" />
+        <span className="text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
+          Retry
+        </span>
+      </button>
     </div>
   );
 }
@@ -262,10 +275,11 @@ export function PasswordOutput({
   heroCopy,
   allCopy,
   onRegenerate,
+  onRetry,
   onRowCopied,
 }: Props) {
   if (gen.status === "loading") return <WordlistLoading />;
-  if (gen.status === "wordlist-error") return <WordlistError />;
+  if (gen.status === "wordlist-error") return <WordlistError onRetry={onRetry} />;
   if (gen.error !== null) {
     return <ErrorPanel error={gen.error} />;
   }
