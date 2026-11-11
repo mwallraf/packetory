@@ -21,9 +21,17 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 
 **Previously shipped:** v1.1 Production Domain & Landing Page Polish (2026-07-25) — clickable landing cards, live at `https://packetory.dev`; v1.0 MVP (2026-07-25) — UUID Generator, IP Subnet Calculator, DNS Lookup, MAC Address Inspector. Full phase history archived under `.planning/milestones/`.
 
-## Next Milestone Goals
+## Current Milestone: v1.3 Password Generator & Tool Page Polish
 
-Not yet defined — start with `/gsd-new-milestone`. Candidates already tracked in Active below: Config Syntax Highlighter SEO + distinct icon, related-tool links, a per-tool accessibility re-audit, and the build-time OUI dataset replacing `/api/mac-vendor`.
+**Goal:** Add a clean, complete password/passphrase generator and make every tool page tool-first, with informational content clearly secondary.
+
+**Target features:**
+- Password Generator (`/tools/password`): random password on load (20 chars, all sets); Password / Passphrase toggle; length, upper/lower/digits/symbols, editable symbol set, avoid look-alikes; passphrase word count, separator, capitalize, append number; batch 1–20 with copy-all; per-item copy; Regenerate; entropy-based strength meter + crack-time estimate; options (never the password) bookmarkable in the URL; `crypto.getRandomValues` with unbiased sampling; fully local (bundled, lazily loaded wordlist); keyboard shortcuts; worked example + FAQ + JSON-LD
+- Config Syntax Highlighter parity: worked example, FAQ + FAQPage JSON-LD, distinct icon
+- Subnet Calculator compaction: full generated output fits without scrolling on a 1366×768 laptop viewport
+- Tool-page info sections: Worked Example and FAQ moved below the tool into a muted "About this tool" area as collapsible, closed-by-default sections — content stays in the HTML for SEO/JSON-LD
+
+**Key context:** Entropy-based strength (no zxcvbn — too heavy for generated passwords). Generated passwords never enter URLs or analytics. No new heavy dependencies. Phase numbering continues from Phase 10.
 
 <details>
 <summary>v1.2 Hash Generator — planning detail (shipped 2026-10-17)</summary>
@@ -82,7 +90,10 @@ Not yet defined — start with `/gsd-new-milestone`. Candidates already tracked 
 
 ### Active
 
-- [ ] Config Syntax Highlighter follow-up — decide whether it gets per-tool SEO (worked example + FAQPage JSON-LD) like the other tools, and a distinct icon (it currently reuses `Network`, same as Subnet)
+- [ ] Config Syntax Highlighter parity — worked example + FAQPage JSON-LD + distinct icon (it currently reuses `Network`, same as Subnet) — **v1.3**
+- [ ] Password Generator tool (`/tools/password`) — **v1.3**
+- [ ] Subnet Calculator compaction (output fits 1366×768 without scrolling) — **v1.3**
+- [ ] Tool-page info sections (Worked Example/FAQ) collapsible, muted, below the tool on every page — **v1.3**
 - [ ] Related-tool links (part of per-tool SEO) — not yet built on any tool page (UUID, Subnet, DNS, or MAC); candidate for v1.1
 - [ ] Accessibility: full keyboard nav, contrast, labels, logical focus order, screen-reader announcements — shell-level focus order and focus-ring visibility manually verified in Phase 1 UAT; Phase 2 added accessible names to the UUID tool's Version/Export-format toggle groups; not re-audited per-tool since; candidate for a dedicated a11y pass in v1.1
 - [ ] Public developer API (`@packetory/core` style package reusing the same `lib/` modules) — deferred to a post-v1 milestone per Business Context; no work started
@@ -178,4 +189,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-17 after v1.2 milestone*
+*Last updated: 2026-11-11 after starting v1.3 milestone*
