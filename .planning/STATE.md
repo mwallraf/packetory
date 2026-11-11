@@ -5,16 +5,16 @@ milestone_name: Password Generator & Tool Page Polish
 current_phase: 10
 current_phase_name: Shared About Section & Config Parity
 status: executing
-stopped_at: Phase 10 UI-SPEC approved
-last_updated: "2026-11-11T16:57:35.525Z"
+stopped_at: Completed 10-01-PLAN.md
+last_updated: "2026-11-11T17:02:21.642Z"
 last_activity: 2026-11-11
-last_activity_desc: v1.3 roadmap created (Phases 10-14, 35/35 requirements mapped)
-state_head: ede2221d29ddda0c1c6c754010c0bd70ec88e720
+last_activity_desc: Phase 10 execution started
+state_head: 245584925ccde01493c3d375ea5e0637fdd02b55
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 6
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -29,10 +29,10 @@ See: .planning/PROJECT.md (updated 2026-11-11)
 
 ## Current Position
 
-Phase: 10 (Shared About Section & Config Parity) — READY TO EXECUTE
-Plan: Not started
+Phase: 10 (Shared About Section & Config Parity) — EXECUTING
+Plan: 2 of 6
 Status: Ready to execute
-Last activity: 2026-11-11 — v1.3 roadmap created (Phases 10-14, 35/35 requirements mapped)
+Last activity: 2026-11-11 — Phase 10 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -106,6 +106,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 09 P06 | 12 min | 3 tasks | 8 files |
 | Phase 09 P07 | 6 min | 2 tasks | 7 files |
 | Phase 09 P09 | 20 min | 2 tasks | 2 files |
+| Phase 10 P01 | 20 min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -119,6 +120,7 @@ Full decision log lives in PROJECT.md Key Decisions; v1.2 phase-level decisions 
 - CI merge gate = typecheck/lint/test/build only (e2e job removed 2026-10-17); run `npm run test:e2e` and `npm run test:e2e:prod` locally before merging
 - Hash skeleton pins (2240px @320, 1612px @1280) depend on `text-rendering: geometricPrecision` on digest rows — re-measure if digest typography changes
 - Outside contributions (e.g. KoffeePi's Config highlighter) can land on GitHub `main` independently — fetch and merge `origin/main` before starting new work
+- [Phase 10]: 10-01: ToolAbout takes worked-example markup as children; FaqJsonLd colocated in components/ToolAbout.tsx; plain border-t separator
 
 ### Pending Todos
 
@@ -150,9 +152,9 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-11-11T15:37:36.023Z
-Stopped at: Phase 10 UI-SPEC approved
-Resume file: .planning/phases/10-shared-about-section-config-parity/10-UI-SPEC.md
+Last session: 2026-11-11T17:02:21.625Z
+Stopped at: Completed 10-01-PLAN.md
+Resume file: None
 
 ## Operator Next Steps
 
