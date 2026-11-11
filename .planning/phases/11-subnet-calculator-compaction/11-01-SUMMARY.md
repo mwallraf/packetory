@@ -72,7 +72,7 @@ plan_head_after: 5f8369fb7b552f0992d00a4ec9ce7d31ff8fcaac
 
 1. **Task 1: tracer, compact and prove SUBNET-08** - `9f5d96b` (feat)
 2. **Task 2: IPv6 /64, integrity, /32, narrow-width gates and SUBNET-10 rewording** - `8170a06` (test)
-3. **Task 3: re-pin skeleton, release gate** - `5f8369f` (feat). This is the Phase 11 code commit.
+3. **Task 3: re-pin skeleton, release gate** - `5f8369f` (feat). Superseded as the Phase 11 code commit by review fixes 85bee5f and 19d739a (see Lighthouse section).
 
 ## Baseline vertical budget
 
@@ -131,7 +131,7 @@ None. The change touches classNames, one wrapper div and one column div only.
 ## Lighthouse baseline (/tools/subnet)
 
 - Runner: PENDING — captured at milestone UAT
-- Phase 11 code commit: 5f8369fb7b552f0992d00a4ec9ce7d31ff8fcaac
+- Phase 11 code commit: 19d739aed31a42bda83785fb4db04a6b0d2e8960
 - Production: https://packetory.dev/tools/subnet (deployment of 34995af9fad5c33a31d6b076f99678ebb588f610)
 - Preview: PENDING — captured at milestone UAT
 
@@ -145,8 +145,8 @@ None. The change touches classNames, one wrapper div and one column div only.
 ### Human capture steps (milestone UAT, after Phase 14)
 
 1. Re-run the production lookup `gh api "repos/mwallraf/packetory/deployments?environment=Production&per_page=1" --jq '.[0].sha'`. If production moved, update the Production line's sha.
-2. Get a Vercel preview of exactly the Phase 11 code commit. Push it to a throwaway branch with `git push origin 5f8369fb7b552f0992d00a4ec9ce7d31ff8fcaac:refs/heads/lighthouse/phase-11-subnet`, then wait until its Preview deployment is Ready. Take the preview origin and deployment sha from the GitHub deployments API (`deployments?sha=5f8369fb7b552f0992d00a4ec9ce7d31ff8fcaac&environment=Preview`, then that deployment's successful status `environment_url`), never from the browser address bar.
-3. Confirm the preview runs the Phase 11 code: `git diff --quiet {preview deployment sha} 5f8369fb7b552f0992d00a4ec9ce7d31ff8fcaac -- app components lib tools next.config.ts vercel.json package.json` must exit 0.
+2. Get a Vercel preview of exactly the Phase 11 code commit. Push it to a throwaway branch with `git push origin 19d739aed31a42bda83785fb4db04a6b0d2e8960:refs/heads/lighthouse/phase-11-subnet`, then wait until its Preview deployment is Ready. Take the preview origin and deployment sha from the GitHub deployments API (`deployments?sha=19d739aed31a42bda83785fb4db04a6b0d2e8960&environment=Preview`, then that deployment's successful status `environment_url`), never from the browser address bar.
+3. Confirm the preview runs the Phase 11 code: `git diff --quiet {preview deployment sha} 19d739aed31a42bda83785fb4db04a6b0d2e8960 -- app components lib tools next.config.ts vercel.json package.json` must exit 0.
 4. In Google Chrome, open DevTools > Lighthouse with mode Navigation and the categories Performance, Accessibility, Best Practices and SEO. An incognito window is best, since extensions skew scores; log in to Vercel there when the preview asks. Run four reports in one sitting on one machine: `https://packetory.dev/tools/subnet` on device Mobile, then on Desktop; then `{preview origin}/tools/subnet` on Mobile, then on Desktop.
 5. Replace every PENDING value. The Runner line becomes `- Runner: Chrome DevTools Lighthouse {version}, Navigation mode, one machine, {YYYY-MM-DD}`. The Preview line becomes `- Preview: {preview origin}/tools/subnet (deployment of {preview deployment sha})`, holding only the origin plus the path, with no query string and no share token. Each row gets four integer scores (0-100) plus CLS with three decimals, so 0 becomes 0.000.
 6. Re-run the Lighthouse record gate from 11-01-PLAN.md Task 3; it must exit 0. Then delete the throwaway branch with `git push origin --delete lighthouse/phase-11-subnet`.
