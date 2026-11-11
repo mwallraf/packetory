@@ -179,6 +179,13 @@ export function PasswordTool() {
   const [scenario, setScenario] = useState<GuessRateKey>("fast");
   const heroCopy = useCopyToClipboard();
   const allCopy = useCopyToClipboard();
+  // Copy sequence counters (D-20a, closes 13-REVIEW IN-05): `copied` stays true
+  // for 2 s, so a repeat copy would not re-run the announcement effects. A
+  // counter bumped after every settled copy does; a rejected write leaves
+  // `copied` false, and the effects' early return keeps it silent. lib/hooks is
+  // untouched.
+  const [heroSeq, setHeroSeq] = useState(0);
+  const [allSeq, setAllSeq] = useState(0);
   const [status, setStatus] = useState<"" | StatusPhrase>("");
   const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lengthRef = useRef<HTMLInputElement>(null);
@@ -212,7 +219,7 @@ export function PasswordTool() {
     if (!heroCopy.copied) return;
     const timer = setTimeout(() => announce("Copied"), 0);
     return () => clearTimeout(timer);
-  }, [heroCopy.copied, announce]);
+  }, [heroCopy.copied, heroSeq, announce]);
 
   useEffect(() => {
     if (!allCopy.copied) return;
@@ -226,7 +233,17 @@ export function PasswordTool() {
       0,
     );
     return () => clearTimeout(timer);
-  }, [allCopy.copied, announce, options.mode]);
+  }, [allCopy.copied, allSeq, announce, options.mode]);
+
+  async function copyHero(value: string) {
+    await heroCopy.copy(value);
+    setHeroSeq((n) => n + 1);
+  }
+
+  async function copyAll(value: string) {
+    await allCopy.copy(value);
+    setAllSeq((n) => n + 1);
+  }
 
   const onRowCopied = useCallback(() => announce("Copied"), [announce]);
 
@@ -516,7 +533,7 @@ export function PasswordTool() {
         ? undefined
         : () => {
             if (window.getSelection()?.toString()) return;
-            void heroCopy.copy(singleResult);
+            void copyHero(singleResult);
           },
   });
 
@@ -527,8 +544,12 @@ export function PasswordTool() {
         <div data-testid="password-output-zone">
           <PasswordOutput
             gen={gen}
+            mode={options.mode}
+            separator={options.separator}
             heroCopy={heroCopy}
             allCopy={allCopy}
+            onCopyHero={(value) => void copyHero(value)}
+            onCopyAll={(value) => void copyAll(value)}
             onRegenerate={regenerate}
             onRetry={retryLoad}
             onRowCopied={onRowCopied}

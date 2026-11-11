@@ -3,6 +3,7 @@
 import { Check, Copy, RefreshCw, TriangleAlert } from "lucide-react";
 import type { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
 import { ColoredPassword } from "./ColoredPassword";
+import type { Mode, Separator } from "@/lib/password";
 import type { Generated } from "./PasswordTool";
 import { COPY_ERROR_TEXT, PasswordRow } from "./PasswordRow";
 
@@ -10,12 +11,32 @@ type CopyState = ReturnType<typeof useCopyToClipboard>;
 
 type Props = {
   gen: Generated;
+  mode: Mode;
+  separator: Separator;
   heroCopy: CopyState;
   allCopy: CopyState;
+  onCopyHero: (value: string) => void;
+  onCopyAll: (value: string) => void;
   onRegenerate: () => void;
   onRetry: () => void;
   onRowCopied: () => void;
 };
+
+/** The noun for the current mode, used in names, counts and error copy. */
+function nounFor(mode: Mode): "password" | "passphrase" {
+  return mode === "passphrase" ? "passphrase" : "password";
+}
+
+/**
+ * Passphrase wrap points (UI-SPEC decision 12): only "_" and "." give the
+ * browser no natural break opportunity, so only they get a wbr after each
+ * separator. "-" and Space already break there.
+ */
+function breakAfterFor(mode: Mode, separator: Separator): string | undefined {
+  return mode === "passphrase" && (separator === "_" || separator === ".")
+    ? separator
+    : undefined;
+}
 
 /**
  * The fail-closed copy (D-03). Plain JS strings, not JSX text, so the
@@ -38,12 +59,25 @@ const ERROR_COPY = {
   },
 } as const;
 
+const PASSPHRASE_ERROR_SENTENCE = {
+  crypto:
+    "Secure random generation isn't available in this browser, so no passphrase was generated.",
+  unexpected: "Something went wrong, so no passphrase was generated.",
+} as const;
+
 function ErrorPanel({
   error,
+  mode,
 }: {
   error: "crypto" | "exhausted" | "unexpected";
+  mode: Mode;
 }) {
-  const copy = ERROR_COPY[error];
+  const base = ERROR_COPY[error];
+  // The exhausted copy is password-only (it names character sets).
+  const copy =
+    mode === "passphrase" && error !== "exhausted"
+      ? { ...base, sentence: PASSPHRASE_ERROR_SENTENCE[error] }
+      : base;
   return (
     <div
       data-testid="password-error"
@@ -125,11 +159,17 @@ function WordlistError({ onRetry }: { onRetry: () => void }) {
 
 function Hero({
   value,
+  mode,
+  separator,
   heroCopy,
+  onCopyHero,
   onRegenerate,
 }: {
   value: string;
+  mode: Mode;
+  separator: Separator;
   heroCopy: CopyState;
+  onCopyHero: (value: string) => void;
   onRegenerate: () => void;
 }) {
   return (
@@ -141,16 +181,21 @@ function Hero({
         data-testid="password-output"
         translate="no"
         spellCheck={false}
-        className="font-mono text-[20px] leading-[1.4] font-semibold break-all select-all text-foreground"
+        className={`font-mono text-[20px] leading-[1.4] font-semibold ${
+          mode === "passphrase" ? "[overflow-wrap:anywhere]" : "break-all"
+        } select-all text-foreground`}
       >
-        <ColoredPassword value={value} />
+        <ColoredPassword
+          value={value}
+          breakAfter={breakAfterFor(mode, separator)}
+        />
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <button
           type="button"
           data-testid="password-copy"
-          aria-label={heroCopy.copied ? "Copied!" : "Copy password"}
-          onClick={() => void heroCopy.copy(value)}
+          aria-label={heroCopy.copied ? "Copied!" : `Copy ${nounFor(mode)}`}
+          onClick={() => onCopyHero(value)}
           className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#0e7490] px-4 text-white outline-none transition-colors hover:bg-[#155e75] focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
         >
           {heroCopy.copied ? (
@@ -192,26 +237,33 @@ function Hero({
 
 function Batch({
   gen,
+  mode,
+  separator,
   allCopy,
+  onCopyAll,
   onRegenerate,
   onRowCopied,
 }: {
   gen: Generated;
+  mode: Mode;
+  separator: Separator;
   allCopy: CopyState;
+  onCopyAll: (value: string) => void;
   onRegenerate: () => void;
   onRowCopied: () => void;
 }) {
+  const noun = nounFor(mode);
   return (
     <div data-testid="password-batch" className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         <p className="mr-auto text-[14px] leading-[1.4] font-semibold text-muted-foreground">
-          {gen.results.length} passwords
+          {gen.results.length} {noun}s
         </p>
         <button
           type="button"
           data-testid="password-copy-all"
-          aria-label={allCopy.copied ? "Copied!" : "Copy all passwords"}
-          onClick={() => void allCopy.copy(gen.results.join("\n"))}
+          aria-label={allCopy.copied ? "Copied!" : `Copy all ${noun}s`}
+          onClick={() => onCopyAll(gen.results.join("\n"))}
           className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#0e7490] px-4 text-white outline-none transition-colors hover:bg-[#155e75] focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
         >
           {allCopy.copied ? (
@@ -243,7 +295,7 @@ function Batch({
         </button>
       </div>
       {allCopy.error && (
-        <p className="text-[14px] leading-[1.4] font-normal text-muted-foreground">
+        <p className="text-[14px] leading-[1.4] font-normal text-foreground">
           {COPY_ERROR_TEXT}
         </p>
       )}
@@ -257,6 +309,8 @@ function Batch({
             value={value}
             index={index}
             onCopied={onRowCopied}
+            kind={noun}
+            breakAfter={breakAfterFor(mode, separator)}
           />
         ))}
       </ul>
@@ -272,8 +326,12 @@ function Batch({
  */
 export function PasswordOutput({
   gen,
+  mode,
+  separator,
   heroCopy,
   allCopy,
+  onCopyHero,
+  onCopyAll,
   onRegenerate,
   onRetry,
   onRowCopied,
@@ -281,23 +339,33 @@ export function PasswordOutput({
   if (gen.status === "loading") return <WordlistLoading />;
   if (gen.status === "wordlist-error") return <WordlistError onRetry={onRetry} />;
   if (gen.error !== null) {
-    return <ErrorPanel error={gen.error} />;
+    return <ErrorPanel error={gen.error} mode={mode} />;
   }
   const value = gen.results[0];
   if (value === undefined) {
-    return <ErrorPanel error="unexpected" />;
+    return <ErrorPanel error="unexpected" mode={mode} />;
   }
   if (gen.results.length > 1) {
     return (
       <Batch
         gen={gen}
+        mode={mode}
+        separator={separator}
         allCopy={allCopy}
+        onCopyAll={onCopyAll}
         onRegenerate={onRegenerate}
         onRowCopied={onRowCopied}
       />
     );
   }
   return (
-    <Hero value={value} heroCopy={heroCopy} onRegenerate={onRegenerate} />
+    <Hero
+      value={value}
+      mode={mode}
+      separator={separator}
+      heroCopy={heroCopy}
+      onCopyHero={onCopyHero}
+      onRegenerate={onRegenerate}
+    />
   );
 }

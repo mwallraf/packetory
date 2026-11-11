@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import { segmentRuns, type RunKind } from "./runs";
 
 const RUN_CLASS: Record<RunKind, string> = {
@@ -13,13 +14,32 @@ const RUN_CLASS: Record<RunKind, string> = {
  * spans, so the parent's textContent is exactly the raw value. Segmentation is
  * a cheap derivation of the displayed value, so it is not memoized.
  */
-export function ColoredPassword({ value }: { value: string }) {
+export function ColoredPassword({
+  value,
+  breakAfter,
+}: {
+  value: string;
+  /**
+   * A single separator character ("_" or "."). When set, a `wbr` element is
+   * rendered after each occurrence so a long passphrase can wrap there
+   * (UI-SPEC decision 12). `wbr` adds no text, so textContent stays the raw
+   * value.
+   */
+  breakAfter?: string;
+}) {
   return (
     <>
       {segmentRuns(value).map((run, i) => (
-        <span key={i} data-kind={run.kind} className={RUN_CLASS[run.kind]}>
-          {run.text}
-        </span>
+        <Fragment key={i}>
+          <span data-kind={run.kind} className={RUN_CLASS[run.kind]}>
+            {run.text}
+          </span>
+          {breakAfter !== undefined
+            ? Array.from(run.text).map((ch, j) =>
+                ch === breakAfter ? <wbr key={j} /> : null,
+              )
+            : null}
+        </Fragment>
       ))}
     </>
   );

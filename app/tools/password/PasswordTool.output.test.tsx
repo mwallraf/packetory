@@ -10,8 +10,11 @@ import {
   within,
 } from "@testing-library/react";
 import { BATCH_MAX, BATCH_MIN } from "@/lib/password";
+import { loadWordlist } from "@/lib/password/wordlist";
 import { PasswordTool } from "./PasswordTool";
 import { cycleFill } from "./password-test-utils";
+
+vi.mock("@/lib/password/wordlist", () => ({ loadWordlist: vi.fn() }));
 
 const HINT = `Enter a number between ${BATCH_MIN} and ${BATCH_MAX}`;
 const COPY_ERROR = "Couldn't copy — select the text and copy manually.";
@@ -553,5 +556,242 @@ describe("Live region (D-11, POUT-05)", () => {
     await click(screen.getByTestId("password-regenerate"));
     await waitFor(() => expect(status()).toBe("4 new passwords generated"));
     for (const v of displayed()) expect(status().includes(v)).toBe(false);
+  });
+});
+
+
+// --- Passphrase output parity (PHR-01, D-20 a, b, e; UI-SPEC decisions 12, 28) ---
+
+/** Exactly 7,776 distinct letters-only words, so a separator is the only symbol. */
+function fixtureList(): string[] {
+  const letters = "abcdefghijklmnopqrstuvwxyz";
+  const words: string[] = [];
+  for (let i = 0; i < 7776; i++) {
+    let n = i;
+    let w = "";
+    do {
+      w = letters[n % 26]! + w;
+      n = Math.floor(n / 26);
+    } while (n > 0);
+    words.push(`x${w}`);
+  }
+  return words;
+}
+
+async function mountPassphrase(search = "") {
+  vi.mocked(loadWordlist).mockResolvedValue(fixtureList());
+  mount(`?mode=passphrase${search}`);
+  await waitFor(() => expect(displayed()[0]).toBeTruthy());
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 10));
+  });
+}
+
+/** Counts how many times the live region transitions to the given text. */
+function countAnnouncements(phrase: string): () => number {
+  const node = screen.getByTestId("password-status");
+  let count = 0;
+  const observer = new MutationObserver(() => {
+    if (node.textContent === phrase) count += 1;
+  });
+  observer.observe(node, { childList: true, characterData: true, subtree: true });
+  return () => count;
+}
+
+/**
+ * Waits outside act on purpose: inside act React batches the live region's
+ * clear and set into one commit, which hides the re-announcement that a real
+ * browser performs between two timers.
+ */
+async function tick(ms = 30) {
+  const g = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
+  const before = g.IS_REACT_ACT_ENVIRONMENT;
+  g.IS_REACT_ACT_ENVIRONMENT = false;
+  try {
+    await new Promise((r) => setTimeout(r, ms));
+  } finally {
+    g.IS_REACT_ACT_ENVIRONMENT = before;
+  }
+}
+
+describe("Passphrase output names, counts and announcements (PHR-01, D-20b)", () => {
+  it("batch 1: hero is named Copy passphrase and Regenerate announces the passphrase phrase", async () => {
+    await mountPassphrase();
+    expect(
+      screen.getByTestId("password-copy").getAttribute("aria-label"),
+    ).toBe("Copy passphrase");
+    expect(screen.queryByTestId("password-batch")).toBeNull();
+    await click(screen.getByTestId("password-regenerate"));
+    await waitFor(() => expect(status()).toBe("New passphrase generated"));
+  });
+
+  it("batch 3: rows, toolbar, Copy all text and announcements use the passphrase noun", async () => {
+    await mountPassphrase("&n=3");
+    expect(rows()).toHaveLength(3);
+    expect(
+      screen
+        .getAllByTestId("password-row-copy")
+        .map((b) => b.getAttribute("aria-label")),
+    ).toEqual(["Copy passphrase 1", "Copy passphrase 2", "Copy passphrase 3"]);
+    expect(screen.getByText("3 passphrases")).toBeTruthy();
+    const copyAll = screen.getByTestId("password-copy-all");
+    expect(copyAll.getAttribute("aria-label")).toBe("Copy all passphrases");
+    const values = rowValues();
+    await click(copyAll);
+    expect(writeText).toHaveBeenCalledWith(values.join("\n"));
+    await waitFor(() => expect(status()).toBe("Copied all passphrases"));
+    await click(screen.getByTestId("password-regenerate"));
+    await waitFor(() => expect(status()).toBe("3 new passphrases generated"));
+  });
+
+  it("Password mode keeps every Phase 13 name and phrase", async () => {
+    mount("?n=3");
+    expect(screen.getByText("3 passwords")).toBeTruthy();
+    expect(
+      screen.getByTestId("password-copy-all").getAttribute("aria-label"),
+    ).toBe("Copy all passwords");
+    expect(
+      screen.getAllByTestId("password-row-copy")[0]!.getAttribute("aria-label"),
+    ).toBe("Copy password 1");
+  });
+});
+
+describe("Repeat copy re-announces (D-20a, closes 13-REVIEW IN-05)", () => {
+  it("copying the hero twice inside 2 s announces Copied twice", async () => {
+    mount();
+    const seen = countAnnouncements("Copied");
+    await click(screen.getByTestId("password-copy"));
+    await tick();
+    await click(screen.getByTestId("password-copy"));
+    await tick();
+    expect(seen()).toBe(2);
+  });
+
+  it("a row copied twice announces Copied twice", async () => {
+    mount("?n=3");
+    const seen = countAnnouncements("Copied");
+    await click(screen.getAllByTestId("password-row-copy")[1]!);
+    await tick();
+    await click(screen.getAllByTestId("password-row-copy")[1]!);
+    await tick();
+    expect(seen()).toBe(2);
+  });
+
+  it("the keyboard chord twice announces Copied twice", async () => {
+    mount();
+    const seen = countAnnouncements("Copied");
+    for (let i = 0; i < 2; i++) {
+      await act(async () => {
+        fireEvent.keyDown(window, { key: "c", ctrlKey: true });
+      });
+      await tick();
+    }
+    expect(seen()).toBe(2);
+  });
+
+  it("Copy all twice announces Copied all passphrases twice", async () => {
+    await mountPassphrase("&n=3");
+    const seen = countAnnouncements("Copied all passphrases");
+    await click(screen.getByTestId("password-copy-all"));
+    await tick();
+    await click(screen.getByTestId("password-copy-all"));
+    await tick();
+    expect(seen()).toBe(2);
+  });
+
+  it("a rejected write announces nothing, even after an earlier success", async () => {
+    mount();
+    await click(screen.getByTestId("password-copy"));
+    await tick();
+    writeText.mockRejectedValue(new Error("denied"));
+    const seen = countAnnouncements("Copied");
+    await click(screen.getByTestId("password-copy"));
+    await tick();
+    expect(seen()).toBe(0);
+  });
+});
+
+describe("Passphrase coloring and wrapping (D-20e, UI-SPEC decision 12)", () => {
+  it("the '_' separator renders one wbr per separator and textContent is the raw value", async () => {
+    await mountPassphrase("&sep=underscore&words=5&num=1");
+    const el = screen.getByTestId("password-output");
+    const value = el.textContent ?? "";
+    expect(el.querySelectorAll("wbr")).toHaveLength(4);
+    expect(value.split("_")).toHaveLength(5);
+    expect(el.querySelectorAll('span[data-kind="symbol"]')).toHaveLength(4);
+    expect(el.querySelectorAll('span[data-kind="digit"]')).toHaveLength(1);
+    await click(screen.getByTestId("password-copy"));
+    expect(writeText).toHaveBeenCalledWith(value);
+  });
+
+  it("the '.' separator renders wbr in batch rows too", async () => {
+    await mountPassphrase("&sep=dot&words=4&n=2");
+    for (const row of screen.getAllByTestId("password-row-value")) {
+      expect(row.querySelectorAll("wbr")).toHaveLength(3);
+      expect((row.textContent ?? "").split(".")).toHaveLength(4);
+    }
+  });
+
+  it("the '-' and Space separators render no wbr; Space is a real space", async () => {
+    await mountPassphrase("&words=4");
+    expect(
+      screen.getByTestId("password-output").querySelectorAll("wbr"),
+    ).toHaveLength(0);
+    cleanup();
+    await mountPassphrase("&sep=space&words=4");
+    const el = screen.getByTestId("password-output");
+    expect(el.querySelectorAll("wbr")).toHaveLength(0);
+    expect((el.textContent ?? "").split(" ")).toHaveLength(4);
+  });
+
+  it("the value uses overflow-wrap anywhere in Passphrase mode and break-all in Password mode", async () => {
+    await mountPassphrase();
+    const cls = screen.getByTestId("password-output").className;
+    expect(cls).toContain("[overflow-wrap:anywhere]");
+    expect(cls).not.toContain("break-all");
+    cleanup();
+    mount();
+    const pw = screen.getByTestId("password-output").className;
+    expect(pw).toContain("break-all");
+    expect(pw).not.toContain("overflow-wrap");
+  });
+});
+
+describe("Passphrase errors and copy-failure styling (UI-SPEC decisions 28, copywriting)", () => {
+  it("a missing Web Crypto shows the passphrase sentence", async () => {
+    vi.mocked(loadWordlist).mockResolvedValue(fixtureList());
+    vi.stubGlobal("crypto", undefined);
+    mount("?mode=passphrase");
+    await tick(30);
+    expect(screen.getByTestId("password-error").textContent).toContain(
+      "Secure random generation isn't available in this browser, so no passphrase was generated.",
+    );
+  });
+
+  it("an unexpected failure shows the passphrase sentence", async () => {
+    vi.mocked(loadWordlist).mockResolvedValue(fixtureList().slice(0, 100));
+    mount("?mode=passphrase");
+    await tick(30);
+    expect(screen.getByTestId("password-error").textContent).toContain(
+      "Something went wrong, so no passphrase was generated.",
+    );
+  });
+
+  it("Password mode error copy is unchanged", () => {
+    vi.stubGlobal("crypto", undefined);
+    mount();
+    expect(screen.getByTestId("password-error").textContent).toContain(
+      "so no password was generated.",
+    );
+  });
+
+  it("the batch-toolbar copy-failure line uses text-foreground", async () => {
+    mount("?n=3");
+    writeText.mockRejectedValue(new Error("denied"));
+    await click(screen.getByTestId("password-copy-all"));
+    await tick();
+    const line = screen.getByText(COPY_ERROR);
+    expect(line.className).toContain("text-foreground");
+    expect(line.className).not.toContain("text-muted-foreground");
   });
 });
