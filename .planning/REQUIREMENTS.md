@@ -24,7 +24,7 @@
 
 - [ ] **SUBNET-08**: With the default IPv4 /24 result, the full generated output is visible without scrolling at a 1366×650 viewport (also checked at 1280×600)
 - [ ] **SUBNET-09**: An IPv6 /64 result has a stated and measured no-scroll target at 1366×650
-- [ ] **SUBNET-10**: Compaction removes no fields, keeps text ≥14px, keeps all copy controls and existing testids, and introduces no horizontal overflow at 320/375px
+- [ ] **SUBNET-10**: Compaction removes no fields, keeps body text ≥14px (the 12px IPv4/IPv6 family badge chip is not body text), keeps all copy controls and existing testids, and introduces no horizontal overflow at 320/375px
 
 ### Password generator — random password (PWD)
 
