@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { fc, it as fcIt } from "@fast-check/vitest";
 import { normalizePasswordOptions, resolveAlphabet } from "./charset";
 import {
+  BATCH_MAX,
   DEFAULT_OPTIONS,
   DEFAULT_POOL_SIZE,
   DEFAULT_SYMBOLS,
@@ -9,12 +10,13 @@ import {
   LENGTH_MAX,
   LENGTH_MIN,
   LOWERCASE,
+  MAX_FILL_BYTES,
   MAX_GENERATION_ATTEMPTS,
   UPPERCASE,
 } from "./constants";
 import { GenerationExhaustedError } from "./errors";
-import { generatePassword } from "./generate";
-import { constantFill, queueFill } from "./test-utils";
+import { generateBatch, generatePassword } from "./generate";
+import { constantFill, queueFill, recordingFill } from "./test-utils";
 import type { PasswordOptions } from "./types";
 
 const DEFAULT_POOL =
@@ -210,5 +212,64 @@ describe("PWD-04 proofs", () => {
     const b = generatePassword(FOUR_SETS, { fill: queueFill([0, 26, 52, 62]) });
     expect(a).toBe("Aa0!");
     expect(a).toBe(b);
+  });
+});
+
+describe("generateBatch (D-04)", () => {
+  it("20 x 128-character all-set passwords through a recording wrapper around real Web Crypto: all valid, every fill request at most 65,536 bytes (D-02 tracer)", () => {
+    const fill = recordingFill((b) => crypto.getRandomValues(b));
+    const batch = generateBatch(
+      { ...DEFAULT_OPTIONS, length: LENGTH_MAX },
+      BATCH_MAX,
+      {
+        fill,
+      },
+    );
+    expect(batch).toHaveLength(20);
+    for (const pw of batch) {
+      expect(pw).toHaveLength(128);
+      for (const set of [UPPERCASE, LOWERCASE, DIGITS, DEFAULT_SYMBOLS]) {
+        expect([...pw].some((ch) => set.includes(ch))).toBe(true);
+      }
+    }
+    expect(fill.requestedBytes.every((bytes) => bytes === 4)).toBe(true);
+    expect(Math.max(...fill.requestedBytes)).toBeLessThanOrEqual(
+      MAX_FILL_BYTES,
+    );
+    expect(fill.calls).toBeGreaterThanOrEqual(20 * 128);
+  });
+
+  it.each([
+    [Number.NaN, 1],
+    [-5, 1],
+    [0, 1],
+    [Number.POSITIVE_INFINITY, 1],
+    ["5" as unknown as number, 1],
+    [3.9, 3],
+    [20, 20],
+    [21, 20],
+  ])("count is clamped totally: %s gives %s", (count, expected) => {
+    const batch = generateBatch(DEFAULT_OPTIONS, count);
+    expect(batch).toHaveLength(expected);
+  });
+
+  it("deterministic batch: uppercase only, length 4, queued fills give exactly ABCD and EFGH", () => {
+    const opts: PasswordOptions = {
+      ...DEFAULT_OPTIONS,
+      length: 4,
+      uppercase: true,
+      lowercase: false,
+      digits: false,
+      symbols: false,
+    };
+    const batch = generateBatch(opts, 2, {
+      fill: queueFill([0, 1, 2, 3, 4, 5, 6, 7]),
+    });
+    expect(batch).toEqual(["ABCD", "EFGH"]);
+  });
+
+  it("batch elements are independent draws: 20 default passwords are pairwise distinct", () => {
+    const batch = generateBatch(DEFAULT_OPTIONS, 20);
+    expect(new Set(batch).size).toBe(20);
   });
 });

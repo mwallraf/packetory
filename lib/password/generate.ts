@@ -1,4 +1,8 @@
-import { resolveAlphabet, normalizePasswordOptions } from "./charset";
+import {
+  clampBatchCount,
+  normalizePasswordOptions,
+  resolveAlphabet,
+} from "./charset";
 import { MAX_GENERATION_ATTEMPTS } from "./constants";
 import { GenerationExhaustedError } from "./errors";
 import { randomInt } from "./random";
@@ -45,4 +49,21 @@ export function generatePassword(
     }
   }
   throw new GenerationExhaustedError(MAX_GENERATION_ATTEMPTS);
+}
+
+/**
+ * Generates a batch of independent passwords (D-04). Total: it never throws on
+ * a bad `count` (NaN, negatives, Infinity, strings and fractions are all
+ * clamped by `clampBatchCount`) and always returns between 1 and 20 elements.
+ * The library does not trust its caller. Each element is a whole, independent
+ * `generatePassword` draw through the same byte-capped fill seam, so no state
+ * is shared between elements.
+ */
+export function generateBatch(
+  opts: PasswordOptions,
+  count: number,
+  options: RandomOptions = {},
+): string[] {
+  const n = clampBatchCount(count);
+  return Array.from({ length: n }, () => generatePassword(opts, options));
 }
