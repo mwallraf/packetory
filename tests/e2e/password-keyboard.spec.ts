@@ -20,6 +20,15 @@ function calls(page: Page): Promise<number> {
   );
 }
 
+/**
+ * Lets any asynchronous copy path (clipboard write, state update, the
+ * zero-delay announce timer) finish, so an absence assertion made afterwards
+ * cannot pass merely because it ran before the code under test acted (WR-02).
+ */
+async function settle(page: Page) {
+  await page.evaluate(() => new Promise((resolve) => setTimeout(resolve, 250)));
+}
+
 test.describe("Password keyboard shortcuts (POUT-04, D-14)", () => {
   test("/ focuses and selects Length", async ({ page }) => {
     await page.goto("/tools/password");
@@ -155,8 +164,12 @@ test.describe("Password keyboard shortcuts (POUT-04, D-14)", () => {
 
     await page.getByRole("heading", { level: 1 }).click();
     await page.keyboard.press("ControlOrMeta+c");
+    await settle(page);
 
     await expect(page.getByTestId("password-status")).toHaveText("");
+    await expect(page.getByTestId("password-copy-all")).toHaveAccessibleName(
+      "Copy all passwords",
+    );
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
       "sentinel-value",
     );
@@ -173,12 +186,23 @@ test.describe("Password keyboard shortcuts (POUT-04, D-14)", () => {
     const displayed = (await output.textContent()) ?? "";
     await page.evaluate(() => navigator.clipboard.writeText("sentinel-value"));
 
-    await page.getByRole("heading", { level: 1 }).click({ clickCount: 3 });
+    const heading = page.getByRole("heading", { level: 1 });
+    await heading.click({ clickCount: 3 });
+    // Prove the precondition: the user really has the heading text selected.
+    const headingText = ((await heading.textContent()) ?? "").trim();
+    expect(headingText).not.toBe("");
+    expect(
+      (await page.evaluate(() => window.getSelection()?.toString() ?? "")).trim(),
+    ).toBe(headingText);
     await page.keyboard.press("ControlOrMeta+c");
+    await settle(page);
 
     // Either the sentinel or the selected heading text, depending on the native
     // copy, but never the password.
     await expect(page.getByTestId("password-status")).toHaveText("");
+    await expect(page.getByTestId("password-copy")).toHaveAccessibleName(
+      "Copy password",
+    );
     const clipboard = await page.evaluate(() => navigator.clipboard.readText());
     expect(clipboard).not.toBe(displayed);
   });
