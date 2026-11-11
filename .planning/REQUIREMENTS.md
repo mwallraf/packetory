@@ -47,7 +47,7 @@
 ### Strength (STR)
 
 - [ ] **STR-01**: User sees a strength meter with entropy bits and a label (Weak <40 / Fair 40–74 / Strong 75–99 / Very strong ≥100), computed from settings so it is stable across Regenerate
-- [ ] **STR-02**: User sees a pool-size · bits line (e.g. "84 chars · 128 bits"; for passphrases, wordlist size × words)
+- [ ] **STR-02**: User sees a pool-size · bits line (e.g. "85 chars · 128 bits"; for passphrases, wordlist size × words)
 - [ ] **STR-03**: User sees an estimated time to crack with its guess-rate assumption stated visibly
 - [ ] **STR-04**: User can switch the crack-time estimate between a fast-hash (10^10 guesses/s) and a slow-hash (bcrypt-style) scenario
 
@@ -91,12 +91,48 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (filled by roadmap) | | |
+| INFO-01 | Phase 10 | Pending |
+| INFO-02 | Phase 10 | Pending |
+| INFO-03 | Phase 10 | Pending |
+| INFO-04 | Phase 10 | Pending |
+| INFO-05 | Phase 10 | Pending |
+| CFG-01 | Phase 10 | Pending |
+| CFG-02 | Phase 10 | Pending |
+| CFG-03 | Phase 10 | Pending |
+| SUBNET-08 | Phase 11 | Pending |
+| SUBNET-09 | Phase 11 | Pending |
+| SUBNET-10 | Phase 11 | Pending |
+| PWD-01 | Phase 13 | Pending |
+| PWD-02 | Phase 13 | Pending |
+| PWD-03 | Phase 13 | Pending |
+| PWD-04 | Phase 12 | Pending |
+| PWD-05 | Phase 13 | Pending |
+| PWD-06 | Phase 13 | Pending |
+| PWD-07 | Phase 13 | Pending |
+| PWD-08 | Phase 13 | Pending |
+| PHR-01 | Phase 14 | Pending |
+| PHR-02 | Phase 14 | Pending |
+| PHR-03 | Phase 14 | Pending |
+| PHR-04 | Phase 14 | Pending |
+| STR-01 | Phase 14 | Pending |
+| STR-02 | Phase 14 | Pending |
+| STR-03 | Phase 14 | Pending |
+| STR-04 | Phase 14 | Pending |
+| POUT-01 | Phase 13 | Pending |
+| POUT-02 | Phase 13 | Pending |
+| POUT-03 | Phase 13 | Pending |
+| POUT-04 | Phase 13 | Pending |
+| POUT-05 | Phase 13 | Pending |
+| PREG-01 | Phase 14 | Pending |
+| PREG-02 | Phase 14 | Pending |
+| PREG-03 | Phase 14 | Pending |
 
 **Coverage:**
 - v1.3 requirements: 35 total
-- Mapped to phases: 0 (pending roadmap)
+- Mapped to phases: 35 ✓
+- Unmapped: 0
+- Phase 12 owns PWD-04 only; its success criteria also cover the library guarantees behind PWD-07/POUT-03 (shown to users in Phase 13) and PHR-01..03/STR-01..04 (shown to users in Phase 14)
 
 ---
 *Requirements defined: 2026-11-11*
-*Last updated: 2026-11-11 after initial definition*
+*Last updated: 2026-11-11 after v1.3 roadmap creation (traceability filled)*

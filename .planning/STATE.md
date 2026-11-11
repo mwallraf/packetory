@@ -3,10 +3,10 @@ gsd_state_version: "1.0"
 milestone: v1.3
 milestone_name: Password Generator & Tool Page Polish
 status: planning
-last_updated: "2026-11-11T12:36:17.517Z"
+last_updated: "2026-11-11T13:00:00.000Z"
 last_activity: 2026-11-11
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,18 +17,19 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-10-17)
+See: .planning/PROJECT.md (updated 2026-11-11)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Planning next milestone
+**Current focus:** Phase 10 — Shared About Section & Config Parity
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-11-11 — Milestone v1.3 started
+Phase: 10 of 14 (Shared About Section & Config Parity) — first of 5 v1.3 phases (10-14)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-11-11 — v1.3 roadmap created (Phases 10-14, 35/35 requirements mapped)
 
+Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -54,7 +55,7 @@ Last activity: 2026-11-11 — Milestone v1.3 started
 
 **Recent Trend:**
 
-- Last 5 plans: none yet
+- Last 5 plans: none yet in v1.3
 - Trend: -
 
 *Updated after each plan completion*
@@ -105,8 +106,11 @@ Last activity: 2026-11-11 — Milestone v1.3 started
 
 ### Decisions
 
-Full decision log lives in PROJECT.md Key Decisions; v1.2 phase-level decisions are archived with `.planning/milestones/v1.2-phases/`. Carried forward for the next milestone:
+Full decision log lives in PROJECT.md Key Decisions; v1.2 phase-level decisions are archived with `.planning/milestones/v1.2-phases/`. Active for v1.3:
 
+- [Roadmap v1.3]: The user set the phase order: About + Config parity + `<summary>` Enter fix (10) → Subnet compaction (11) → `lib/password` core (12) → password UI. The UI work is split into Phase 13 (random-password page, options, copy/batch, URL, keyboard, output hygiene) and Phase 14 (passphrase, strength/crack time, registry/nav, SEO/About, Lighthouse), so the tool is only advertised in the nav once it is complete
+- [Roadmap v1.3]: Phase 12 owns PWD-04 only. Its success criteria cover the library guarantees behind PWD-07/POUT-03 (shown to users in 13) and PHR-01..03/STR-01..04 (shown to users in 14)
+- [v1.3 scoping]: EFF Large list kept unmodified (7,776 words) with an FAQ note on its 4 hyphenated words; Config icon `FileTerminal`; Subnet gate 1366×650 + 1280×600; length 4–128 (20), words 3–20 (6), batch 1–20; strength from settings, no zxcvbn; zero new dependencies
 - CI merge gate = typecheck/lint/test/build only (e2e job removed 2026-10-17); run `npm run test:e2e` and `npm run test:e2e:prod` locally before merging
 - Hash skeleton pins (2240px @320, 1612px @1280) depend on `text-rendering: geometricPrecision` on digest rows — re-measure if digest typography changes
 - Outside contributions (e.g. KoffeePi's Config highlighter) can land on GitHub `main` independently — fetch and merge `origin/main` before starting new work
@@ -117,7 +121,9 @@ None yet.
 
 ### Blockers/Concerns
 
-- Accepted (2026-10-17): analytics `redactBeforeSend` passes events through untouched when there's no `?`, so URL-fragment state would bypass redaction — no tool uses fragments today; INTG-03 descoped with Phase 10.
+- [v1.3]: The STR-02 example in REQUIREMENTS.md ("84 chars · 128 bits") doesn't match the PWD-05 default symbol set. That set has 23 symbols, so the default pool is 85 (about 128.2 bits at 20 chars). Displayed and FAQ numbers must come from `lib/password` constants, not from the requirement text
+- [v1.3 Phase 14]: The password privacy/clipboard FAQ wording needs explicit human approval (PREG-02; legal/privacy text is a human gate)
+- Accepted (2026-10-17): analytics `redactBeforeSend` passes events through untouched when there's no `?`, so URL-fragment state would bypass redaction — no tool uses fragments today; v1.3 password state must stay in query params, never `#fragment`
 - Tech debt carried from v1.0: `/api/mac-vendor` interim API-proxy (build-time OUI dataset is the intended architecture); no rate limiting on it (AR-05-01); related-tool links and a per-tool accessibility re-audit still deferred.
 - Tech debt carried from v1.1: DOM-02 redirects and DOM-04 runbook deliberately descoped — revisit if duplicate-content SEO or the `www` TLS gap becomes a priority.
 
@@ -139,10 +145,11 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-17
-Stopped at: v1.2 milestone closed (override closeout), tagged v1.2
+Last session: 2026-11-11
+Stopped at: v1.3 roadmap created (Phases 10-14); awaiting roadmap approval
 Resume file: None
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Review and approve the v1.3 roadmap (`.planning/ROADMAP.md`)
+- Then start Phase 10 with /gsd-discuss-phase 10 (UI phase: /gsd-ui-phase 10 before planning)
