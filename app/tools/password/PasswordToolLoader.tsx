@@ -17,19 +17,20 @@ const PasswordTool = dynamic(
 );
 
 /**
- * Text-free placeholder for the island (D-17). The heights are pre-measurement
- * estimates of the finished default island (h-[1000px] below sm, sm:h-[732px]
- * from sm up, with a 124px hero block); plan 13-06 measures the finished island
- * at 320px and 1280px and replaces them. It holds no text, digits or symbols.
+ * Text-free placeholder for the island (D-17). It holds no text, digits or
+ * symbols. Measured (13-06, Chromium, default state, fonts loaded): 320px wide 977.9px, 1280px wide 708.4px; pinned h-[980px] sm:h-[712px].
+ * The hero block measured 122px at both widths and is pinned h-[124px] sm:h-[124px].
+ * Phase 14 makes the final pin and adds the CLS gate once the strength meter
+ * and passphrase controls exist.
  */
 function PasswordToolSkeleton() {
   return (
     <div
       aria-hidden="true"
       data-testid="password-skeleton"
-      className="flex flex-col gap-8 h-[1000px] sm:h-[732px]"
+      className="flex flex-col gap-8 h-[980px] sm:h-[712px]"
     >
-      <div className="h-[124px] animate-pulse rounded-md border border-border bg-secondary motion-reduce:animate-none" />
+      <div className="h-[124px] sm:h-[124px] animate-pulse rounded-md border border-border bg-secondary motion-reduce:animate-none" />
     </div>
   );
 }
