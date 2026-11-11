@@ -7,7 +7,13 @@ import {
   render,
   screen,
 } from "@testing-library/react";
-import { LENGTH_MAX, LENGTH_MIN } from "@/lib/password";
+import {
+  DEFAULT_SYMBOLS,
+  LENGTH_MAX,
+  LENGTH_MIN,
+  LOOK_ALIKES,
+  SYMBOL_SET_MAX,
+} from "@/lib/password";
 import { PasswordTool } from "./PasswordTool";
 
 const HINT = `Enter a number between ${LENGTH_MIN} and ${LENGTH_MAX}`;
@@ -58,6 +64,29 @@ function sw(key: string): HTMLElement {
 async function toggle(key: string) {
   await act(async () => {
     fireEvent.click(sw(key));
+  });
+}
+
+function symbols(): HTMLInputElement {
+  return screen.getByTestId("password-symbols") as HTMLInputElement;
+}
+
+function setSymbols(value: string) {
+  fireEvent.change(symbols(), { target: { value } });
+}
+
+function symbolHint(): string {
+  return screen.getByTestId("password-symbols-hint").textContent ?? "";
+}
+
+/** The characters of the output that are neither letters nor digits. */
+function symbolChars(): string[] {
+  return text().split("").filter((ch) => /[^A-Za-z0-9]/.test(ch));
+}
+
+async function regenerate() {
+  await act(async () => {
+    fireEvent.click(screen.getByTestId("password-regenerate"));
   });
 }
 
@@ -338,5 +367,196 @@ describe("Errors recover after options change (PWD-07/adjacency)", () => {
     setLength("30");
     expect(screen.queryByTestId("password-error")).toBeNull();
     expect(text()).toHaveLength(30);
+  });
+});
+
+const RULE_HINT = `Up to ${SYMBOL_SET_MAX} printable ASCII symbols. Letters, digits, spaces and repeats are removed when you leave the field.`;
+const EMPTY_HINT = "Empty, so the default set is used";
+const OFF_HINT = "Turn on Symbols to use this set";
+
+describe("Symbol set editor (PWD-05, D-05)", () => {
+  it("starts with the default symbols and the rule hint", () => {
+    mount();
+    expect(symbols().value).toBe(DEFAULT_SYMBOLS);
+    expect(symbolHint()).toBe(RULE_HINT);
+    expect(symbols().getAttribute("aria-describedby")).toBe(
+      "password-symbols-hint",
+    );
+    expect(symbols().disabled).toBe(false);
+  });
+
+  it("an empty draft generates from the default set, shows the empty hint and blur restores the default", () => {
+    mount();
+    setLength("128");
+    setSymbols("#");
+    setSymbols("");
+    expect(symbolHint()).toBe(EMPTY_HINT);
+    expect(symbolChars().length).toBeGreaterThan(0);
+    for (const ch of symbolChars()) expect(DEFAULT_SYMBOLS).toContain(ch);
+    fireEvent.blur(symbols());
+    expect(symbols().value).toBe(DEFAULT_SYMBOLS);
+  });
+
+  it.each(["abc 123é", "   ", "é€🚀"])(
+    "a draft with no usable symbol (%j) shows the empty hint",
+    (draft) => {
+      mount();
+      setSymbols(draft);
+      expect(symbolHint()).toBe(EMPTY_HINT);
+      fireEvent.blur(symbols());
+      expect(symbols().value).toBe(DEFAULT_SYMBOLS);
+    },
+  );
+
+  it("generates live from the normalized draft without rewriting it, and blur rewrites it", () => {
+    mount();
+    setLength("128");
+    setSymbols("ab!!#");
+    expect(symbols().value).toBe("ab!!#");
+    expect(symbolChars().length).toBeGreaterThan(0);
+    for (const ch of symbolChars()) expect("!#").toContain(ch);
+    expect(symbolHint()).toBe(RULE_HINT);
+    fireEvent.blur(symbols());
+    expect(symbols().value).toBe("!#");
+  });
+
+  it("keeps first-seen order and never sorts", () => {
+    mount();
+    setSymbols("#!#");
+    fireEvent.blur(symbols());
+    expect(symbols().value).toBe("#!");
+  });
+
+  it("typing a character that normalizes to the same set does not regenerate", () => {
+    mount();
+    setSymbols("!#");
+    const shown = text();
+    const before = calls();
+    setSymbols("!#a");
+    setSymbols("!#a ");
+    setSymbols("!!##");
+    expect(calls()).toBe(before);
+    expect(text()).toBe(shown);
+    expect(symbols().value).toBe("!!##");
+  });
+
+  it("a set of exactly SYMBOL_SET_MAX usable symbols is kept whole on blur", () => {
+    mount();
+    const all = Array.from({ length: 0x7e - 0x21 + 1 }, (_, i) =>
+      String.fromCharCode(0x21 + i),
+    )
+      .filter((ch) => /[^A-Za-z0-9]/.test(ch))
+      .join("");
+    expect(all).toHaveLength(SYMBOL_SET_MAX);
+    setSymbols(all);
+    fireEvent.blur(symbols());
+    expect(symbols().value).toBe(all);
+  });
+
+  it("a long mixed paste is capped to SYMBOL_SET_MAX on blur", () => {
+    mount();
+    const all = Array.from({ length: 0x7e - 0x21 + 1 }, (_, i) =>
+      String.fromCharCode(0x21 + i),
+    )
+      .filter((ch) => /[^A-Za-z0-9]/.test(ch))
+      .join("");
+    const paste = (all + "abcXYZ789 ").repeat(2);
+    expect(paste.length).toBeGreaterThan(SYMBOL_SET_MAX + 1);
+    setSymbols(paste);
+    fireEvent.blur(symbols());
+    expect(symbols().value).toHaveLength(SYMBOL_SET_MAX);
+  });
+
+  it("while Symbols is off the input is disabled, keeps its value and the hint says so", async () => {
+    mount();
+    setSymbols("!#");
+    await toggle("symbols");
+    expect(symbols().disabled).toBe(true);
+    expect(symbols().value).toBe("!#");
+    expect(symbolHint()).toBe(OFF_HINT);
+    await toggle("symbols");
+    expect(symbols().disabled).toBe(false);
+    expect(symbolHint()).toBe(RULE_HINT);
+  });
+});
+
+describe("Avoid look-alikes (PWD-06)", () => {
+  it("renders the always-visible hint from LOOK_ALIKES", () => {
+    mount();
+    const hint = document.getElementById("password-lookalikes-hint");
+    expect(hint?.textContent).toBe("Removes 0 O o 1 l I |");
+    expect(hint?.textContent).toBe(
+      `Removes ${LOOK_ALIKES.split("").join(" ")}`,
+    );
+    const toggleEl = screen.getByTestId("password-lookalikes");
+    expect(toggleEl.getAttribute("aria-describedby")).toBe(
+      "password-lookalikes-hint",
+    );
+    expect(toggleEl.getAttribute("aria-checked")).toBe("false");
+  });
+
+  it("no output character is a look-alike across 10 regenerations at length 128", async () => {
+    mount();
+    setLength("128");
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("password-lookalikes"));
+    });
+    for (let i = 0; i < 10; i++) {
+      await regenerate();
+      expect(text()).toHaveLength(128);
+      for (const ch of LOOK_ALIKES) expect(text()).not.toContain(ch);
+    }
+  });
+
+  it.each(["symbols first", "look-alikes first"])(
+    "symbol set '|' with look-alikes on has no error and uses the default symbols (%s)",
+    async (order) => {
+      mount();
+      setLength("128");
+      const lookalikes = async () => {
+        await act(async () => {
+          fireEvent.click(screen.getByTestId("password-lookalikes"));
+        });
+      };
+      if (order === "symbols first") {
+        setSymbols("|");
+        await lookalikes();
+      } else {
+        await lookalikes();
+        setSymbols("|");
+      }
+      expect(screen.queryByTestId("password-error")).toBeNull();
+      expect(symbolChars().length).toBeGreaterThan(0);
+      for (const ch of symbolChars()) {
+        expect(DEFAULT_SYMBOLS).toContain(ch);
+        expect(LOOK_ALIKES).not.toContain(ch);
+      }
+    },
+  );
+});
+
+describe("Option input attributes (D-08)", () => {
+  it.each(["password-length", "password-symbols"])(
+    "%s carries every autofill and spellcheck guard",
+    (testId) => {
+      mount();
+      const el = screen.getByTestId(testId);
+      expect(el.getAttribute("type")).toBe("text");
+      expect(el.getAttribute("spellcheck")).toBe("false");
+      expect(el.getAttribute("autocorrect")).toBe("off");
+      expect(el.getAttribute("autocapitalize")).toBe("off");
+      expect(el.getAttribute("autocomplete")).toBe("off");
+      expect(el.hasAttribute("data-1p-ignore")).toBe(true);
+      expect(el.getAttribute("data-lpignore")).toBe("true");
+      expect(el.hasAttribute("data-bwignore")).toBe(true);
+      expect(el.getAttribute("data-form-type")).toBe("other");
+      expect(el.hasAttribute("name")).toBe(false);
+    },
+  );
+
+  it("the slider has autocomplete off and the tool contains no form element", () => {
+    const { container } = mount();
+    expect(slider().getAttribute("autocomplete")).toBe("off");
+    expect(container.querySelector("form, fieldset, output")).toBeNull();
   });
 });
