@@ -34,7 +34,7 @@
 - [x] **PWD-04**: Every generated password contains at least one character from each enabled set, without biasing the distribution (whole-password rejection resampling)
 - [x] **PWD-05**: User can edit the symbol set (deduplicated, printable ASCII only; emptying it restores the default `!@#$%^&*()-_=+[]{};:,.?`)
 - [x] **PWD-06**: User can enable "avoid look-alikes", which removes `0 O o 1 l I |` from the pool
-- [ ] **PWD-07**: All randomness comes from `crypto.getRandomValues` with unbiased rejection sampling; if Web Crypto is unavailable the tool shows an error instead of falling back to a weaker source
+- [x] **PWD-07**: All randomness comes from `crypto.getRandomValues` with unbiased rejection sampling; if Web Crypto is unavailable the tool shows an error instead of falling back to a weaker source
 - [x] **PWD-08**: Digits and symbols in the output are color-coded distinctly from letters; copied text is plain
 
 ### Passphrase mode (PHR)
@@ -108,7 +108,7 @@
 | PWD-04 | Phase 12 | Complete |
 | PWD-05 | Phase 13 | Complete |
 | PWD-06 | Phase 13 | Complete |
-| PWD-07 | Phase 13 | Pending |
+| PWD-07 | Phase 13 | Complete |
 | PWD-08 | Phase 13 | Complete |
 | PHR-01 | Phase 14 | Pending |
 | PHR-02 | Phase 14 | Pending |
