@@ -249,7 +249,7 @@ test.describe("Password privacy surfaces (POUT-03, POUT-05)", () => {
   }) => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     const BUTTON_NAME =
-      /^(Copy password( \d+)?|Copy all passwords|Copied!|Regenerate)$/;
+      /^(Copy password( \d+)?|Copy passphrase( \d+)?|Copy all passwords|Copy all passphrases|Copied!|Regenerate)$/;
 
     const sweep = async (expectedCount: number) => {
       const values = await collectPasswords(page);
@@ -291,6 +291,203 @@ test.describe("Password privacy surfaces (POUT-03, POUT-05)", () => {
     await sweep(1);
 
     await page.goto("/tools/password?n=3");
+    await expect(page.getByTestId("password-row")).toHaveCount(3);
+    await page.getByTestId("password-row-copy").first().click();
+    await expect(page.getByTestId("password-row-copy").first()).toContainText(
+      "Copied!",
+    );
+    await page.getByTestId("password-regenerate").click();
+    await sweep(3);
+  });
+
+  test("no passphrase reaches any exit surface (D-20c)", async ({
+    page,
+    context,
+  }) => {
+    const requests: { url: string; postData: string | null }[] = [];
+    page.on("request", (req) => {
+      requests.push({ url: req.url(), postData: req.postData() });
+    });
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+
+    const seen: string[] = [];
+    const record = async () => {
+      seen.push(...(await collectPasswords(page)));
+    };
+
+    await page.goto("/tools/password");
+    await expect(page.getByTestId("password-output")).toBeVisible();
+    await page.getByTestId("password-mode-passphrase").click();
+    await expect(page.getByTestId("password-wordlist-loading")).toHaveCount(0);
+    await expect(page.getByTestId("password-output")).toBeVisible();
+    await record();
+
+    await page.getByTestId("password-copy").click();
+    await expect(page.getByTestId("password-copy")).toContainText("Copied!");
+
+    const beforeRegen = seen[seen.length - 1];
+    await page.getByTestId("password-regenerate").click();
+    await expect
+      .poll(async () => (await collectPasswords(page))[0])
+      .not.toBe(beforeRegen);
+    await record();
+
+    await page.getByTestId("password-batch-count").fill("3");
+    await expect(page.getByTestId("password-row")).toHaveCount(3);
+    await record();
+
+    await page.getByTestId("password-copy-all").click();
+    await expect(page.getByTestId("password-copy-all")).toContainText(
+      "Copied!",
+    );
+
+    await page.getByTestId("password-batch-count").fill("1");
+    await expect(page.getByTestId("password-hero")).toBeVisible();
+    await page.getByTestId("password-words").fill("8");
+    await expect
+      .poll(async () => ((await collectPasswords(page))[0] ?? "").split("-").length)
+      .toBeGreaterThanOrEqual(8);
+    await page.getByTestId("password-separator-space").click();
+    await expect
+      .poll(async () => ((await collectPasswords(page))[0] ?? "").includes(" "))
+      .toBe(true);
+    await record();
+
+    expect(new Set(seen).size, "distinct passphrases were recorded").toBeGreaterThan(
+      3,
+    );
+    // The full joined string is matched: single lowercase words would match
+    // ordinary page text, a whole passphrase cannot.
+    for (const p of seen) expect(p.length).toBeGreaterThan(10);
+
+    for (const req of requests) {
+      expectNoPasswordIn(req.url, seen, `request URL ${req.url}`);
+      if (req.postData) {
+        expectNoPasswordIn(req.postData, seen, `request body of ${req.url}`);
+      }
+    }
+    expectNoPasswordIn(page.url(), seen, "page.url()");
+
+    const inPage = await page.evaluate((passwords) => {
+      const storage = (st: Storage) => {
+        const out: string[] = [];
+        for (let i = 0; i < st.length; i += 1) {
+          const key = st.key(i);
+          if (key === null) continue;
+          out.push(key, st.getItem(key) ?? "");
+        }
+        return out.join("\n");
+      };
+      let historyState = "null";
+      try {
+        historyState = JSON.stringify(history.state ?? null);
+      } catch {
+        historyState = "unserializable";
+      }
+      const hits: string[] = [];
+      document.querySelectorAll("*").forEach((el) => {
+        for (const attr of Array.from(el.attributes)) {
+          if (passwords.some((p) => attr.value.includes(p))) {
+            hits.push(`${el.tagName.toLowerCase()}[${attr.name}]`);
+          }
+        }
+        if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+          if (passwords.some((p) => el.value.includes(p))) hits.push("value");
+          if (passwords.some((p) => el.placeholder.includes(p))) {
+            hits.push("placeholder");
+          }
+        }
+      });
+      return {
+        historyState,
+        local: storage(localStorage),
+        session: storage(sessionStorage),
+        cookie: document.cookie,
+        title: document.title,
+        href: location.href,
+        hits,
+      };
+    }, seen);
+    expectNoPasswordIn(inPage.historyState, seen, "history.state");
+    expectNoPasswordIn(inPage.local, seen, "localStorage");
+    expectNoPasswordIn(inPage.session, seen, "sessionStorage");
+    expectNoPasswordIn(inPage.cookie, seen, "document.cookie");
+    expectNoPasswordIn(inPage.title, seen, "document.title");
+    expectNoPasswordIn(inPage.href, seen, "location.href");
+    expect(inPage.hits, "attributes or fields holding a passphrase").toEqual([]);
+
+    const cookies = await context.cookies();
+    expectNoPasswordIn(
+      cookies.map((c) => `${c.name}=${c.value}`).join("\n"),
+      seen,
+      "context cookies",
+    );
+  });
+
+  test("passphrase accessible names, snapshot and live region never carry the passphrase", async ({
+    page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    const BUTTON_NAME =
+      /^(Copy passphrase( \d+)?|Copy all passphrases|Copied!|Regenerate)$/;
+
+    const sweep = async (expectedCount: number) => {
+      const values = await collectPasswords(page);
+      expect(values).toHaveLength(expectedCount);
+
+      const snapshot = await page.getByTestId("password-options").ariaSnapshot();
+      const status = (await page.getByTestId("password-status").textContent()) ?? "";
+      for (const v of values) {
+        expect(snapshot.includes(v), "password-options ariaSnapshot").toBe(false);
+        expect(status.includes(v), "password-status text").toBe(false);
+        await expect(page.getByRole("button", { name: v })).toHaveCount(0);
+        await expect(page.getByRole("textbox", { name: v })).toHaveCount(0);
+        await expect(page.getByLabel(v)).toHaveCount(0);
+      }
+
+      // Only the output zone's buttons carry the copy names; the mode and
+      // option toggles keep their own fixed names.
+      const zoneButtons = await page
+        .getByTestId("password-output-zone")
+        .getByRole("button")
+        .evaluateAll((els) =>
+          els.map(
+            (el) => (el.getAttribute("aria-label") ?? el.textContent ?? "").trim(),
+          ),
+        );
+      expect(zoneButtons.length).toBeGreaterThan(0);
+      for (const name of zoneButtons) {
+        expect(name, `button name "${name}"`).toMatch(BUTTON_NAME);
+      }
+      const allButtons = await page
+        .getByTestId("password-tool")
+        .getByRole("button")
+        .evaluateAll((els) =>
+          els.map(
+            (el) => (el.getAttribute("aria-label") ?? el.textContent ?? "").trim(),
+          ),
+        );
+      for (const name of allButtons) {
+        expect(
+          values.some((v) => name.includes(v)),
+          `button name "${name}" holds a passphrase`,
+        ).toBe(false);
+      }
+      await expect(page.getByTestId("password-status")).toHaveAttribute(
+        "aria-live",
+        "polite",
+      );
+    };
+
+    await page.goto("/tools/password?mode=passphrase");
+    await expect(page.getByTestId("password-hero")).toBeVisible();
+    await page.getByTestId("password-copy").click();
+    await expect(page.getByTestId("password-copy")).toContainText("Copied!");
+    await page.getByTestId("password-regenerate").click();
+    await sweep(1);
+
+    await page.goto("/tools/password?mode=passphrase&n=3");
     await expect(page.getByTestId("password-row")).toHaveCount(3);
     await page.getByTestId("password-row-copy").first().click();
     await expect(page.getByTestId("password-row-copy").first()).toContainText(

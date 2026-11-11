@@ -101,3 +101,163 @@ test.describe("Password Generator at 320px (UI E1-long-text, E1-overflow, E2 ove
     }
   }
 });
+
+test.describe("Passphrase mode at 320px (UI E2-long-text, E2-overflow, E4-overflow)", () => {
+  for (const scheme of ["light", "dark"] as const) {
+    test(`20-word hero wraps between words and fits in ${scheme}`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.setViewportSize({ width: 320, height: 800 });
+      await page.goto(
+        "/tools/password?mode=passphrase&words=20&sep=space&cap=1&num=1",
+      );
+      await expect(page.getByTestId("password-hero")).toBeVisible();
+      await expect(page.getByTestId("password-output")).toBeVisible();
+
+      const isDark = await page.evaluate(() =>
+        document.documentElement.classList.contains("dark"),
+      );
+      expect(isDark).toBe(scheme === "dark");
+
+      const noScroll = await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      );
+      expect(noScroll, "page scrollWidth <= clientWidth").toBe(true);
+      expect(await offenders(page), "elements past the viewport").toEqual([]);
+      for (const id of ["password-copy", "password-regenerate"]) {
+        const box = await page.getByTestId(id).boundingBox();
+        expect(box, `${id} is rendered`).not.toBeNull();
+        expect((box?.x ?? 0) + (box?.width ?? 0), `${id} right edge`).toBeLessThanOrEqual(
+          320,
+        );
+        expect(box?.x ?? -1).toBeGreaterThanOrEqual(0);
+      }
+
+      // No word breaks mid-word: a Range over each word has one client rect.
+      const broken = await page.getByTestId("password-output").evaluate((root) => {
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        const nodes: Text[] = [];
+        let offset = 0;
+        const starts: number[] = [];
+        let full = "";
+        while (walker.nextNode()) {
+          const n = walker.currentNode as Text;
+          nodes.push(n);
+          starts.push(offset);
+          offset += n.data.length;
+          full += n.data;
+        }
+        const locate = (pos: number) => {
+          for (let i = nodes.length - 1; i >= 0; i -= 1) {
+            if (pos >= starts[i]!) return { node: nodes[i]!, off: pos - starts[i]! };
+          }
+          return { node: nodes[0]!, off: 0 };
+        };
+        const bad: string[] = [];
+        let words = 0;
+        const re = /[^ ]+/g;
+        let m: RegExpExecArray | null;
+        while ((m = re.exec(full)) !== null) {
+          words += 1;
+          // EFF words such as "t-shirt" may legitimately wrap at their own hyphen.
+          if (m[0].includes("-")) continue;
+          const start = locate(m.index);
+          const endPos = m.index + m[0].length;
+          // End position: place at the end of the node holding the last char.
+          const last = locate(endPos - 1);
+          const range = document.createRange();
+          range.setStart(start.node, start.off);
+          range.setEnd(last.node, last.off + 1);
+          const rects = Array.from(range.getClientRects()).filter(
+            (r) => r.width > 0,
+          );
+          // One rect per text node the word spans, merged by line.
+          const lines = new Set(rects.map((r) => Math.round(r.top)));
+          if (lines.size !== 1) bad.push(`word ${words} spans ${lines.size} lines`);
+        }
+        return { bad, words };
+      });
+      expect(broken.words, "words found in the hero").toBe(20);
+      expect(broken.bad, "words that broke mid-word").toEqual([]);
+    });
+
+    for (const sep of ["underscore", "dot"] as const) {
+      test(`20 x 20-word batch with the ${sep} separator fits 320px in ${scheme}`, async ({
+        page,
+      }) => {
+        await page.emulateMedia({ colorScheme: scheme });
+        await page.setViewportSize({ width: 320, height: 800 });
+        await page.goto(`/tools/password?mode=passphrase&n=20&words=20&sep=${sep}`);
+        await expect(page.getByTestId("password-batch")).toBeVisible();
+        await expect(page.getByTestId("password-row")).toHaveCount(20);
+
+        const noScroll = await page.evaluate(
+          () =>
+            document.documentElement.scrollWidth <=
+            document.documentElement.clientWidth,
+        );
+        expect(noScroll, "page scrollWidth <= clientWidth").toBe(true);
+        expect(await offenders(page), "elements past the viewport").toEqual([]);
+
+        const clientWidth = await page.evaluate(
+          () => document.documentElement.clientWidth,
+        );
+        const rowEdges = await page
+          .getByTestId("password-row-copy")
+          .evaluateAll((els) =>
+            els.map((el) => {
+              const r = el.getBoundingClientRect();
+              return { left: r.left, right: r.right };
+            }),
+          );
+        expect(rowEdges).toHaveLength(20);
+        for (const edge of rowEdges) {
+          expect(edge.left).toBeGreaterThanOrEqual(0);
+          expect(edge.right).toBeLessThanOrEqual(clientWidth);
+        }
+
+        const list = await page
+          .getByTestId("password-batch-list")
+          .evaluate((el) => ({
+            scrollHeight: el.scrollHeight,
+            clientHeight: el.clientHeight,
+          }));
+        expect(
+          list.scrollHeight,
+          "batch list is not an inner scroller",
+        ).toBeLessThanOrEqual(list.clientHeight + 1);
+      });
+    }
+
+    test(`the bcrypt scenario fits the strength panel at 320px in ${scheme}`, async ({
+      page,
+    }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.setViewportSize({ width: 320, height: 800 });
+      await page.goto("/tools/password");
+      await expect(page.getByTestId("password-hero")).toBeVisible();
+      await page.getByTestId("password-scenario-slow").click();
+      const panel = await page.getByTestId("password-strength").evaluate((el) => ({
+        scrollWidth: el.scrollWidth,
+        clientWidth: el.clientWidth,
+        right: el.getBoundingClientRect().right,
+        viewport: document.documentElement.clientWidth,
+      }));
+      expect(panel.scrollWidth, "strength panel scrollWidth").toBeLessThanOrEqual(
+        panel.clientWidth,
+      );
+      expect(panel.right, "strength panel right edge").toBeLessThanOrEqual(
+        panel.viewport,
+      );
+      const noScroll = await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      );
+      expect(noScroll, "page scrollWidth <= clientWidth").toBe(true);
+    });
+  }
+});
