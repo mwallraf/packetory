@@ -70,7 +70,7 @@ Phase 10 (File Hashing & Release Hardening) was removed 2026-10-17 by user decis
   3. With keyboard focus on a `<summary>`, pressing Enter toggles only that section and fires no global Enter action on any tool page (UUID does not regenerate, DNS does not re-run its lookup). A `useKeyboardShortcut` unit test and an e2e check prove this.
   4. `/tools/config` shows a worked example and a 4–6 item FAQ with matching FAQPage JSON-LD. The worked example is a highlighted Cisco IOS snippet that uses only RFC 5737 documentation addresses and no realistic secrets. Config shows its own `FileTerminal` icon on its landing card (nav links and tool-page headings stay text-only for every tool, per Phase 10 decision D-16), and a unit test fails if any registered tool icon lacks an explicit `ICONS` entry (no silent fallback to another tool's icon).
   5. The existing SEO e2e specs open the disclosures before asserting visibility, and a Config SEO spec exists. Typecheck, lint, unit tests, the build, `npm run test:e2e` and `npm run test:e2e:prod` all pass locally.
-**Plans**: 3/6 plans executed
+**Plans**: 4/6 plans executed
 
 Plans:
 **Wave 1**
@@ -79,7 +79,7 @@ Plans:
 - [x] 10-03-PLAN.md — Config content: shared token-class module, RFC 5737 sample + 4-item FAQ data (D-15/D-17 copy), server-rendered ConfigExample
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 10-04-PLAN.md — Migrate Config, Subnet, DNS, MAC and Hash pages to ToolAbout; SEO specs via openAbout; new config-seo spec
+- [x] 10-04-PLAN.md — Migrate Config, Subnet, DNS, MAC and Hash pages to ToolAbout; SEO specs via openAbout; new config-seo spec
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 10-05-PLAN.md — Registry-driven structural guard and cross-tool about.spec e2e (tool-first structure, native toggles, Tab order, JS-off JSON-LD parity)
@@ -176,7 +176,7 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 7. Production Domain Cutover | v1.1 | 1/1 | Complete | 2026-07-25 |
 | 8. Hash Core & Worker Runtime | v1.2 | 5/5 | Complete | 2026-10-15 |
 | 9. Hash Tool Page & Text Hashing | v1.2 | 9/9 | Complete | 2026-10-17 |
-| 10. Shared About Section & Config Parity | v1.3 | 3/6 | In Progress | - |
+| 10. Shared About Section & Config Parity | v1.3 | 4/6 | In Progress | - |
 | 11. Subnet Calculator Compaction | v1.3 | 0/TBD | Not started | - |
 | 12. Password Core Library | v1.3 | 0/TBD | Not started | - |
 | 13. Password Generator Page | v1.3 | 0/TBD | Not started | - |
