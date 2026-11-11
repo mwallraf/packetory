@@ -7,6 +7,7 @@ import {
   GenerationExhaustedError,
   LENGTH_MAX,
   LENGTH_MIN,
+  DEFAULT_OPTIONS,
   clampInt,
   generateBatch,
   normalizeSymbols,
@@ -16,6 +17,7 @@ import {
   type ToolOptions,
 } from "@/lib/password";
 import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
+import { useKeyboardShortcut } from "@/lib/hooks/useKeyboardShortcut";
 import { PasswordOptionsPanel, type SetKey } from "./PasswordOptionsPanel";
 import { PasswordOutput } from "./PasswordOutput";
 
@@ -124,6 +126,7 @@ export function PasswordTool() {
   const allCopy = useCopyToClipboard();
   const [status, setStatus] = useState<"" | StatusPhrase>("");
   const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lengthRef = useRef<HTMLInputElement>(null);
 
   // Clear first and set the phrase on the next tick, so an identical repeated
   // announcement is read again. Stable, so effects and rows can depend on it.
@@ -268,6 +271,40 @@ export function PasswordTool() {
     commit({ ...options, avoidLookalikes: checked });
   }
 
+  // Esc (D-14): every option, draft and hint back to the defaults, a new
+  // generation and the bare URL. No key changes and no remount, so focus stays
+  // exactly where it was (RESEARCH Pattern 8).
+  function resetAll() {
+    setLengthDraft(String(DEFAULT_OPTIONS.length));
+    setLengthError(false);
+    setSymbolDraft(DEFAULT_OPTIONS.symbolSet);
+    setBatchDraft(String(DEFAULT_OPTIONS.batch));
+    setBatchError(false);
+    const next = commit({ ...DEFAULT_OPTIONS });
+    if (next.error === null) announce("Options reset. New password generated");
+  }
+
+  // Ctrl/Cmd+C is defined for exactly one result (WR-03 precedent) and never
+  // overrides a text selection the user made (D-14, T-13-17).
+  const singleResult =
+    gen.error === null && gen.results.length === 1 ? gen.results[0]! : null;
+
+  useKeyboardShortcut({
+    slash: () => {
+      lengthRef.current?.focus();
+      lengthRef.current?.select();
+    },
+    enter: () => regenerate(),
+    escape: () => resetAll(),
+    copy:
+      singleResult === null
+        ? undefined
+        : () => {
+            if (window.getSelection()?.toString()) return;
+            void heroCopy.copy(singleResult);
+          },
+  });
+
   return (
     <div data-testid="password-tool" className="flex flex-col gap-8">
       <div data-testid="password-output-zone">
@@ -283,6 +320,7 @@ export function PasswordTool() {
         options={options}
         lengthDraft={lengthDraft}
         lengthError={lengthError}
+        lengthRef={lengthRef}
         symbolDraft={symbolDraft}
         batchDraft={batchDraft}
         batchError={batchError}

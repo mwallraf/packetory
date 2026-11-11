@@ -20,6 +20,7 @@ type Props = {
   options: ToolOptions;
   lengthDraft: string;
   lengthError: boolean;
+  lengthRef: React.Ref<HTMLInputElement>;
   symbolDraft: string;
   batchDraft: string;
   batchError: boolean;
@@ -93,6 +94,7 @@ export function PasswordOptionsPanel({
   options,
   lengthDraft,
   lengthError,
+  lengthRef,
   symbolDraft,
   batchDraft,
   batchError,
@@ -132,6 +134,7 @@ export function PasswordOptionsPanel({
             </Label>
             <Input
               id="password-length"
+              ref={lengthRef}
               data-testid="password-length"
               type="text"
               inputMode="numeric"
@@ -308,6 +311,21 @@ export function PasswordOptionsPanel({
           )}
         </div>
       </div>
+      <p
+        data-testid="password-shortcuts"
+        className="mt-6 text-[14px] leading-[1.4] font-normal text-muted-foreground"
+      >
+        Keyboard: <Kbd>/</Kbd> length · <Kbd>Enter</Kbd> regenerate ·{" "}
+        <Kbd>Esc</Kbd> reset options · <Kbd>Ctrl/Cmd</Kbd>+<Kbd>C</Kbd> copy
+        (single password)
+      </p>
     </section>
   );
+}
+
+const KBD_CLASS =
+  "rounded-sm border border-border bg-secondary px-1 font-mono text-[14px] leading-[1.4] text-foreground";
+
+function Kbd({ children }: { children: React.ReactNode }) {
+  return <kbd className={KBD_CLASS}>{children}</kbd>;
 }
