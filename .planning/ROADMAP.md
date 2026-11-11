@@ -118,7 +118,7 @@ Plans:
   3. Symbol-set normalization dedupes, keeps printable ASCII only, and restores the default `!@#$%^&*()-_=+[]{};:,.?` when the set is emptied. Look-alike filtering removes `0 O o 1 l I |` before the pool size is computed. Passphrase generation (3–20 words; `-` `_` `.` or space separator; capitalize; append number) draws from the vendored, unmodified 7,776-word EFF Large list. An integrity test pins the list's count and content hash, the file carries a CC BY attribution header and has a committed generation script, and the list is reachable only through a memoized dynamic `import()`.
   4. Entropy comes only from options and the resolved alphabet, never from the output string. The default 20-character all-sets password reports its real pool size and about 128 bits. A 6-word passphrase reports 6 × log2(7776), about 77.5 bits, plus log2(10) when a number is appended. Strength labels switch exactly at 40, 75 and 100 bits. Crack time is computed in log space for both the fast-hash (10^10 guesses/s) and slow-hash scenarios and does not overflow at 128 characters.
   5. The URL options codec round-trips every valid option set. It clamps or drops hostile and malformed params (out-of-range numbers, unknown keys, oversized or non-ASCII symbol sets) to safe defaults and has no field that can carry generated output. A redaction regression test proves password option params never reach analytics events, with nothing added to the analytics allow-list.
-**Plans**: 3/5 plans executed
+**Plans**: 4/5 plans executed
 
 Plans:
 **Wave 1**
@@ -127,7 +127,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 - [x] 12-02-PLAN.md — generateBatch through the byte-capped seam; randomInt rejection-boundary, 65,536-byte cap, fail-closed Web Crypto and import-time proofs (SC-2)
 - [x] 12-03-PLAN.md — Exact BigInt entropy, passphrase entropy, analytic retry bound, 40/75/100 labels, log-space crack time and formatting (SC-4)
-- [ ] 12-04-PLAN.md — Generation script, vendored unmodified EFF Large list with CC BY header and SHA-256 pins, retry-safe lazy loader, generatePassphrase (SC-3)
+- [x] 12-04-PLAN.md — Generation script, vendored unmodified EFF Large list with CC BY header and SHA-256 pins, retry-safe lazy loader, generatePassphrase (SC-3)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 12-05-PLAN.md — URL options codec (hostile-input safe, round-trip), analytics redaction regression, public barrel, source guards with teeth, phase gate (SC-5, SC-2 guard)
@@ -193,6 +193,6 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 9. Hash Tool Page & Text Hashing | v1.2 | 9/9 | Complete | 2026-10-17 |
 | 10. Shared About Section & Config Parity | v1.3 | 6/6 | Complete    | 2026-11-11 |
 | 11. Subnet Calculator Compaction | v1.3 | 1/1 | In Progress | - |
-| 12. Password Core Library | v1.3 | 3/5 | In Progress | - |
+| 12. Password Core Library | v1.3 | 4/5 | In Progress | - |
 | 13. Password Generator Page | v1.3 | 0/TBD | Not started | - |
 | 14. Passphrase, Strength & Launch | v1.3 | 0/TBD | Not started | - |
