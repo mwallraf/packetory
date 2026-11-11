@@ -5,16 +5,16 @@ milestone_name: Password Generator & Tool Page Polish
 current_phase: 10
 current_phase_name: Shared About Section & Config Parity
 status: executing
-stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-11-11T17:02:21.642Z"
+stopped_at: Completed 10-02-PLAN.md
+last_updated: "2026-11-11T17:04:42.309Z"
 last_activity: 2026-11-11
 last_activity_desc: Phase 10 execution started
-state_head: 245584925ccde01493c3d375ea5e0637fdd02b55
+state_head: 9f0802e0e12d527c44b4034f5026a4e21c703b5a
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 6
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-11-11)
 ## Current Position
 
 Phase: 10 (Shared About Section & Config Parity) — EXECUTING
-Plan: 2 of 6
+Plan: 3 of 6
 Status: Ready to execute
 Last activity: 2026-11-11 — Phase 10 execution started
 
@@ -107,6 +107,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 09 P07 | 6 min | 2 tasks | 7 files |
 | Phase 09 P09 | 20 min | 2 tasks | 2 files |
 | Phase 10 P01 | 20 min | 2 tasks | 7 files |
+| Phase 10 P02 | 6 min | 3 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -121,6 +122,8 @@ Full decision log lives in PROJECT.md Key Decisions; v1.2 phase-level decisions 
 - Hash skeleton pins (2240px @320, 1612px @1280) depend on `text-rendering: geometricPrecision` on digest rows — re-measure if digest typography changes
 - Outside contributions (e.g. KoffeePi's Config highlighter) can land on GitHub `main` independently — fetch and merge `origin/main` before starting new work
 - [Phase 10]: 10-01: ToolAbout takes worked-example markup as children; FaqJsonLd colocated in components/ToolAbout.tsx; plain border-t separator
+- [Phase 10]: Unknown tool icons throw (assertToolIcon + Object.hasOwn) instead of falling back to Fingerprint; icon names unique across registry
+- [Phase 10]: Enter guard keys on closest('summary') only (INFO-04); focusable content inside an open disclosure behaves like non-interactive elements
 
 ### Pending Todos
 
@@ -152,8 +155,8 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-11-11T17:02:21.625Z
-Stopped at: Completed 10-01-PLAN.md
+Last session: 2026-11-11T17:04:42.291Z
+Stopped at: Completed 10-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
