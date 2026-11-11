@@ -18,7 +18,7 @@
 
 - [ ] **CFG-01**: User sees a worked example on `/tools/config` — a sample Cisco IOS snippet rendered highlighted, using only RFC 5737 addresses and no realistic secrets
 - [ ] **CFG-02**: User sees a 4–6 item FAQ on `/tools/config` with matching FAQPage JSON-LD
-- [ ] **CFG-03**: The Config tool shows its own `FileTerminal` icon in nav, landing card and page; every registered icon resolves explicitly (no silent fallback to another tool's icon)
+- [ ] **CFG-03**: The Config tool shows its own `FileTerminal` icon on its landing card, the only surface that renders registry icons (nav links and tool-page headings stay text-only for every tool, per Phase 10 decision D-16); every registered icon resolves explicitly (no silent fallback to another tool's icon), and a unit test fails if a registered icon lacks an explicit `ICONS` entry.
 
 ### Subnet compaction (SUBNET)
 
@@ -135,4 +135,4 @@
 
 ---
 *Requirements defined: 2026-11-11*
-*Last updated: 2026-11-11 after v1.3 roadmap creation (traceability filled)*
+*Last updated: 2026-11-11 after Phase 10 planning (CFG-03 icon surface aligned with decision D-16)*
