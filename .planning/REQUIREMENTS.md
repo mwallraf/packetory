@@ -8,17 +8,17 @@
 
 ### Tool-page info sections (INFO)
 
-- [ ] **INFO-01**: On every tool page, the Worked Example and FAQ render *below* the tool inside a visually muted "About this tool" area
-- [ ] **INFO-02**: Worked Example and FAQ are each a native `<details>` disclosure, closed by default, operable by mouse and keyboard (Enter/Space)
-- [ ] **INFO-03**: Collapsed content remains in the server-rendered HTML; each page emits exactly one FAQPage JSON-LD block built from the same data as the visible FAQ
-- [ ] **INFO-04**: Pressing Enter on a focused `<summary>` toggles only that section — it never fires the tool's global Enter shortcut (regenerate/lookup/…)
-- [ ] **INFO-05**: All six existing tools (UUID, Subnet, DNS, MAC, Hash, Config) use one shared About component (no per-page duplicated JSON-LD builder)
+- [x] **INFO-01**: On every tool page, the Worked Example and FAQ render *below* the tool inside a visually muted "About this tool" area
+- [x] **INFO-02**: Worked Example and FAQ are each a native `<details>` disclosure, closed by default, operable by mouse and keyboard (Enter/Space)
+- [x] **INFO-03**: Collapsed content remains in the server-rendered HTML; each page emits exactly one FAQPage JSON-LD block built from the same data as the visible FAQ
+- [x] **INFO-04**: Pressing Enter on a focused `<summary>` toggles only that section — it never fires the tool's global Enter shortcut (regenerate/lookup/…)
+- [x] **INFO-05**: All six existing tools (UUID, Subnet, DNS, MAC, Hash, Config) use one shared About component (no per-page duplicated JSON-LD builder)
 
 ### Config Highlighter parity (CFG)
 
-- [ ] **CFG-01**: User sees a worked example on `/tools/config` — a sample Cisco IOS snippet rendered highlighted, using only RFC 5737 addresses and no realistic secrets
-- [ ] **CFG-02**: User sees a 4–6 item FAQ on `/tools/config` with matching FAQPage JSON-LD
-- [ ] **CFG-03**: The Config tool shows its own `FileTerminal` icon on its landing card, the only surface that renders registry icons (nav links and tool-page headings stay text-only for every tool, per Phase 10 decision D-16); every registered icon resolves explicitly (no silent fallback to another tool's icon), and a unit test fails if a registered icon lacks an explicit `ICONS` entry.
+- [x] **CFG-01**: User sees a worked example on `/tools/config` — a sample Cisco IOS snippet rendered highlighted, using only RFC 5737 addresses and no realistic secrets
+- [x] **CFG-02**: User sees a 4–6 item FAQ on `/tools/config` with matching FAQPage JSON-LD
+- [x] **CFG-03**: The Config tool shows its own `FileTerminal` icon on its landing card, the only surface that renders registry icons (nav links and tool-page headings stay text-only for every tool, per Phase 10 decision D-16); every registered icon resolves explicitly (no silent fallback to another tool's icon), and a unit test fails if a registered icon lacks an explicit `ICONS` entry.
 
 ### Subnet compaction (SUBNET)
 
@@ -91,14 +91,14 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INFO-01 | Phase 10 | Pending |
-| INFO-02 | Phase 10 | Pending |
-| INFO-03 | Phase 10 | Pending |
-| INFO-04 | Phase 10 | Pending |
-| INFO-05 | Phase 10 | Pending |
-| CFG-01 | Phase 10 | Pending |
-| CFG-02 | Phase 10 | Pending |
-| CFG-03 | Phase 10 | Pending |
+| INFO-01 | Phase 10 | Complete |
+| INFO-02 | Phase 10 | Complete |
+| INFO-03 | Phase 10 | Complete |
+| INFO-04 | Phase 10 | Complete |
+| INFO-05 | Phase 10 | Complete |
+| CFG-01 | Phase 10 | Complete |
+| CFG-02 | Phase 10 | Complete |
+| CFG-03 | Phase 10 | Complete |
 | SUBNET-08 | Phase 11 | Pending |
 | SUBNET-09 | Phase 11 | Pending |
 | SUBNET-10 | Phase 11 | Pending |
