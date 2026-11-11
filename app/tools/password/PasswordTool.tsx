@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   BATCH_MAX,
   BATCH_MIN,
+  CryptoUnavailableError,
   GenerationExhaustedError,
   LENGTH_MAX,
   LENGTH_MIN,
@@ -21,7 +22,7 @@ import { useKeyboardShortcut } from "@/lib/hooks/useKeyboardShortcut";
 import { PasswordOptionsPanel, type SetKey } from "./PasswordOptionsPanel";
 import { PasswordOutput } from "./PasswordOutput";
 
-export type GenError = "crypto" | "exhausted" | null;
+export type GenError = "crypto" | "exhausted" | "unexpected" | null;
 
 /**
  * The only strings the live region may ever hold (D-11, POUT-05). A union of
@@ -47,8 +48,9 @@ export type Generated = {
 /**
  * One generation attempt (D-03, D-12). It fails closed on EVERY throw: no
  * password, no previous result, no fallback randomness and no logging. A
- * `GenerationExhaustedError` gets its own copy; everything else (Web Crypto
- * missing, an unusable fill, any other throw) is the Web Crypto error.
+ * `GenerationExhaustedError` and a `CryptoUnavailableError` each get their own
+ * copy; any other throw gets a neutral message, so a non-crypto failure is
+ * never mislabelled as a missing Web Crypto (WR-01).
  */
 function generate(opts: ToolOptions, generation: number): Generated {
   try {
@@ -58,11 +60,13 @@ function generate(opts: ToolOptions, generation: number): Generated {
       generation,
     };
   } catch (e) {
-    return {
-      results: [],
-      error: e instanceof GenerationExhaustedError ? "exhausted" : "crypto",
-      generation,
-    };
+    const error: GenError =
+      e instanceof GenerationExhaustedError
+        ? "exhausted"
+        : e instanceof CryptoUnavailableError
+          ? "crypto"
+          : "unexpected";
+    return { results: [], error, generation };
   }
 }
 

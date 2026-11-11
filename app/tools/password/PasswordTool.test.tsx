@@ -242,6 +242,19 @@ describe("PasswordTool fails closed (PWD-07, D-03)", () => {
     expectErrorOnly(EXHAUSTED_SENTENCE, EXHAUSTED_NEXT_STEP);
   });
 
+  it("WR-01: a non-crypto throw gets the neutral message, not the Web Crypto one", () => {
+    vi.spyOn(globalThis.crypto, "getRandomValues").mockImplementation(() => {
+      throw new Error("boom");
+    });
+    mount();
+    expectErrorOnly(
+      "Something went wrong, so no password was generated.",
+      EXHAUSTED_NEXT_STEP,
+    );
+    expect(document.body.textContent).not.toContain("Web Crypto");
+    expect(document.body.textContent).not.toContain("isn't available");
+  });
+
   it("PWD-07/adjacency: losing Web Crypto after mount removes the old password and its controls", async () => {
     mount();
     expect(output().textContent).toBe(DEFAULT_PASSWORD);

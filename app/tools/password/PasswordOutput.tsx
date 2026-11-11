@@ -31,9 +31,17 @@ const ERROR_COPY = {
       "Couldn't generate a password that uses every selected character set, so none is shown.",
     nextStep: "Press Enter to try again, or change an option.",
   },
+  unexpected: {
+    sentence: "Something went wrong, so no password was generated.",
+    nextStep: "Press Enter to try again, or change an option.",
+  },
 } as const;
 
-function ErrorPanel({ error }: { error: "crypto" | "exhausted" }) {
+function ErrorPanel({
+  error,
+}: {
+  error: "crypto" | "exhausted" | "unexpected";
+}) {
   const copy = ERROR_COPY[error];
   return (
     <div
