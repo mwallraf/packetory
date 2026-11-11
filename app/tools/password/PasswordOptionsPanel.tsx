@@ -4,8 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
-  BATCH_MAX,
-  BATCH_MIN,
   LENGTH_MAX,
   LENGTH_MIN,
   LOOK_ALIKES,
@@ -13,6 +11,14 @@ import {
   normalizeSymbols,
   type ToolOptions,
 } from "@/lib/password";
+import {
+  BatchCountRow,
+  HINT_CLASS,
+  Kbd,
+  LABEL_CLASS,
+  RangeRow,
+  TEXT_INPUT_GUARDS,
+} from "./option-controls";
 
 export type SetKey = "uppercase" | "lowercase" | "digits" | "symbols";
 
@@ -35,25 +41,7 @@ type Props = {
   onBatchBlur: () => void;
 };
 
-/**
- * Attributes that keep password managers, autofill and spellcheck away from an
- * option input (D-08). No `name`, no `type="password"`, and never inside a form.
- */
-const TEXT_INPUT_GUARDS = {
-  autoComplete: "off",
-  spellCheck: false,
-  autoCorrect: "off",
-  autoCapitalize: "off",
-  "data-1p-ignore": true,
-  "data-lpignore": "true",
-  "data-bwignore": true,
-  "data-form-type": "other",
-} as const;
-
-const LABEL_CLASS = "text-[14px] leading-[1.4] font-semibold";
 const SET_LABEL_CLASS = `${LABEL_CLASS} peer-disabled:opacity-100`;
-const HINT_CLASS =
-  "text-[14px] leading-[1.4] font-normal text-muted-foreground";
 
 const SET_ROWS: ReadonlyArray<{
   key: SetKey;
@@ -123,60 +111,23 @@ export function PasswordOptionsPanel({
         Options
       </h2>
       <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <div className="flex flex-col gap-2 sm:col-span-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Label
-              htmlFor="password-length"
-              id="password-length-label"
-              className={LABEL_CLASS}
-            >
-              Length
-            </Label>
-            <Input
-              id="password-length"
-              ref={lengthRef}
-              data-testid="password-length"
-              type="text"
-              inputMode="numeric"
-              className="h-11 w-20 text-base md:text-base"
-              value={lengthDraft}
-              aria-invalid={lengthError}
-              aria-describedby={lengthError ? "password-length-hint" : undefined}
-              onChange={(e) => onLengthDraftChange(e.target.value)}
-              onBlur={onLengthBlur}
-              {...TEXT_INPUT_GUARDS}
-            />
-            <span className={HINT_CLASS}>characters</span>
-          </div>
-          <input
-            type="range"
-            data-testid="password-length-slider"
-            aria-labelledby="password-length-label"
-            min={LENGTH_MIN}
-            max={LENGTH_MAX}
-            step={1}
-            value={options.length}
-            autoComplete="off"
-            className="h-11 w-full cursor-pointer rounded-full accent-primary outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            onChange={(e) => onSliderChange(Number(e.target.value))}
-          />
-          <div
-            aria-hidden="true"
-            className="flex justify-between text-[14px] leading-[1.4] font-normal tabular-nums text-muted-foreground"
-          >
-            <span>{LENGTH_MIN}</span>
-            <span>{LENGTH_MAX}</span>
-          </div>
-          {lengthError && (
-            <span
-              id="password-length-hint"
-              data-testid="password-length-hint"
-              className={HINT_CLASS}
-            >
-              {`Enter a number between ${LENGTH_MIN} and ${LENGTH_MAX}`}
-            </span>
-          )}
-        </div>
+        <RangeRow
+          id="password-length"
+          label="Length"
+          min={LENGTH_MIN}
+          max={LENGTH_MAX}
+          draft={lengthDraft}
+          error={lengthError}
+          value={options.length}
+          inputRef={lengthRef}
+          suffix="characters"
+          testId="password-length"
+          sliderTestId="password-length-slider"
+          hintTestId="password-length-hint"
+          onDraftChange={onLengthDraftChange}
+          onBlur={onLengthBlur}
+          onSliderChange={onSliderChange}
+        />
 
         <div
           role="group"
@@ -229,87 +180,65 @@ export function PasswordOptionsPanel({
           )}
         </div>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="password-symbols" className={LABEL_CLASS}>
-            Symbol set
-          </Label>
-          <Input
-            id="password-symbols"
-            data-testid="password-symbols"
-            type="text"
-            className="h-11 font-mono text-base md:text-base"
-            value={symbolDraft}
-            disabled={!options.symbols}
-            aria-describedby="password-symbols-hint"
-            onChange={(e) => onSymbolDraftChange(e.target.value)}
-            onBlur={onSymbolBlur}
-            {...TEXT_INPUT_GUARDS}
-          />
-          <p
-            id="password-symbols-hint"
-            data-testid="password-symbols-hint"
-            className={HINT_CLASS}
-          >
-            {symbolHint(options.symbols, symbolDraft)}
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <div className="flex min-h-11 items-center gap-4">
-            <Switch
-              id="password-lookalikes"
-              data-testid="password-lookalikes"
-              checked={options.avoidLookalikes}
-              aria-describedby="password-lookalikes-hint"
-              onCheckedChange={onLookalikesChange}
-            />
-            <Label htmlFor="password-lookalikes" className={LABEL_CLASS}>
-              Avoid look-alikes
-            </Label>
-          </div>
-          <p
-            id="password-lookalikes-hint"
-            data-testid="password-lookalikes-hint"
-            className={HINT_CLASS}
-          >
-            Removes{" "}
-            <span className="font-mono">
-              {LOOK_ALIKES.split("").join(" ")}
-            </span>
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <Label htmlFor="password-batch-count" className={LABEL_CLASS}>
-              Batch count
+        <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="password-symbols" className={LABEL_CLASS}>
+              Symbol set
             </Label>
             <Input
-              id="password-batch-count"
-              data-testid="password-batch-count"
+              id="password-symbols"
+              data-testid="password-symbols"
               type="text"
-              inputMode="numeric"
-              className="h-11 w-20 text-base md:text-base"
-              value={batchDraft}
-              aria-invalid={batchError}
-              aria-describedby={
-                batchError ? "password-batch-count-hint" : undefined
-              }
-              onChange={(e) => onBatchDraftChange(e.target.value)}
-              onBlur={onBatchBlur}
+              className="h-11 font-mono text-base md:text-base"
+              value={symbolDraft}
+              disabled={!options.symbols}
+              aria-describedby="password-symbols-hint"
+              onChange={(e) => onSymbolDraftChange(e.target.value)}
+              onBlur={onSymbolBlur}
               {...TEXT_INPUT_GUARDS}
             />
-          </div>
-          {batchError && (
-            <span
-              id="password-batch-count-hint"
-              data-testid="password-batch-count-hint"
+            <p
+              id="password-symbols-hint"
+              data-testid="password-symbols-hint"
               className={HINT_CLASS}
             >
-              {`Enter a number between ${BATCH_MIN} and ${BATCH_MAX}`}
-            </span>
-          )}
+              {symbolHint(options.symbols, symbolDraft)}
+            </p>
+          </div>
+
+
+          <div className="flex flex-col gap-2">
+            <div className="flex min-h-11 items-center gap-4">
+              <Switch
+                id="password-lookalikes"
+                data-testid="password-lookalikes"
+                checked={options.avoidLookalikes}
+                aria-describedby="password-lookalikes-hint"
+                onCheckedChange={onLookalikesChange}
+              />
+              <Label htmlFor="password-lookalikes" className={LABEL_CLASS}>
+                Avoid look-alikes
+              </Label>
+            </div>
+            <p
+              id="password-lookalikes-hint"
+              data-testid="password-lookalikes-hint"
+              className={HINT_CLASS}
+            >
+              Removes{" "}
+              <span className="font-mono">
+                {LOOK_ALIKES.split("").join(" ")}
+              </span>
+            </p>
+          </div>
         </div>
+
+        <BatchCountRow
+          draft={batchDraft}
+          error={batchError}
+          onDraftChange={onBatchDraftChange}
+          onBlur={onBatchBlur}
+        />
       </div>
       <p
         data-testid="password-shortcuts"
@@ -321,11 +250,4 @@ export function PasswordOptionsPanel({
       </p>
     </section>
   );
-}
-
-const KBD_CLASS =
-  "rounded-sm border border-border bg-secondary px-1 font-mono text-[14px] leading-[1.4] text-foreground";
-
-function Kbd({ children }: { children: React.ReactNode }) {
-  return <kbd className={KBD_CLASS}>{children}</kbd>;
 }

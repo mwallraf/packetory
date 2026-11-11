@@ -8,6 +8,8 @@ import {
   GenerationExhaustedError,
   LENGTH_MAX,
   LENGTH_MIN,
+  WORDS_MAX,
+  WORDS_MIN,
   DEFAULT_OPTIONS,
   clampInt,
   generateBatch,
@@ -18,6 +20,7 @@ import {
   serializeOptions,
   type GuessRateKey,
   type Mode,
+  type Separator,
   type ToolOptions,
 } from "@/lib/password";
 import { loadWordlist } from "@/lib/password/wordlist";
@@ -25,6 +28,7 @@ import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
 import { useKeyboardShortcut } from "@/lib/hooks/useKeyboardShortcut";
 import { reloadPage } from "./reload";
 import { ModeToggle } from "./ModeToggle";
+import { PassphraseOptionsPanel } from "./PassphraseOptionsPanel";
 import { PasswordOptionsPanel, type SetKey } from "./PasswordOptionsPanel";
 import { PasswordOutput } from "./PasswordOutput";
 import { StrengthPanel } from "./StrengthPanel";
@@ -165,6 +169,8 @@ export function PasswordTool() {
   const [lengthDraft, setLengthDraft] = useState(String(seed.options.length));
   const [lengthError, setLengthError] = useState(false);
   const [symbolDraft, setSymbolDraft] = useState(seed.options.symbolSet);
+  const [wordsDraft, setWordsDraft] = useState(String(seed.options.words));
+  const [wordsError, setWordsError] = useState(false);
   const [batchDraft, setBatchDraft] = useState(String(seed.options.batch));
   const [batchError, setBatchError] = useState(false);
   const [gen, setGen] = useState<Generated>(seed.gen);
@@ -176,6 +182,7 @@ export function PasswordTool() {
   const [status, setStatus] = useState<"" | StatusPhrase>("");
   const statusTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lengthRef = useRef<HTMLInputElement>(null);
+  const wordCountRef = useRef<HTMLInputElement>(null);
   // Async word-list loading (D-04, RESEARCH Pattern 1). Refs, not closures: a
   // load continuation outlives the render that started it, so it must read the
   // newest sequence token and generation, never a stale captured copy.
@@ -371,6 +378,46 @@ export function PasswordTool() {
     commit({ ...options, length: n });
   }
 
+  // Word count: the same draft rules as Length (D-02).
+  function onWordsDraftChange(value: string) {
+    setWordsDraft(value);
+    const n = parseIntInRange(value, WORDS_MIN, WORDS_MAX);
+    if (n === null) {
+      setWordsError(true);
+      return;
+    }
+    setWordsError(false);
+    if (n !== options.words) commit({ ...options, words: n });
+  }
+
+  function onWordsBlur() {
+    const trimmed = wordsDraft.trim();
+    const result = /^\d+$/.test(trimmed)
+      ? clampInt(Number(trimmed), WORDS_MIN, WORDS_MAX, options.words)
+      : options.words;
+    if (result !== options.words) commit({ ...options, words: result });
+    setWordsDraft(String(result));
+    setWordsError(false);
+  }
+
+  function onWordsSliderChange(n: number) {
+    setWordsDraft(String(n));
+    setWordsError(false);
+    commit({ ...options, words: n });
+  }
+
+  function onSeparatorChange(separator: Separator) {
+    commit({ ...options, separator });
+  }
+
+  function onCapitalizeChange(checked: boolean) {
+    commit({ ...options, capitalize: checked });
+  }
+
+  function onAppendNumberChange(checked: boolean) {
+    commit({ ...options, appendNumber: checked });
+  }
+
   // A batch commit announces how many passwords there are now; every other
   // option commit stays silent (D-11).
   function announceCommit(applied: Generated) {
@@ -433,6 +480,8 @@ export function PasswordTool() {
     setSymbolDraft(DEFAULT_OPTIONS.symbolSet);
     setBatchDraft(String(DEFAULT_OPTIONS.batch));
     setBatchError(false);
+    setWordsDraft(String(DEFAULT_OPTIONS.words));
+    setWordsError(false);
     setScenario("fast");
     const next = commit({ ...DEFAULT_OPTIONS, mode: options.mode });
     if (next.status === "ready" && next.error === null) {
@@ -453,8 +502,12 @@ export function PasswordTool() {
 
   useKeyboardShortcut({
     slash: () => {
-      lengthRef.current?.focus();
-      lengthRef.current?.select();
+      const target =
+        options.mode === "passphrase"
+          ? wordCountRef.current
+          : lengthRef.current;
+      target?.focus();
+      target?.select();
     },
     enter: () => regenerate(),
     escape: () => resetAll(),
@@ -487,24 +540,43 @@ export function PasswordTool() {
           onScenarioChange={setScenario}
         />
       </div>
-      <PasswordOptionsPanel
-        options={options}
-        lengthDraft={lengthDraft}
-        lengthError={lengthError}
-        lengthRef={lengthRef}
-        symbolDraft={symbolDraft}
-        batchDraft={batchDraft}
-        batchError={batchError}
-        onLengthDraftChange={onLengthDraftChange}
-        onLengthBlur={onLengthBlur}
-        onSliderChange={onSliderChange}
-        onSetToggle={onSetToggle}
-        onSymbolDraftChange={onSymbolDraftChange}
-        onSymbolBlur={onSymbolBlur}
-        onLookalikesChange={onLookalikesChange}
-        onBatchDraftChange={onBatchDraftChange}
-        onBatchBlur={onBatchBlur}
-      />
+      {options.mode === "passphrase" ? (
+        <PassphraseOptionsPanel
+          options={options}
+          wordsDraft={wordsDraft}
+          wordsError={wordsError}
+          wordCountRef={wordCountRef}
+          batchDraft={batchDraft}
+          batchError={batchError}
+          onWordsDraftChange={onWordsDraftChange}
+          onWordsBlur={onWordsBlur}
+          onWordsSliderChange={onWordsSliderChange}
+          onSeparatorChange={onSeparatorChange}
+          onCapitalizeChange={onCapitalizeChange}
+          onAppendNumberChange={onAppendNumberChange}
+          onBatchDraftChange={onBatchDraftChange}
+          onBatchBlur={onBatchBlur}
+        />
+      ) : (
+        <PasswordOptionsPanel
+          options={options}
+          lengthDraft={lengthDraft}
+          lengthError={lengthError}
+          lengthRef={lengthRef}
+          symbolDraft={symbolDraft}
+          batchDraft={batchDraft}
+          batchError={batchError}
+          onLengthDraftChange={onLengthDraftChange}
+          onLengthBlur={onLengthBlur}
+          onSliderChange={onSliderChange}
+          onSetToggle={onSetToggle}
+          onSymbolDraftChange={onSymbolDraftChange}
+          onSymbolBlur={onSymbolBlur}
+          onLookalikesChange={onLookalikesChange}
+          onBatchDraftChange={onBatchDraftChange}
+          onBatchBlur={onBatchBlur}
+        />
+      )}
       <span
         aria-live="polite"
         className="sr-only"
