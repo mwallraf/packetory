@@ -109,31 +109,28 @@ describe("normalizeSymbols (D-07)", () => {
     ["fc.string()", fc.string()],
     ['fc.string({ unit: "binary" })', fc.string({ unit: "binary" })],
   ] as const) {
-    fcIt.prop([arb], { numRuns: 300 })(
-      `properties over ${label}`,
-      (input) => {
-        const out = normalizeSymbols(input);
-        // idempotent
-        expect(normalizeSymbols(out)).toBe(out);
-        expect(out.length).toBeGreaterThanOrEqual(1);
-        expect(out.length).toBeLessThanOrEqual(32);
-        expect(new Set(out).size).toBe(out.length);
+    fcIt.prop([arb], { numRuns: 300 })(`properties over ${label}`, (input) => {
+      const out = normalizeSymbols(input);
+      // idempotent
+      expect(normalizeSymbols(out)).toBe(out);
+      expect(out.length).toBeGreaterThanOrEqual(1);
+      expect(out.length).toBeLessThanOrEqual(32);
+      expect(new Set(out).size).toBe(out.length);
+      for (const ch of out) {
+        const code = ch.charCodeAt(0);
+        expect(code).toBeGreaterThanOrEqual(0x21);
+        expect(code).toBeLessThanOrEqual(0x7e);
+        expect(isAlnum(code)).toBe(false);
+      }
+      if (out !== DEFAULT_SYMBOLS) {
+        let previous = -1;
         for (const ch of out) {
-          const code = ch.charCodeAt(0);
-          expect(code).toBeGreaterThanOrEqual(0x21);
-          expect(code).toBeLessThanOrEqual(0x7e);
-          expect(isAlnum(code)).toBe(false);
+          const at = input.indexOf(ch);
+          expect(at).toBeGreaterThan(previous);
+          previous = at;
         }
-        if (out !== DEFAULT_SYMBOLS) {
-          let previous = -1;
-          for (const ch of out) {
-            const at = input.indexOf(ch);
-            expect(at).toBeGreaterThan(previous);
-            previous = at;
-          }
-        }
-      },
-    );
+      }
+    });
   }
 });
 
@@ -284,9 +281,9 @@ describe("Edge cases (PWD-04)", () => {
   });
 
   it("Edge (PWD-04, empty / single-element / null): empty inputs restore defaults and a single symbol works", () => {
-    expect(resolveAlphabet({ ...DEFAULT_OPTIONS, ...ALL_OFF }).sets).toHaveLength(
-      4,
-    );
+    expect(
+      resolveAlphabet({ ...DEFAULT_OPTIONS, ...ALL_OFF }).sets,
+    ).toHaveLength(4);
     expect(normalizeSymbols("")).toBe(DEFAULT_SYMBOLS);
     expect(normalizeSymbols("abc123")).toBe(DEFAULT_SYMBOLS);
     const lookAlikeOnly = resolveAlphabet({
