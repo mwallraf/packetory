@@ -89,11 +89,17 @@ function parseIntInRange(value: string, min: number, max: number): number | null
  * double mount writes the same canonical URL twice.
  */
 function writeUrl(opts: ToolOptions) {
-  const qs = serializeOptions(opts);
-  const path = qs
-    ? `${window.location.pathname}?${qs}`
-    : window.location.pathname;
-  window.history.replaceState(null, "", path);
+  try {
+    const qs = serializeOptions(opts);
+    const path = qs
+      ? `${window.location.pathname}?${qs}`
+      : window.location.pathname;
+    window.history.replaceState(null, "", path);
+  } catch {
+    // Throttled (Safari throws SecurityError after 100 calls per 30 s) or
+    // unavailable: the URL is a convenience mirror only and must never abort
+    // a commit, so the displayed password keeps obeying the displayed options.
+  }
 }
 
 /**
@@ -180,16 +186,16 @@ export function PasswordTool() {
   }
 
   // The one path every option change takes (D-06): normalize with the mode
-  // forced to password, set, write the URL, generate, then reset the copy
-  // confirmation.
+  // forced to password, set, generate, reset the copy confirmation, and only
+  // then mirror the options into the URL (best-effort, CR-01).
   // Synchronous, so the displayed output already obeys the new options when
   // the handler returns.
   function commit(next: ToolOptions): Generated {
     const normalized = normalizeToolOptions({ ...next, mode: "password" });
     setOptions(normalized);
-    writeUrl(normalized);
     const applied = generate(normalized, gen.generation + 1);
     applyGenerated(applied);
+    writeUrl(normalized);
     return applied;
   }
 

@@ -200,4 +200,19 @@ describe("URL state follows every commit (POUT-03, D-13)", () => {
     setLength("33");
     expect(push).not.toHaveBeenCalled();
   });
+
+  it("CR-01: a throwing replaceState (Safari throttle) never desyncs the output from the options", async () => {
+    mount();
+    replaceSpy.mockImplementation(() => {
+      throw new DOMException("throttled", "SecurityError");
+    });
+    expect(() => setLength("30")).not.toThrow();
+    expect(text()).toHaveLength(30);
+    const before = text();
+    await toggle("digits");
+    expect(text()).toHaveLength(30);
+    expect(text()).not.toMatch(/[0-9]/);
+    expect(text()).not.toBe(before);
+    expect(screen.queryByTestId("password-error")).toBeNull();
+  });
 });
