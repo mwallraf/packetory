@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { tools } from "../../tools/registry";
+import { openAbout } from "./helpers/about";
 import { expectServerAboutParity } from "./helpers/about-parity";
 
 const SLUGS = tools.filter((t) => t.status !== "planned").map((t) => t.slug);
@@ -190,4 +191,109 @@ test.describe("Enter on a summary fires no tool shortcut (INFO-04)", () => {
     await page.keyboard.press("Enter");
     await expect.poll(() => cloudflareCalls).toBeGreaterThan(before);
   });
+});
+
+/*
+ * Scoping rationale: the overflow checks measure the About section, not
+ * documentElement. A document-level check would also measure each tool
+ * island, whose 320px behavior no Phase 10 plan owns (Subnet 320px
+ * no-overflow is a Phase 11 target, SC-4/SUBNET-10, and Config has no prior
+ * page-level 320px check). main is `w-full` inside the flex-column body, so
+ * the tool island cannot widen the section. The document-level check is kept
+ * for hash only, mirroring hash-layout.spec.ts INT-03 at the same 320x800
+ * viewport and both color schemes.
+ */
+test.describe("About area layout at 320px (UI E1, E2, E3)", () => {
+  for (const slug of SLUGS) {
+    for (const scheme of ["light", "dark"] as const) {
+      test(`${slug} (${scheme}): About area adds no horizontal overflow, nothing truncated, focus ring cannot be clipped`, async ({
+        page,
+      }) => {
+        await page.setViewportSize({ width: 320, height: 800 });
+        await page.emulateMedia({ colorScheme: scheme });
+        await page.goto(`/tools/${slug}`);
+        await openAbout(page, slug);
+
+        const failures = await page.evaluate((s) => {
+          const out: string[] = [];
+          const root = document.documentElement;
+          const section = document.querySelector<HTMLElement>(
+            'section[data-testid="about-tool"]'
+          );
+          const example = document.querySelector<HTMLElement>(
+            `[data-testid="${s}-worked-example"]`
+          );
+          const faq = document.querySelector<HTMLElement>(
+            `[data-testid="${s}-faq"]`
+          );
+          if (!section || !example || !faq) {
+            return ["About structure elements are missing"];
+          }
+          const group = example.parentElement as HTMLElement;
+          const fits = (el: Element) => el.scrollWidth <= el.clientWidth + 1;
+          const name = (el: Element) =>
+            `${el.tagName.toLowerCase()}${
+              el.getAttribute("data-testid")
+                ? `[${el.getAttribute("data-testid")}]`
+                : ""
+            }`;
+
+          // Section-level: scrollWidth and right edge inside the viewport.
+          if (!fits(section)) out.push("section scrollWidth exceeds clientWidth");
+          if (section.getBoundingClientRect().right > root.clientWidth + 1) {
+            out.push("section right edge is past the viewport");
+          }
+          for (const el of [group, example, faq]) {
+            if (!fits(el)) out.push(`${name(el)} overflows horizontally`);
+          }
+
+          // Per-element: FAQ paragraphs and every worked-example element,
+          // except the Config code pane, which scrolls by design.
+          const pane = document.querySelector(
+            '[data-testid="config-worked-example-preview"]'
+          );
+          const items = [
+            ...faq.querySelectorAll(`[data-testid="${s}-faq-item"] p`),
+            ...example.querySelectorAll("*"),
+          ].filter((el) => !(pane && pane.contains(el)));
+          for (const el of items) {
+            if (!fits(el)) out.push(`${name(el)} overflows horizontally`);
+            if (getComputedStyle(el).textOverflow === "ellipsis") {
+              out.push(`${name(el)} truncates with an ellipsis`);
+            }
+          }
+
+          // Summaries: single line, no horizontal overflow.
+          for (const summary of [
+            example.querySelector("summary"),
+            faq.querySelector("summary"),
+          ]) {
+            if (!summary) {
+              out.push("a summary is missing");
+              continue;
+            }
+            if (summary.getBoundingClientRect().height > 48) {
+              out.push(`summary "${summary.textContent?.trim()}" wraps`);
+            }
+            if (!fits(summary)) out.push("summary overflows horizontally");
+          }
+
+          // No clipping container, so the focus ring stays visible.
+          for (const el of [section, group, example, faq]) {
+            const style = getComputedStyle(el);
+            if (style.overflowX !== "visible" || style.overflowY !== "visible") {
+              out.push(`${name(el)} clips its overflow`);
+            }
+          }
+
+          if (s === "hash" && root.scrollWidth > root.clientWidth) {
+            out.push("hash page scrolls horizontally at the document level");
+          }
+          return out;
+        }, slug);
+
+        expect(failures).toEqual([]);
+      });
+    }
+  }
 });
