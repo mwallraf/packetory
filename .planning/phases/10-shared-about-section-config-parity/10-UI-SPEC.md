@@ -124,6 +124,12 @@ Config token colors (inside the worked example) reuse the existing `TOKEN_CLASSE
 
 ## Interaction & Layout Contract
 
+### Visual hierarchy / focal point
+
+- Primary visual anchor on every tool page: the tool's own output (UUID list, subnet result, DNS records, MAC result, hash digest, Config preview pane). It sits directly under the h1 in the first viewport at full-contrast foreground color, 16px+ values and the existing result surfaces.
+- The About area is strictly secondary: muted 14px h2, muted 16px/600 summary labels, no background, no accent color, closed on load. It must never compete with the tool output for attention (no tinted panel, no accent, no icon beyond the 16px chevron). Contrast is deliberately lower at rest and rises to full foreground only on hover or when opened.
+- The 64px `mt-16` gap plus the `border-t` rule is the single visual break between the primary (tool) and secondary (About) zones.
+
 ### About area structure (all six pages)
 
 ```
@@ -195,7 +201,7 @@ Layout inside the Worked example `<details>` for `/tools/config`:
    - wrapper: `data-testid="config-worked-example-preview" role="region" aria-label="Highlighted example configuration" tabIndex={0}` + `mt-2 max-w-full overflow-x-auto rounded-lg border border-border bg-secondary focus-visible:ring-3 focus-visible:ring-ring/50 outline-none`
    - `<pre class="min-w-full w-max p-4 font-mono text-[14px] leading-[1.5]">` containing token `<span>`s with `className={TOKEN_CLASSES[token.kind]}` and `data-token={token.kind}`, lines joined with `"\n"`, exactly as `ConfigTool` does.
    - Output only; no separate plain-input block, no buttons (D-10, D-12).
-3. One sentence (16px/400/muted, `mt-3`), D-12: `Copy for email keeps these colors and the monospace formatting when you paste into email or documents. Copy plain text gives the raw configuration.`
+3. One sentence (16px/400/muted, `mt-4` = 16px, md step of the declared scale), D-12: `Copy for email keeps these colors and the monospace formatting when you paste into email or documents. Copy plain text gives the raw configuration.`
 
 Sample text (D-09, verbatim; render via `highlightConfig(SAMPLE, "cisco")` in the server component; never hand-write spans unless the server-safety fallback is triggered):
 
