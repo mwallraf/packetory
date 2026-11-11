@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ICONS, assertToolIcon } from "@/components/ToolCard";
 import { getSortedTools, getToolBySlug, tools } from "./registry";
 
 describe("tools/registry", () => {
@@ -73,5 +74,17 @@ describe("tools/registry", () => {
     ]) {
       expect(description).not.toContain(forbidden);
     }
+  });
+
+  it("every registered icon has an explicit ICONS entry (CFG-03)", () => {
+    for (const tool of tools) {
+      expect(Object.hasOwn(ICONS, tool.icon), `${tool.slug}: ${tool.icon}`).toBe(true);
+      expect(() => assertToolIcon(tool.icon)).not.toThrow();
+    }
+  });
+
+  it("Config uses FileTerminal and no two tools share an icon (CFG-03)", () => {
+    expect(getToolBySlug("config")?.icon).toBe("FileTerminal");
+    expect(new Set(tools.map((t) => t.icon)).size).toBe(tools.length);
   });
 });

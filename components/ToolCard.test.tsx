@@ -1,6 +1,7 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render } from "@testing-library/react";
-import { ToolCard } from "./ToolCard";
+import { ToolCard, assertToolIcon } from "./ToolCard";
+import { getToolBySlug, tools } from "@/tools/registry";
 import type { ToolDefinition } from "@/tools/registry";
 
 const ACTIVE_TOOL: ToolDefinition = {
@@ -130,14 +131,50 @@ describe("ToolCard", () => {
     expect(container.querySelector('svg[class*="lucide-fingerprint"]')).toBeNull();
   });
 
-  it("falls back to the Fingerprint icon for an unknown icon string (documents the silent fallback)", () => {
-    const { container } = render(
-      <ToolCard tool={{ ...HASH_TOOL, icon: "NotARealIcon" }} />
-    );
+  it("throws for an unknown icon string instead of falling back (CFG-03)", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      expect(() =>
+        render(<ToolCard tool={{ ...HASH_TOOL, icon: "NotARealIcon" }} />)
+      ).toThrow(/Unknown tool icon/);
+    } finally {
+      spy.mockRestore();
+    }
+  });
 
-    expect(
-      container.querySelector('svg[class*="lucide-fingerprint"]')
-    ).not.toBeNull();
-    expect(container.querySelector("svg.lucide-hash")).toBeNull();
+  it("assertToolIcon accepts every registry icon and rejects unknown and prototype keys (CFG-03)", () => {
+    for (const name of ["Fingerprint", "Network", "Globe", "Cpu", "Hash", "FileTerminal"]) {
+      expect(() => assertToolIcon(name)).not.toThrow();
+    }
+    expect(() => assertToolIcon("NotARealIcon")).toThrow(/Unknown tool icon/);
+    expect(() => assertToolIcon("toString")).toThrow(/Unknown tool icon/);
+  });
+
+  it("renders the lucide FileTerminal icon for the Config registry entry (CFG-03)", () => {
+    const config = getToolBySlug("config");
+    expect(config).toBeDefined();
+    const { container } = render(<ToolCard tool={config!} />);
+
+    const icon = container.querySelector("svg.lucide-file-terminal");
+    expect(icon).not.toBeNull();
+    expect(icon!.getAttribute("aria-hidden")).toBe("true");
+    const tokens = (icon!.getAttribute("class") ?? "").split(/\s+/);
+    for (const token of ["size-5", "shrink-0", "text-muted-foreground"]) {
+      expect(tokens).toContain(token);
+    }
+    expect(container.querySelector("svg.lucide-network")).toBeNull();
+  });
+
+  it("renders a distinct icon for every registered tool (CFG-03)", () => {
+    const classes: string[] = [];
+    for (const tool of tools) {
+      const { container, unmount } = render(<ToolCard tool={tool} />);
+      const icons = container.querySelectorAll("svg.size-5");
+      expect(icons).toHaveLength(1);
+      classes.push(icons[0].getAttribute("class") ?? "");
+      unmount();
+    }
+    expect(classes).toHaveLength(6);
+    expect(new Set(classes).size).toBe(6);
   });
 });
