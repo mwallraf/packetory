@@ -5,6 +5,7 @@ import {
   Fingerprint,
   Globe,
   Hash,
+  KeyRound,
   Network,
   type LucideIcon,
 } from "lucide-react";
@@ -32,6 +33,7 @@ export const ICONS: Record<string, LucideIcon> = {
   Cpu,
   Hash,
   FileTerminal,
+  KeyRound,
 };
 
 /** Throws unless `name` is an own-property ICONS entry (prototype keys such
