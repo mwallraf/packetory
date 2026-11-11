@@ -81,7 +81,9 @@ export function parseOptions(search: string): ToolOptions {
 
   let params: URLSearchParams;
   try {
-    params = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+    // URLSearchParams itself drops exactly one leading "?", so always hand it
+    // one: "??x=1" then keeps a "?x" key (ignored) instead of losing two.
+    params = new URLSearchParams(search.startsWith("?") ? search : "?" + search);
   } catch {
     return normalizeToolOptions({});
   }
