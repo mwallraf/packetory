@@ -5,16 +5,16 @@ milestone_name: Password Generator & Tool Page Polish
 current_phase: 14
 current_phase_name: Passphrase, Strength & Launch
 status: executing
-stopped_at: Completed 14-01-PLAN.md
-last_updated: "2026-11-11T23:29:40.100Z"
+stopped_at: Completed 14-02-PLAN.md
+last_updated: "2026-11-11T23:34:01.630Z"
 last_activity: 2026-11-12
 last_activity_desc: Phase 14 execution started
-state_head: f9ab7f5211a5ca972b538a804c7565bc4d66a88e
+state_head: b90a2c7597966b58b02bf6e8a7de2e74aab8cc88
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 26
-  completed_plans: 19
+  completed_plans: 20
   percent: 20
 ---
 
@@ -30,7 +30,7 @@ See: .planning/PROJECT.md (updated 2026-11-11)
 ## Current Position
 
 Phase: 14 (Passphrase, Strength & Launch) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
 Last activity: 2026-11-12 — Phase 14 execution started
 
@@ -126,6 +126,7 @@ Progress: [██░░░░░░░░] 20%
 | Phase 13 P05 | 12 min | 2 tasks | 4 files |
 | Phase 13 P06 | 2 min | 2 tasks | 3 files |
 | Phase 14 P01 | 5 min | 2 tasks | 9 files |
+| Phase 14 P02 | 5 min | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -164,6 +165,7 @@ Full decision log lives in PROJECT.md Key Decisions; v1.2 phase-level decisions 
 - [Phase 13]: 13-06: skeleton pinned h-[980px] sm:h-[712px] from measured 977.9/708.4px; final pin and CLS gate deferred to Phase 14
 - [Phase 14]: 14-01: loaded EFF list is cached even when its load continuation is stale; only applying the result is token-gated
 - [Phase 14]: 14-01: Esc keeps the current mode; page-guards allow exactly @/lib/password/wordlist from the island
+- [Phase 14]: 14-02: FAQ and worked example share defaultFigures/aboutTime from faq-data.ts; production flight leak scan exempts RSC element references ($hex:props:children...) emitted by the About chevrons
 
 ### Pending Todos
 
@@ -206,8 +208,8 @@ Per user instruction (2026-11-11): run phases 11–14 autonomously and batch all
 
 ## Session Continuity
 
-Last session: 2026-11-11T23:29:39.959Z
-Stopped at: Completed 14-01-PLAN.md
+Last session: 2026-11-11T23:34:01.486Z
+Stopped at: Completed 14-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps
