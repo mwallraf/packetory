@@ -223,7 +223,7 @@ export function PasswordOutput({
   }
   const value = gen.results[0];
   if (value === undefined) {
-    return <ErrorPanel error="crypto" />;
+    return <ErrorPanel error="unexpected" />;
   }
   if (gen.results.length > 1) {
     return (
