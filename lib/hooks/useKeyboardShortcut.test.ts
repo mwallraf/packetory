@@ -153,6 +153,31 @@ describe("useKeyboardShortcut", () => {
     button.remove();
   });
 
+  it("does NOT fire the enter handler while focus is on a summary or inside one (INFO-04)", () => {
+    const enter = vi.fn();
+    renderHook(() => useKeyboardShortcut({ enter }));
+
+    const details = document.createElement("details");
+    const summary = document.createElement("summary");
+    const span = document.createElement("span");
+    summary.appendChild(span);
+    details.appendChild(summary);
+    document.body.appendChild(details);
+
+    dispatchKeydown({ key: "Enter" }, summary);
+    dispatchKeydown({ key: "Enter" }, span);
+    expect(enter).not.toHaveBeenCalled();
+
+    // Control: a plain non-interactive element still fires exactly once.
+    const div = document.createElement("div");
+    document.body.appendChild(div);
+    dispatchKeydown({ key: "Enter" }, div);
+    expect(enter).toHaveBeenCalledTimes(1);
+
+    details.remove();
+    div.remove();
+  });
+
   it("removes the keydown listener on unmount (no leaked listeners)", () => {
     const slash = vi.fn();
     const { unmount } = renderHook(() => useKeyboardShortcut({ slash }));
