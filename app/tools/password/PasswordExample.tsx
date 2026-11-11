@@ -46,7 +46,7 @@ export function PasswordExample() {
         <p className={LABEL_CLASS}>Default passphrase: {WORDS_DEFAULT} words</p>
         <pre
           data-testid="password-worked-example-shape"
-          className="max-w-full overflow-x-auto rounded-md border border-border bg-secondary p-4 font-mono text-[14px] leading-[1.4] text-foreground"
+          className="max-w-full whitespace-pre-wrap break-words rounded-md border border-border bg-secondary p-4 font-mono text-[14px] leading-[1.4] text-foreground"
         >
           {shape}
         </pre>
