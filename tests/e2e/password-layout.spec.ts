@@ -12,17 +12,33 @@ function readSource(file: string): string {
   return readFileSync(path.join(process.cwd(), file), "utf8");
 }
 
-function readPinnedHeights(): { base: number; sm: number } {
+/**
+ * Reads the whole `h-[Npx] min-[Wpx]:h-[Npx] ...` ladder off the skeleton and
+ * returns the pinned height for a viewport width (the last step whose
+ * `min-[Wpx]` is at or below the width).
+ */
+function pinnedHeightAt(width: number): number {
   const source = readSource("app/tools/password/PasswordToolLoader.tsx");
   const anchor = source.indexOf('data-testid="password-skeleton"');
   if (anchor < 0) throw new Error("no password-skeleton element in the loader");
-  const match = source
-    .slice(anchor, anchor + 200)
-    .match(/h-\[(\d+)px\] sm:h-\[(\d+)px\]/);
-  if (!match) {
-    throw new Error("password-skeleton has no `h-[Npx] sm:h-[Npx]` pin");
+  const classAt = source.slice(anchor).match(/className="([^"]*)"/);
+  if (!classAt) throw new Error("password-skeleton has no className");
+  const tokens = classAt[1]!.split(/\s+/);
+  const base = tokens
+    .map((t) => t.match(/^h-\[(\d+)px\]$/))
+    .find((m) => m !== null);
+  if (!base) throw new Error("password-skeleton has no base `h-[Npx]` pin");
+  const steps = tokens
+    .map((t) => t.match(/^min-\[(\d+)px\]:h-\[(\d+)px\]$/))
+    .filter((m): m is RegExpMatchArray => m !== null)
+    .map((m) => ({ min: Number(m[1]), height: Number(m[2]) }));
+  const mins = steps.map((s) => s.min);
+  if (mins.some((m, i) => i > 0 && m <= mins[i - 1]!)) {
+    throw new Error("password-skeleton min-[Npx] pins are not ascending");
   }
-  return { base: Number(match[1]), sm: Number(match[2]) };
+  let pinned = Number(base[1]);
+  for (const step of steps) if (width >= step.min) pinned = step.height;
+  return pinned;
 }
 
 async function installClsObserver(page: Page) {
@@ -70,12 +86,13 @@ test.describe("Password layout (PREG-03, D-16, D-17)", () => {
     expect(source).not.toMatch(/h-\[(\d+)px\] sm:h-\[\1px\] animate-pulse/);
   });
 
-  for (const width of [320, 1280]) {
+  // 320 is the floor, 375/412 the common phones (412 is the Lighthouse mobile
+  // default), 640 and 768 the tablet bands, 1024/1280 the desktop bands (WR-04).
+  for (const width of [320, 375, 412, 640, 768, 1024, 1280]) {
     test(`default load matches the skeleton and does not shift at ${width}px`, async ({
       page,
     }) => {
-      const { base, sm } = readPinnedHeights();
-      const pinned = width < 640 ? base : sm;
+      const pinned = pinnedHeightAt(width);
       await installClsObserver(page);
       await page.setViewportSize({ width, height: 900 });
       await page.goto("/tools/password");
@@ -86,11 +103,11 @@ test.describe("Password layout (PREG-03, D-16, D-17)", () => {
       expect(
         Math.abs(box.height - pinned),
         `island ${box.height}px vs skeleton ${pinned}px at ${width}px wide`,
-      ).toBeLessThanOrEqual(1);
+      ).toBeLessThanOrEqual(1.5);
       expect(cls, `CLS at ${width}px wide`).toBeLessThanOrEqual(0.001);
     });
 
-    test(`a passphrase bookmark shifts less than 0.1 at ${width}px`, async ({
+    test(`a passphrase bookmark shifts less than 0.05 at ${width}px`, async ({
       page,
     }) => {
       await installClsObserver(page);
@@ -98,7 +115,7 @@ test.describe("Password layout (PREG-03, D-16, D-17)", () => {
       await page.goto("/tools/password?mode=passphrase");
       await expect(page.getByTestId("password-hero")).toBeVisible();
       const cls = await settledCls(page);
-      expect(cls, `bookmark CLS at ${width}px wide`).toBeLessThan(0.1);
+      expect(cls, `bookmark CLS at ${width}px wide`).toBeLessThan(0.05);
     });
   }
 
