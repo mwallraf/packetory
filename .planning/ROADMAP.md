@@ -55,7 +55,7 @@ Phase 10 (File Hashing & Release Hardening) was removed 2026-10-17 by user decis
 - [x] **Phase 10: Shared About Section & Config Parity** - Every tool page shows the tool first, with a closed, muted "About this tool" area below it built from one shared component and one JSON-LD builder; Config gets its worked example, FAQ and own icon; Enter on a `<summary>` no longer fires tool shortcuts (completed 2026-11-11)
 - [x] **Phase 11: Subnet Calculator Compaction** - The full default Subnet result fits a 1366×650 laptop viewport without scrolling, with no fields, copy controls or mobile layout lost (completed 2026-11-12)
 - [x] **Phase 12: Password Core Library** - Framework-agnostic, fully tested `lib/password` (unbiased CSPRNG sampling, charsets, generator, passphrase + lazy EFF wordlist, entropy/crack time, URL options codec), no UI (completed 2026-11-12)
-- [ ] **Phase 13: Password Generator Page** - `/tools/password` shows a fresh random password on load, with every password option, copy, batch, Regenerate, keyboard shortcuts and options-only bookmarkable URL
+- [x] **Phase 13: Password Generator Page** - `/tools/password` shows a fresh random password on load, with every password option, copy, batch, Regenerate, keyboard shortcuts and options-only bookmarkable URL (completed 2026-11-12)
 - [ ] **Phase 14: Passphrase, Strength & Launch** - Passphrase mode, strength meter and crack-time estimate, registry/nav entry, SEO/About/FAQ and Lighthouse 90+
 
 ## Phase Details
@@ -152,7 +152,7 @@ Plans:
      - Ctrl/Cmd+C copies a single result and is disabled for batches
   4. Changing options updates the address bar, so a bookmark restores them, and the URL never contains generated output. A hand-crafted hostile URL (out-of-range length, unknown keys, junk symbols) loads with clamped/whitelisted options and no error. Password option params never appear in analytics events.
   5. The password renders in a non-form element marked `translate="no"` with spellcheck off. It never appears in a form field value, a `title` or `aria-*` attribute, or a live-region announcement; the copy confirmation announces only that something was copied. Functional e2e coverage for all of the above passes via `npm run test:e2e` and `npm run test:e2e:prod` locally.
-**Plans**: 6/6 plans executed
+**Plans**: 6/6 plans complete
 
 Plans:
 **Wave 1**
@@ -234,5 +234,5 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 10. Shared About Section & Config Parity | v1.3 | 6/6 | Complete    | 2026-11-11 |
 | 11. Subnet Calculator Compaction | v1.3 | 1/1 | Complete    | 2026-11-12 |
 | 12. Password Core Library | v1.3 | 5/5 | Complete    | 2026-11-12 |
-| 13. Password Generator Page | v1.3 | 6/6 | In Progress | - |
+| 13. Password Generator Page | v1.3 | 6/6 | Complete    | 2026-11-12 |
 | 14. Passphrase, Strength & Launch | v1.3 | 8/8 | In Progress | - |

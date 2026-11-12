@@ -1,8 +1,8 @@
 ---
 phase: 13-password-generator-page
-verified: 2026-11-11T23:45:00Z
-status: human_needed
-score: 5/5 must-haves verified (automated); 6 backstop human checks pending
+verified: 2026-11-12T15:30:00Z
+status: passed
+score: 5/5 must-haves verified
 covered_files:
   - ".planning/phases/13-password-generator-page/13-01-PLAN.md"
   - ".planning/phases/13-password-generator-page/13-01-SUMMARY.md"
@@ -17,6 +17,7 @@ covered_files:
   - ".planning/phases/13-password-generator-page/13-06-PLAN.md"
   - ".planning/phases/13-password-generator-page/13-06-SUMMARY.md"
   - "app/tools/password/ColoredPassword.tsx"
+  - "app/tools/password/PasswordExample.tsx"
   - "app/tools/password/PasswordOptionsPanel.tsx"
   - "app/tools/password/PasswordOutput.tsx"
   - "app/tools/password/PasswordRow.tsx"
@@ -27,12 +28,17 @@ covered_files:
   - "app/tools/password/PasswordTool.tsx"
   - "app/tools/password/PasswordTool.url.test.tsx"
   - "app/tools/password/PasswordToolLoader.tsx"
+  - "app/tools/password/option-controls.tsx"
   - "app/tools/password/page-guards.test.ts"
   - "app/tools/password/page.tsx"
   - "app/tools/password/password-test-utils.ts"
   - "app/tools/password/runs.test.ts"
   - "app/tools/password/runs.ts"
+  - "lib/analytics/redact.test.ts"
+  - "lib/analytics/redact.ts"
+  - "lib/hooks/useKeyboardShortcut.ts"
   - "lib/password/boundaries.test.ts"
+  - "lib/password/url-state.ts"
   - "tests/e2e-prod/password-ssr.spec.ts"
   - "tests/e2e/password-keyboard.spec.ts"
   - "tests/e2e/password-options.spec.ts"
@@ -40,45 +46,24 @@ covered_files:
   - "tests/e2e/password-responsive.spec.ts"
   - "tests/e2e/password-url.spec.ts"
   - "tests/e2e/password.spec.ts"
-covered_digest: "v4:sha256:0cdf65e472254a0a239ab99408ba9b13dca1db364f5b240038bfa2015615fbfc"
+covered_digest: "v4:sha256:c3c83fc836fc2f6aa6206d1c892bbfe2668e0fe7068018c6f21877da4c27283e"
 behavior_unverified: 0
 overrides_applied: 0
-human_verification:
-  - test: "Password managers (Chrome, Safari/iCloud Keychain, 1Password or Bitwarden): change Length, sets, Symbol set, Batch count; copy and regenerate"
-    expected: "No save-password prompt, no autofill icon or fill offer in any input, nothing offered for the output"
-    why_human: "Backstop truth (D-16). Autocomplete/data-*-ignore guards are present but password-manager heuristics cannot be exercised in headless tests"
-  - test: "Chrome 'Translate this page' on /tools/password (single and batch)"
-    expected: "Labels translate; passwords stay identical to what Copy writes"
-    why_human: "translate=\"no\" is present and asserted by RTL/e2e, but the real translation engine is not run in CI"
-  - test: "VoiceOver in Safari, plus confirm the interpretation of E1-a11y-snapshot"
-    expected: "Password read as static text; Copy announces only 'Copied'; Regenerate announces 'New password generated'; the value is never a name, description or announcement. User confirms 'absent from the a11y snapshot' means names/descriptions/attributes/live region, not static text"
-    why_human: "Real screen-reader behavior and a spec interpretation decision"
-  - test: "320px visual backstops in light and dark (label/hint/lock-hint/shortcut-line wrapping, switch centering, 20 x 128 batch, row copy)"
-    expected: "Everything wraps cleanly, no clipping; every row copy reachable. Automated overflow checks pass, this is the visual half"
-    why_human: "Visual judgment"
-  - test: "Focus ring on every interactive control (buttons, inputs, slider, switches) via Tab"
-    expected: "ring-ring/50 ring is visible and unclipped"
-    why_human: "Visual judgment"
-  - test: "Safari copy"
-    expected: "Copy writes the plain password and shows 'Copied!'"
-    why_human: "Safari clipboard permission behavior is not covered by the Chromium e2e project"
-  - test: "UI-SPEC deviation sign-off UI-2: hero Copy and Copy all use a filled accent (#0e7490 light, bg-primary dark) instead of the spec's text-primary ghost"
-    expected: "Accepted as an intentional deviation (contrast 5.36:1 light, 11.16:1 dark)"
-    why_human: "Design decision; record an override if accepted"
-  - test: "UI-SPEC deviation sign-off IN-08/UI-3: batch row confirmation is Check icon only (visible 'Copied!' caption dropped; 'Copied!' stays in the accessible name and sr-only text)"
-    expected: "Accepted as an intentional deviation to avoid reflow at 320px"
-    why_human: "Design decision; record an override if accepted"
-  - test: "New copy 'Something went wrong, so no password was generated.' (WR-01, not in locked UI-SPEC)"
-    expected: "Wording approved"
-    why_human: "Copy approval"
+re_verification:
+  previous_status: human_needed
+  previous_score: 5/5 (automated); 9 human items pending
+  gaps_closed:
+    - "All 9 human UAT items (13-UAT.md, status: complete, 9 passed, 0 issues, signed off 2026-11-12)"
+  gaps_remaining: []
+  regressions: []
 ---
 
 # Phase 13: Password Generator Page Verification Report
 
 **Phase Goal:** A visitor opening `/tools/password` immediately gets a strong random password. They can tune it, copy it, generate a batch, bookmark the options and drive everything from the keyboard. The password itself never leaks into the HTML, the URL, analytics, autofill or accessibility surfaces.
-**Verified:** 2026-11-11
-**Status:** human_needed
-**Re-verification:** No, initial verification (post review-fix state, HEAD 20c7521)
+**Verified:** 2026-11-12
+**Status:** passed
+**Re-verification:** Yes. The earlier report (2026-11-11) was stale after Phase 14 changed `app/tools/password/*`, `lib/password/boundaries.test.ts` and the password e2e specs. Every Phase 13 truth was re-checked against the current code. Phase 14's passphrase and strength additions were treated as regressions only where they break a Phase 13 truth, and none does.
 
 ## Goal Achievement
 
@@ -86,76 +71,88 @@ human_verification:
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | Fresh 20-char all-sets password on mount; not in server HTML; two loads differ; fails closed without getRandomValues | VERIFIED | `page.tsx` renders only `PasswordToolLoader` (`dynamic(..., {ssr:false})`) with a text-free skeleton. `PasswordTool.initialState()` generates inside a lazy `useState` initializer; `generate()` returns `{results:[], error}` on any throw (no fallback, no Math.random: grep clean in lib/password and app/tools/password). e2e `password.spec.ts` "loads a fresh 20-character all-sets password", "two loads differ", "fails closed without Web Crypto" pass (re-run by verifier: 31/31). Prod spec `password-ssr.spec.ts` asserts forbidden test-ids absent, skeleton text-free, visible-text and RSC flight-payload scans clean (flight scan has a non-vacuity assert, a positive and a negative control); orchestrator ran it green (18 prod tests). |
-| 2 | Length 4-128 slider + number synced; four set toggles with last-set lock; symbol-set editor (dedupe/ASCII/empty restores default); look-alikes; digits/symbols color-coded; copied text plain | VERIFIED | `PasswordOptionsPanel.tsx` slider + text input + 4 Switches (`disabled` when last; `commit` also re-normalizes via `normalizeToolOptions`), symbol input via `normalizeSymbols`, look-alikes switch. All changes go through `commit()` which regenerates synchronously. `ColoredPassword`/`runs.ts` segment letters/digits/symbols into spans (sky/amber vs foreground); Copy writes the raw string. Covered by `PasswordTool.options.test.tsx` and `password-options.spec.ts` (6 tests) and `password.spec.ts` "Copy writes the plain displayed string". |
-| 3 | Regenerate; one-click copy with visible confirmation; batch 1-20 with per-row copy and Copy all (one per line); keyboard: / focuses length, Enter regenerates except on button/toggle/summary, Esc resets all, Ctrl/Cmd+C single only | VERIFIED | `PasswordOutput` Hero/Batch; `allCopy.copy(gen.results.join("\n"))`; rows own their copy hook. `useKeyboardShortcut` Enter guard uses `closest('button, [role=button], [role=radio], a[href], summary')`; Radix Switch renders a `<button>`. `resetAll` calls `commit({...DEFAULT_OPTIONS})` with no remount. `copy` handler is `undefined` for batches and returns early on a non-empty selection. `password-keyboard.spec.ts` (7 tests, Web Crypto call-count proof for no double fire; WR-02 settle fix) and `PasswordTool.keyboard.test.tsx` pass. |
-| 4 | Address bar mirrors options only; hostile URL clamped/whitelisted with no error; options params never in analytics | VERIFIED | `writeUrl` uses `history.replaceState(null, "", path)` with `serializeOptions(ToolOptions)` only; no router, no fragment; wrapped in try/catch and run after state is applied (CR-01, jsdom test with throwing replaceState). `parseOptions` whitelists keys, clamps, caps search length 2048. `DEFAULT_ALLOW_LIST` is `[]` so `redactBeforeSend` strips every query; `lib/analytics/redact.test.ts` has a password regression. `password-url.spec.ts` (5 tests incl. hostile URL canonical rewrite, history.state check) pass. |
-| 5 | Password in non-form element with translate=no and spellcheck off; never in form value/title/aria-*/live region; copy confirmation announces only "Copied"; e2e coverage passes | VERIFIED (automated), real-world behavior needs human backstop | Output is a `<div translate="no" spellCheck={false}>`; live region is a typed `StatusPhrase` union so a password cannot be passed in; rows keyed by generation+index; `aria-label` carries only "Copy password N"/"Copied!". `page-guards.test.ts` (source bans with in-memory mutants), `password-privacy.spec.ts` (3 sweeps) pass. Password-manager, translate-engine and VoiceOver behavior are backstop truths, see Human Verification. |
+| 1 | Fresh 20-char all-sets password on mount; none in server HTML; two loads differ; fails closed without `getRandomValues` | VERIFIED | `page.tsx` is a Server Component that imports only `PasswordToolLoader`, which uses `dynamic(..., { ssr: false })` with a text-free skeleton. `PasswordTool.initialState()` runs in a lazy `useState` initializer and deliberately has no `window` guard, so it cannot run on the server. `generate()` returns `{results: [], error}` on every throw, with no fallback and no previous value. There is no `Math.random` in non-test `lib/password` or `app/tools/password` code (grep clean). Dev e2e `password.spec.ts` passes: fresh 20-char all-sets password, two loads differ, fails closed without Web Crypto. Server HTML was fetched from the dev server for `/tools/password?len=128&n=5`. It contains one `password-skeleton` and none of the `password-tool/output/hero/batch/row/error/options` test ids. The prod raw-HTML spec `tests/e2e-prod/password-ssr.spec.ts` was **not re-run** (see Behavioral Spot-Checks); its leak detectors and non-vacuity controls were read and are intact. |
+| 2 | Length 4-128 (slider + number, synced); four set toggles with last-set lock; symbol-set editor (dedupe, ASCII, empty restores default); look-alikes; digits/symbols color-coded; copied text plain | VERIFIED | `PasswordOptionsPanel.tsx` and `option-controls.tsx` provide the controls. Every change goes through `commit()`, which normalizes via `normalizeToolOptions`, regenerates, resets the copy state and then writes the URL. `ColoredPassword` splits the value into per-run spans (letter, digit in sky, symbol in amber). `PasswordOutput` copies the raw string (`onCopyHero(value)`, `gen.results.join("\n")`). `password-options.spec.ts` (6 tests) and `PasswordTool.options.test.tsx` pass, including look-alike exclusion and last-set lock. `password.spec.ts` "Copy writes the plain displayed string" passes. |
+| 3 | Regenerate; one-click copy with visible confirmation; batch 1-20 with per-row copy and Copy all (one per line); `/` focuses length, Enter regenerates except on button/toggle/summary, Esc resets all options, Ctrl/Cmd+C single-only | VERIFIED | `PasswordOutput` Hero and Batch render Regenerate, Copy, "Copied!" state, per-row copy (rows own their hook) and Copy all (`join("\n")`). The batch is capped via `BATCH_MAX`/`BATCH_MIN`. `useKeyboardShortcut` guards Enter with `closest('button, [role="button"], [role="radio"], a[href], summary')`. In password mode, `/` focuses and selects Length. `resetAll()` commits `{...DEFAULT_OPTIONS, mode: options.mode}` with no remount, so focus is kept. The `copy` handler is `undefined` unless exactly one result is shown and returns early on a non-empty selection. `password-keyboard.spec.ts` (all password-mode tests, including the Web Crypto call-count proof for no double fire, Esc keeps focus, Ctrl/Cmd+C single and none for a batch) passes. **Phase 14 note:** Esc now preserves the active mode, since Phase 14 added a mode toggle. In password mode, which is Phase 13's scope, it resets every option to its default. This does not break the truth. |
+| 4 | Options-only bookmarkable URL; hostile URL clamped with no error; password params never in analytics | VERIFIED | `writeUrl` uses `history.replaceState(null, "", path)` with `serializeOptions(ToolOptions)` only, with no router and no fragment. It is wrapped in try/catch and runs after state is applied. `parseOptions` whitelists keys and clamps; search length is capped at 2048. `DEFAULT_ALLOW_LIST` is `[]`, and `lib/analytics/redact.test.ts` has a PASSWORD regression test ("no password option param is ever allow-listed or reported"). `password-url.spec.ts` passes: bookmark restore, hostile URL rewritten canonically, no extra history entry, `history.state` holds no password. |
+| 5 | Password in a non-form element with `translate="no"` and spellcheck off; never in a form value, `title` or `aria-*`, or a live-region announcement; copy confirmation announces only "Copied"; e2e passes | VERIFIED | The hero `password-output` and each row value are `<div translate="no" spellCheck={false}>`. All option inputs use shared guards (`autoComplete="off"`, `data-1p-ignore`, `data-lpignore`, `data-bwignore`), have no `name` and are not `type="password"`. The live region holds a typed `StatusPhrase` union of fixed phrases plus one numeric template, so a password cannot be passed in. Rows are keyed by generation and index, and aria-labels carry only "Copy password N" or "Copied!". `StrengthPanel` receives options only, never the output. `password-privacy.spec.ts` passes (exit surfaces, attributes and fields, accessible names and live region, plus passphrase variants). `page-guards.test.ts` source bans pass. The human backstops (password managers, Chrome Translate, VoiceOver, Safari copy) were signed off in 13-UAT.md. |
 
-**Score:** 5/5 truths verified by automated evidence; 0 behavior-unverified. The five Phase 13 criteria that touch browsers/AT (password managers, translation, VoiceOver, Safari) have honest human backstops and so the overall status is human_needed.
+**Score:** 5/5 truths verified. 0 behavior-unverified. No coincidental-reliance flags.
 
 ### Behavior-dependent truths
 
-State-transition/ordering invariants all have exercising tests: CR-01 commit ordering (jsdom test with throwing `replaceState`, confirmed failing pre-fix), Enter no-double-fire (e2e call counts), Esc reset keeps focus (e2e), copy-confirmation reset on regenerate (RTL), selection guard (e2e, mutation-checked in WR-02). No coincidental-reliance flagged.
+All state-transition and ordering invariants have exercising tests that pass in this re-run:
+- commit-before-URL ordering (jsdom test with a throwing `replaceState`)
+- Enter no-double-fire (e2e Web Crypto call counts)
+- Esc reset keeps focus (e2e)
+- copy confirmation reset on regenerate (RTL)
+- selection guard on Ctrl/Cmd+C (e2e)
 
-### Required Artifacts / Key Links
+### Required Artifacts and Key Links
 
 | Artifact | Status | Details |
 |----------|--------|---------|
-| `app/tools/password/page.tsx` | VERIFIED | Server shell, noindex metadata, imports only the loader |
-| `PasswordToolLoader.tsx` | VERIFIED | `dynamic(ssr:false)` + pinned skeleton |
-| `PasswordTool.tsx`, `PasswordOptionsPanel.tsx`, `PasswordOutput.tsx`, `PasswordRow.tsx`, `ColoredPassword.tsx`, `runs.ts` | VERIFIED | Substantive, wired (Tool -> Panel/Output -> Row/Colored -> runs), data from `generateBatch` (lib/password) flows to render (Level 4 FLOWING) |
-| Key links | WIRED | Tool -> `@/lib/password` barrel (generateBatch, parseOptions, serializeOptions); Tool -> `useCopyToClipboard`, `useKeyboardShortcut`; options -> `commit()` -> `generate()` -> `applyGenerated()` -> `writeUrl()` |
+| `app/tools/password/page.tsx` | VERIFIED | Server shell; imports the loader and the About area only. Now also carries Phase 14 launch metadata (indexable, canonical, Open Graph). |
+| `PasswordToolLoader.tsx` | VERIFIED | `dynamic(ssr:false)` plus a text-free `aria-hidden` skeleton (Phase 14 re-pinned its heights). |
+| `PasswordTool.tsx`, `PasswordOptionsPanel.tsx`, `option-controls.tsx`, `PasswordOutput.tsx`, `PasswordRow.tsx`, `ColoredPassword.tsx`, `runs.ts` | VERIFIED | Substantive and wired. Level 4: `generateBatch` (lib/password) flows through `generate()`, then `applyGenerated()`, then `PasswordOutput`, then `ColoredPassword`. This path is FLOWING. |
+| Key links | WIRED | Tool to the `@/lib/password` barrel (`generateBatch`, `parseOptions`, `serializeOptions`, `normalizeToolOptions`); Tool to `useCopyToClipboard` and `useKeyboardShortcut`; option handlers to `commit()` to `generate()` to `applyGenerated()` to `writeUrl()`. |
 
 ### Behavioral Spot-Checks and Probes
 
 | Check | Command | Result | Status |
 |-------|---------|--------|--------|
-| Unit and guards | `npx vitest run app/tools/password lib/password lib/analytics` | 19 files, 606 tests passed | PASS |
-| Types | `npm run typecheck` | clean | PASS |
-| Dev e2e (password specs) | `npx playwright test tests/e2e/password` against the existing :3000 dev server | 31 passed | PASS |
-| Prod SSR spec | not re-run by the verifier (it builds on :3101 and could disturb the running dev server) | orchestrator reported test:e2e:prod 18 passed | ACCEPTED from orchestrator |
+| Phase 13 e2e on dev server | `npx playwright test tests/e2e/password.spec.ts password-keyboard password-options password-privacy password-responsive password-url` | 53 passed (4.0s). The Phase 13 specs still pass with Phase 14's additions. | PASS |
+| Unit and guards | `npx vitest run app/tools/password lib/password lib/analytics lib/hooks` | 26 files, 737 tests passed | PASS |
+| Full unit suite | `npx vitest run` (run by the caller immediately before this verification; no source changes since) | 79 files, 1449 tests passed | ACCEPTED |
+| Server HTML (dev server) | `curl /tools/password?len=128&n=5` and list `data-testid` values | One `password-skeleton`; no island, output or error ids | PASS |
+| Prod raw-HTML spec | `npm run test:e2e:prod` | Not re-run. The config runs `npm run build`, which shares `.next` with the live `next dev` on :3000, and the config comment forbids running both. The prod spec was read and its assertions are intact. | NOT RE-RUN |
 | Probes | none declared | n/a | SKIPPED |
 
 ### Requirements Coverage
 
-All 12 IDs from the PLAN frontmatter (13-01: PWD-01, PWD-07, PWD-08, POUT-01, POUT-05; 13-02: PWD-02, PWD-03, PWD-05, PWD-06, POUT-03; 13-03: PWD-01, PWD-07, POUT-03, POUT-05; 13-04: POUT-01, POUT-02, POUT-05; 13-05: POUT-04; 13-06: PWD-01, POUT-03, POUT-05) are present in REQUIREMENTS.md and mapped to Phase 13. No orphans: PWD-04 maps to Phase 12 by design.
+All 12 IDs in the phase brief and the PLAN frontmatter are present in REQUIREMENTS.md, marked complete and mapped to Phase 13. There are no orphans: PWD-04 maps to Phase 12 by design.
 
 | Requirement | Status | Evidence |
 |-------------|--------|----------|
 | PWD-01 | SATISFIED | Truth 1 |
-| PWD-02 | SATISFIED | Slider + number input synced (options.spec) |
-| PWD-03 | SATISFIED | Switches with last-set lock + hint |
-| PWD-05 | SATISFIED | symbol editor via normalizeSymbols; empty restores default |
-| PWD-06 | SATISFIED | look-alikes switch; e2e asserts none of `0Oo1lI|` appear |
-| PWD-07 | SATISFIED | no Math.random; fail-closed error panel; boundary guard test |
-| PWD-08 | SATISFIED | run coloring; Copy uses raw string |
-| POUT-01 | SATISFIED | Regenerate, hero Copy with "Copied!" |
-| POUT-02 | SATISFIED | batch 1-20, per-row copy, Copy all joined by newline |
+| PWD-02 | SATISFIED | Slider plus number input, synced (`password-options.spec.ts` "the slider sets the length and syncs the number input") |
+| PWD-03 | SATISFIED | Four switches with last-set lock and visible hint |
+| PWD-05 | SATISFIED | Symbol editor via `normalizeSymbols`; empty restores the default (e2e "a custom symbol set drives the symbols; empty falls back to the default") |
+| PWD-06 | SATISFIED | Look-alikes switch; e2e asserts none of `0Oo1lI|` appear |
+| PWD-07 | SATISFIED | No `Math.random`; fail-closed error panel; boundary guard in `lib/password/boundaries.test.ts` |
+| PWD-08 | SATISFIED | Per-run coloring; Copy writes the raw string |
+| POUT-01 | SATISFIED | Regenerate and hero Copy with "Copied!" |
+| POUT-02 | SATISFIED | Batch 1-20, per-row copy, Copy all joined by newline |
 | POUT-03 | SATISFIED | Truth 4 |
 | POUT-04 | SATISFIED | Truth 3 |
-| POUT-05 | SATISFIED (automated) | Truth 5; human backstops pending |
+| POUT-05 | SATISFIED | Truth 5 |
 
-### Anti-Patterns
+### Anti-Patterns Found
 
-No TBD/FIXME/XXX in the phase files. No Math.random. No stubs: the `results[0] === undefined` branch is intentional defensive code that renders the neutral error. Open Info findings IN-01..IN-06 and IN-08 (13-REVIEW-DISPOSITION.md) are advisory and carried to the milestone audit; notable ones: IN-01 symbol hint reads "Empty" for non-empty unusable drafts; IN-04 unlabelled output region and duplicate "Length" accessible name (relevant to the VoiceOver check); IN-05 live-region re-read trick unreliable for a second identical announcement within 2 s. The tool is intentionally not in registry/nav/sitemap and is noindex (Phase 14 owns this), so that absence is not a gap.
+No TBD, FIXME or XXX markers in the covered phase files. No `Math.random`. No stubs: the `results[0] === undefined` branch in `PasswordOutput` renders the neutral error panel. No storage, console, analytics or network calls in the password page code (grep clean). Open Info items IN-01..IN-06 and IN-08 from 13-REVIEW-DISPOSITION.md remain advisory and are carried to the milestone audit.
 
 ### Deferred Items
 
-| Item | Addressed In | Evidence |
-|------|--------------|----------|
-| Final skeleton pin and CLS gate | Phase 14 | ROADMAP research flags and 13-06 hand-offs |
-| Registry/nav/landing/sitemap entry, remove noindex | Phase 14 | ROADMAP Phase 13 research flags |
+None. The registry/nav/sitemap entry, the noindex removal and the final skeleton pin were Phase 13's deliberate hand-offs to Phase 14, and Phase 14 delivered them (indexable metadata in `page.tsx`, re-pinned skeleton in the loader). They are not gaps in Phase 13.
 
-### Human Verification Required
+### Human Verification
 
-See the `human_verification` frontmatter list (9 items): password managers, translation, VoiceOver and E1-a11y-snapshot interpretation, 320px visuals, focus ring, Safari copy, and sign-off on the three post-review deviations (UI-2 filled Copy/Copy all, IN-08/UI-3 icon-only row confirmation, WR-01 new error copy). Per the user's instruction these are batched into the milestone UAT after Phase 14. If UI-2 and IN-08 are accepted, record them as overrides.
+None outstanding. All 9 items in 13-UAT.md were passed by the user on 2026-11-12 (`status: complete`, 9 passed, 0 issues):
+- password managers
+- Chrome Translate
+- VoiceOver and the a11y-snapshot interpretation
+- 320px light and dark
+- focus rings
+- Safari copy
+- UI-2 sign-off (filled accent Copy buttons)
+- IN-08 / UI-3 sign-off (icon-only row confirmation)
+- WR-01 error copy approval
 
 ### Gaps Summary
 
-No gaps. Every must-have has code and test evidence. The status is human_needed solely because backstop truths and UI-SPEC deviations require human judgment; none is a failure.
+No gaps. The phase goal holds in the current code after Phase 14's changes. One caveat: the prod-build raw-HTML spec was not re-executed in this run because it would clobber the live dev server's `.next`. Equivalent evidence comes from the dev server's server HTML and the read-through of the unchanged detector logic.
 
 ---
 
-_Verified: 2026-11-11_
+_Verified: 2026-11-12_
 _Verifier: Claude (gsd-verifier)_
