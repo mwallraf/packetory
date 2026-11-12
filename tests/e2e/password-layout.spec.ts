@@ -13,9 +13,10 @@ function readSource(file: string): string {
 }
 
 /**
- * Reads the whole `h-[Npx] min-[Wpx]:h-[Npx] ...` ladder off the skeleton and
- * returns the pinned height for a viewport width (the last step whose
- * `min-[Wpx]` is at or below the width).
+ * Reads the whole base-height plus min-width height ladder off the skeleton
+ * (written without Tailwind-shaped examples here, so the class scanner does
+ * not emit CSS for them) and returns the pinned height for a viewport width:
+ * the last step whose min-width is at or below the width.
  */
 function pinnedHeightAt(width: number): number {
   const source = readSource("app/tools/password/PasswordToolLoader.tsx");
@@ -27,14 +28,14 @@ function pinnedHeightAt(width: number): number {
   const base = tokens
     .map((t) => t.match(/^h-\[(\d+)px\]$/))
     .find((m) => m !== null);
-  if (!base) throw new Error("password-skeleton has no base `h-[Npx]` pin");
+  if (!base) throw new Error("password-skeleton has no base height pin");
   const steps = tokens
     .map((t) => t.match(/^min-\[(\d+)px\]:h-\[(\d+)px\]$/))
     .filter((m): m is RegExpMatchArray => m !== null)
     .map((m) => ({ min: Number(m[1]), height: Number(m[2]) }));
   const mins = steps.map((s) => s.min);
   if (mins.some((m, i) => i > 0 && m <= mins[i - 1]!)) {
-    throw new Error("password-skeleton min-[Npx] pins are not ascending");
+    throw new Error("password-skeleton min-width pins are not ascending");
   }
   let pinned = Number(base[1]);
   for (const step of steps) if (width >= step.min) pinned = step.height;

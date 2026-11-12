@@ -27,7 +27,7 @@ const PasswordTool = dynamic(
  * one pin per breakpoint band replaces the old two-value pin. Viewport width ->
  * island height: <332 1374.3, 332 1322.3, 378 1302.7, 387 1283.1, 398 1259.1,
  * 413 1239.5, 453 1211.9, 640 979.9, 708 960.3. The pin list below follows those
- * steps with explicit `min-[Npx]` variants (as the subnet loader does), kept in
+ * steps with explicit min-width variants (as the subnet loader does), kept in
  * ascending order; password-layout.spec.ts reads it and re-measures the island
  * at 320, 375, 412, 640, 768, 1024 and 1280 px. A different fallback font can
  * move a step, so re-measure when the font stack changes.
