@@ -54,7 +54,7 @@ Phase 10 (File Hashing & Release Hardening) was removed 2026-10-17 by user decis
 
 - [x] **Phase 10: Shared About Section & Config Parity** - Every tool page shows the tool first, with a closed, muted "About this tool" area below it built from one shared component and one JSON-LD builder; Config gets its worked example, FAQ and own icon; Enter on a `<summary>` no longer fires tool shortcuts (completed 2026-11-11)
 - [x] **Phase 11: Subnet Calculator Compaction** - The full default Subnet result fits a 1366×650 laptop viewport without scrolling, with no fields, copy controls or mobile layout lost (completed 2026-11-12)
-- [ ] **Phase 12: Password Core Library** - Framework-agnostic, fully tested `lib/password` (unbiased CSPRNG sampling, charsets, generator, passphrase + lazy EFF wordlist, entropy/crack time, URL options codec), no UI
+- [x] **Phase 12: Password Core Library** - Framework-agnostic, fully tested `lib/password` (unbiased CSPRNG sampling, charsets, generator, passphrase + lazy EFF wordlist, entropy/crack time, URL options codec), no UI (completed 2026-11-12)
 - [ ] **Phase 13: Password Generator Page** - `/tools/password` shows a fresh random password on load, with every password option, copy, batch, Regenerate, keyboard shortcuts and options-only bookmarkable URL
 - [ ] **Phase 14: Passphrase, Strength & Launch** - Passphrase mode, strength meter and crack-time estimate, registry/nav entry, SEO/About/FAQ and Lighthouse 90+
 
@@ -118,7 +118,7 @@ Plans:
   3. Symbol-set normalization dedupes, keeps printable ASCII only, and restores the default `!@#$%^&*()-_=+[]{};:,.?` when the set is emptied. Look-alike filtering removes `0 O o 1 l I |` before the pool size is computed. Passphrase generation (3–20 words; `-` `_` `.` or space separator; capitalize; append number) draws from the vendored, unmodified 7,776-word EFF Large list. An integrity test pins the list's count and content hash, the file carries a CC BY attribution header and has a committed generation script, and the list is reachable only through a memoized dynamic `import()`.
   4. Entropy comes only from options and the resolved alphabet, never from the output string. The default 20-character all-sets password reports its real pool size and about 128 bits. A 6-word passphrase reports 6 × log2(7776), about 77.5 bits, plus log2(10) when a number is appended. Strength labels switch exactly at 40, 75 and 100 bits. Crack time is computed in log space for both the fast-hash (10^10 guesses/s) and slow-hash scenarios and does not overflow at 128 characters.
   5. The URL options codec round-trips every valid option set. It clamps or drops hostile and malformed params (out-of-range numbers, unknown keys, oversized or non-ASCII symbol sets) to safe defaults and has no field that can carry generated output. A redaction regression test proves password option params never reach analytics events, with nothing added to the analytics allow-list.
-**Plans**: 5/5 plans executed
+**Plans**: 5/5 plans complete
 
 Plans:
 **Wave 1**
@@ -233,6 +233,6 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 9. Hash Tool Page & Text Hashing | v1.2 | 9/9 | Complete | 2026-10-17 |
 | 10. Shared About Section & Config Parity | v1.3 | 6/6 | Complete    | 2026-11-11 |
 | 11. Subnet Calculator Compaction | v1.3 | 1/1 | Complete    | 2026-11-12 |
-| 12. Password Core Library | v1.3 | 5/5 | In Progress | - |
+| 12. Password Core Library | v1.3 | 5/5 | Complete    | 2026-11-12 |
 | 13. Password Generator Page | v1.3 | 6/6 | In Progress | - |
 | 14. Passphrase, Strength & Launch | v1.3 | 8/8 | In Progress | - |
