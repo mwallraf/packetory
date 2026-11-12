@@ -56,7 +56,7 @@ Phase 10 (File Hashing & Release Hardening) was removed 2026-10-17 by user decis
 - [x] **Phase 11: Subnet Calculator Compaction** - The full default Subnet result fits a 1366×650 laptop viewport without scrolling, with no fields, copy controls or mobile layout lost (completed 2026-11-12)
 - [x] **Phase 12: Password Core Library** - Framework-agnostic, fully tested `lib/password` (unbiased CSPRNG sampling, charsets, generator, passphrase + lazy EFF wordlist, entropy/crack time, URL options codec), no UI (completed 2026-11-12)
 - [x] **Phase 13: Password Generator Page** - `/tools/password` shows a fresh random password on load, with every password option, copy, batch, Regenerate, keyboard shortcuts and options-only bookmarkable URL (completed 2026-11-12)
-- [ ] **Phase 14: Passphrase, Strength & Launch** - Passphrase mode, strength meter and crack-time estimate, registry/nav entry, SEO/About/FAQ and Lighthouse 90+
+- [x] **Phase 14: Passphrase, Strength & Launch** - Passphrase mode, strength meter and crack-time estimate, registry/nav entry, SEO/About/FAQ and Lighthouse 90+ (completed 2026-11-12)
 
 ## Phase Details
 
@@ -187,7 +187,7 @@ Plans:
      - an estimated time to crack, with its guess-rate assumption stated, switchable between a fast-hash (10^10 guesses/s) and a slow-hash (bcrypt-style) scenario
   4. The Password tool appears in the nav, the landing grid and the sitemap with a `KeyRound` icon, and all seven nav links fit at 640px. `/tools/password` has unique metadata and the shared About area with a worked example, the EFF CC BY attribution, and an FAQ whose numbers come from `lib/password` constants. The FAQ includes a note on the list's 4 hyphenated words and privacy wording the user has explicitly approved.
   5. Lighthouse scores 90+ in every category on both `/tools/password` and `/tools/subnet`, and the password page shows no layout shift on load (pinned skeleton). Every hard-coded tool count is updated from 6 to 7, and `npm run test:e2e` and `npm run test:e2e:prod` pass locally.
-**Plans**: 8/8 plans executed
+**Plans**: 8/8 plans complete
 
 Plans:
 **Wave 1**
@@ -235,4 +235,4 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 11. Subnet Calculator Compaction | v1.3 | 1/1 | Complete    | 2026-11-12 |
 | 12. Password Core Library | v1.3 | 5/5 | Complete    | 2026-11-12 |
 | 13. Password Generator Page | v1.3 | 6/6 | Complete    | 2026-11-12 |
-| 14. Passphrase, Strength & Launch | v1.3 | 8/8 | In Progress | - |
+| 14. Passphrase, Strength & Launch | v1.3 | 8/8 | Complete    | 2026-11-12 |
