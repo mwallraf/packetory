@@ -732,16 +732,53 @@ describe("Passphrase coloring and wrapping (D-20e, UI-SPEC decision 12)", () => 
     }
   });
 
-  it("the '-' and Space separators render no wbr; Space is a real space", async () => {
+  it("'-' breaks before each separator, which stays attached to the next word (UI-1)", async () => {
     await mountPassphrase("&words=4");
-    expect(
-      screen.getByTestId("password-output").querySelectorAll("wbr"),
-    ).toHaveLength(0);
-    cleanup();
+    const el = screen.getByTestId("password-output");
+    const value = el.textContent ?? "";
+    expect(el.querySelectorAll("wbr")).toHaveLength(3);
+    expect(value.split("-")).toHaveLength(4);
+    // Every wbr sits directly before a no-wrap group that starts with the
+    // separator and holds the following word, so no line can end in a bare "-".
+    for (const wbr of Array.from(el.querySelectorAll("wbr"))) {
+      const group = wbr.nextElementSibling as HTMLElement;
+      expect(group.className).toContain("whitespace-nowrap");
+      expect((group.textContent ?? "").startsWith("-")).toBe(true);
+      expect((group.textContent ?? "").length).toBeGreaterThan(1);
+    }
+  });
+
+  it("'_' and '.' also break before the separator", async () => {
+    for (const [sep, ch] of [
+      ["underscore", "_"],
+      ["dot", "."],
+    ] as const) {
+      await mountPassphrase(`&sep=${sep}&words=4`);
+      const el = screen.getByTestId("password-output");
+      for (const wbr of Array.from(el.querySelectorAll("wbr"))) {
+        const group = wbr.nextElementSibling as HTMLElement;
+        expect(group.className).toContain("whitespace-nowrap");
+        expect((group.textContent ?? "").startsWith(ch)).toBe(true);
+        expect(
+          (wbr.previousElementSibling?.textContent ?? "").endsWith(ch),
+        ).toBe(false);
+      }
+      cleanup();
+    }
+  });
+
+  it("Space renders no wbr; Space is a real space", async () => {
     await mountPassphrase("&sep=space&words=4");
     const el = screen.getByTestId("password-output");
     expect(el.querySelectorAll("wbr")).toHaveLength(0);
     expect((el.textContent ?? "").split(" ")).toHaveLength(4);
+  });
+
+  it("Password mode renders no wbr and no no-wrap group", () => {
+    mount();
+    const el = screen.getByTestId("password-output");
+    expect(el.querySelectorAll("wbr")).toHaveLength(0);
+    expect(el.querySelector(".whitespace-nowrap")).toBeNull();
   });
 
   it("the value uses overflow-wrap anywhere in Passphrase mode and break-all in Password mode", async () => {

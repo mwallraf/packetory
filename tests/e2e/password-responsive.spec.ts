@@ -261,3 +261,43 @@ test.describe("Passphrase mode at 320px (UI E2-long-text, E2-overflow, E4-overfl
     });
   }
 });
+
+test.describe("Passphrase separators never end a wrapped line (UI-1)", () => {
+  for (const sep of ["dash", "underscore", "dot"] as const) {
+    test(`a 20-word hero with the ${sep} separator keeps each separator with the next word at 320px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 320, height: 800 });
+      await page.goto(`/tools/password?mode=passphrase&words=20&sep=${sep}`);
+      await expect(page.getByTestId("password-hero")).toBeVisible();
+      await page.evaluate(() => document.fonts.ready);
+      const result = await page.getByTestId("password-output").evaluate((root) => {
+        const chars: { ch: string; top: number }[] = [];
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) {
+          const node = walker.currentNode as Text;
+          for (let i = 0; i < node.data.length; i += 1) {
+            const range = document.createRange();
+            range.setStart(node, i);
+            range.setEnd(node, i + 1);
+            const rect = range.getClientRects()[0];
+            chars.push({ ch: node.data[i]!, top: Math.round(rect ? rect.top : -1) });
+          }
+        }
+        const separators = new Set(["-", "_", "."]);
+        const stranded: number[] = [];
+        let separatorCount = 0;
+        for (let i = 0; i < chars.length - 1; i += 1) {
+          if (!separators.has(chars[i]!.ch)) continue;
+          separatorCount += 1;
+          if (chars[i]!.top !== chars[i + 1]!.top) stranded.push(i);
+        }
+        const lines = new Set(chars.map((c) => c.top)).size;
+        return { stranded, separatorCount, lines };
+      });
+      expect(result.lines, "the hero wraps onto several lines").toBeGreaterThan(1);
+      expect(result.separatorCount, "separators found").toBeGreaterThanOrEqual(19);
+      expect(result.stranded, "separators at the end of a line").toEqual([]);
+    });
+  }
+});

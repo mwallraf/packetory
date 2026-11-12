@@ -15,8 +15,8 @@ type Props = {
   onCopied: () => void;
   /** Names the row control and picks the wrapping rule (PHR-01 parity). */
   kind?: "password" | "passphrase";
-  /** "_" or "." in Passphrase mode: render a wbr after each separator. */
-  breakAfter?: string;
+  /** "-", "_" or "." in Passphrase mode: break before each separator. */
+  breakBefore?: string;
 };
 
 /**
@@ -31,7 +31,7 @@ export function PasswordRow({
   index,
   onCopied,
   kind = "password",
-  breakAfter,
+  breakBefore,
 }: Props) {
   const { copy, copied, error } = useCopyToClipboard();
   // Bumped after every successful copy so a repeat copy inside the 2 s window
@@ -66,7 +66,7 @@ export function PasswordRow({
             kind === "passphrase" ? "[overflow-wrap:anywhere]" : "break-all"
           } select-all text-foreground`}
         >
-          <ColoredPassword value={value} breakAfter={breakAfter} />
+          <ColoredPassword value={value} breakBefore={breakBefore} />
         </div>
         <button
           type="button"

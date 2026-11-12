@@ -7,6 +7,38 @@ const RUN_CLASS: Record<RunKind, string> = {
   symbol: "text-amber-700 dark:text-amber-300",
 };
 
+type Piece = { kind: RunKind; text: string; sep: boolean };
+
+/**
+ * Splits every run at each occurrence of the separator character, so the
+ * separator is a piece of its own and everything else keeps its run's kind.
+ */
+function pieces(value: string, separator: string): Piece[] {
+  const out: Piece[] = [];
+  for (const run of segmentRuns(value)) {
+    let plain = "";
+    for (const ch of run.text) {
+      if (ch === separator) {
+        if (plain !== "") out.push({ kind: run.kind, text: plain, sep: false });
+        plain = "";
+        out.push({ kind: run.kind, text: ch, sep: true });
+      } else {
+        plain += ch;
+      }
+    }
+    if (plain !== "") out.push({ kind: run.kind, text: plain, sep: false });
+  }
+  return out;
+}
+
+function span(piece: Piece, key: number) {
+  return (
+    <span key={key} data-kind={piece.kind} className={RUN_CLASS[piece.kind]}>
+      {piece.text}
+    </span>
+  );
+}
+
 /**
  * Renders a password as adjacent per-run spans (PWD-08, D-09): letters in the
  * foreground color, digits in sky and symbols in amber. Keys are indexes,
@@ -16,31 +48,41 @@ const RUN_CLASS: Record<RunKind, string> = {
  */
 export function ColoredPassword({
   value,
-  breakAfter,
+  breakBefore,
 }: {
   value: string;
   /**
-   * A single separator character ("_" or "."). When set, a `wbr` element is
-   * rendered after each occurrence so a long passphrase can wrap there
-   * (UI-SPEC decision 12). `wbr` adds no text, so textContent stays the raw
-   * value.
+   * A single separator character ("-", "_" or "."). When set, a `wbr` is
+   * rendered before each occurrence and the separator is kept together with
+   * the text that follows it in a no-wrap group, so a wrapped line never ends
+   * in a bare separator (a trailing "-" reads as hyphenation) and a word is
+   * never split from its separator. `wbr` adds no text, so textContent stays
+   * the raw value.
    */
-  breakAfter?: string;
+  breakBefore?: string;
 }) {
-  return (
-    <>
-      {segmentRuns(value).map((run, i) => (
-        <Fragment key={i}>
-          <span data-kind={run.kind} className={RUN_CLASS[run.kind]}>
-            {run.text}
-          </span>
-          {breakAfter !== undefined
-            ? Array.from(run.text).map((ch, j) =>
-                ch === breakAfter ? <wbr key={j} /> : null,
-              )
-            : null}
-        </Fragment>
-      ))}
-    </>
-  );
+  if (breakBefore === undefined) {
+    return <>{segmentRuns(value).map((run, i) => span({ ...run, sep: false }, i))}</>;
+  }
+  const all = pieces(value, breakBefore);
+  const nodes: React.ReactNode[] = [];
+  for (let i = 0; i < all.length; i += 1) {
+    const piece = all[i]!;
+    if (!piece.sep) {
+      nodes.push(span(piece, i));
+      continue;
+    }
+    const group: React.ReactNode[] = [span(piece, i)];
+    while (i + 1 < all.length && !all[i + 1]!.sep) {
+      i += 1;
+      group.push(span(all[i]!, i));
+    }
+    nodes.push(
+      <Fragment key={`g${i}`}>
+        <wbr />
+        <span className="whitespace-nowrap">{group}</span>
+      </Fragment>,
+    );
+  }
+  return <>{nodes}</>;
 }

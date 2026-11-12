@@ -28,12 +28,14 @@ function nounFor(mode: Mode): "password" | "passphrase" {
 }
 
 /**
- * Passphrase wrap points (UI-SPEC decision 12): only "_" and "." give the
- * browser no natural break opportunity, so only they get a wbr after each
- * separator. "-" and Space already break there.
+ * Passphrase wrap points (UI-SPEC decision 12): "-", "_" and "." break BEFORE
+ * the separator, which stays attached to the following word, so a wrapped line
+ * never ends in a bare "-" that reads as hyphenation. Space already breaks
+ * naturally and its trailing space is invisible.
  */
-function breakAfterFor(mode: Mode, separator: Separator): string | undefined {
-  return mode === "passphrase" && (separator === "_" || separator === ".")
+function breakBeforeFor(mode: Mode, separator: Separator): string | undefined {
+  return mode === "passphrase" &&
+    (separator === "-" || separator === "_" || separator === ".")
     ? separator
     : undefined;
 }
@@ -188,7 +190,7 @@ function Hero({
       >
         <ColoredPassword
           value={value}
-          breakAfter={breakAfterFor(mode, separator)}
+          breakBefore={breakBeforeFor(mode, separator)}
         />
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -311,7 +313,7 @@ function Batch({
             index={index}
             onCopied={onRowCopied}
             kind={noun}
-            breakAfter={breakAfterFor(mode, separator)}
+            breakBefore={breakBeforeFor(mode, separator)}
           />
         ))}
       </ul>
