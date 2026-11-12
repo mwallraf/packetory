@@ -53,7 +53,7 @@ Phase 10 (File Hashing & Release Hardening) was removed 2026-10-17 by user decis
 **Release gate:** CI runs typecheck/lint/test/build only. The Playwright job was removed 2026-10-17. A phase that touches pages is only complete after `npm run test:e2e` **and** `npm run test:e2e:prod` both pass locally.
 
 - [x] **Phase 10: Shared About Section & Config Parity** - Every tool page shows the tool first, with a closed, muted "About this tool" area below it built from one shared component and one JSON-LD builder; Config gets its worked example, FAQ and own icon; Enter on a `<summary>` no longer fires tool shortcuts (completed 2026-11-11)
-- [ ] **Phase 11: Subnet Calculator Compaction** - The full default Subnet result fits a 1366×650 laptop viewport without scrolling, with no fields, copy controls or mobile layout lost
+- [x] **Phase 11: Subnet Calculator Compaction** - The full default Subnet result fits a 1366×650 laptop viewport without scrolling, with no fields, copy controls or mobile layout lost (completed 2026-11-12)
 - [ ] **Phase 12: Password Core Library** - Framework-agnostic, fully tested `lib/password` (unbiased CSPRNG sampling, charsets, generator, passphrase + lazy EFF wordlist, entropy/crack time, URL options codec), no UI
 - [ ] **Phase 13: Password Generator Page** - `/tools/password` shows a fresh random password on load, with every password option, copy, batch, Regenerate, keyboard shortcuts and options-only bookmarkable URL
 - [ ] **Phase 14: Passphrase, Strength & Launch** - Passphrase mode, strength meter and crack-time estimate, registry/nav entry, SEO/About/FAQ and Lighthouse 90+
@@ -99,7 +99,7 @@ Plans:
   2. The plan states a no-scroll target for an IPv6 /64 result before implementation starts, and the layout spec measures and enforces it at 1366×650.
   3. Every IPv4 and IPv6 field shown before compaction is still shown, untruncated. Body text stays at 14px or larger, every per-field copy control still copies with visible confirmation, and all existing subnet testids and subnet e2e specs pass unchanged. `lib/subnet` is not modified.
   4. At 320px and 375px widths the page has no horizontal overflow (`scrollWidth <= innerWidth`) and the About area still renders below the tool. `npm run test:e2e` and `npm run test:e2e:prod` pass locally.
-**Plans**: 1/1 plans executed
+**Plans**: 1/1 plans complete
 
 Plans:
 - [x] 11-01-PLAN.md — Tracer: measure the 1366x650 budget, compact the Subnet island (lg-wide main, CIDR beside hero, one-row field cards, 3-column grid) under a new subnet-layout e2e; IPv6 /64 target, field/copy/font/order integrity, 320/375 overflow; skeleton re-pin and the release gate
@@ -232,7 +232,7 @@ Phases execute in numeric order: 10 → 11 → 12 → 13 → 14
 | 8. Hash Core & Worker Runtime | v1.2 | 5/5 | Complete | 2026-10-15 |
 | 9. Hash Tool Page & Text Hashing | v1.2 | 9/9 | Complete | 2026-10-17 |
 | 10. Shared About Section & Config Parity | v1.3 | 6/6 | Complete    | 2026-11-11 |
-| 11. Subnet Calculator Compaction | v1.3 | 1/1 | In Progress | - |
+| 11. Subnet Calculator Compaction | v1.3 | 1/1 | Complete    | 2026-11-12 |
 | 12. Password Core Library | v1.3 | 5/5 | In Progress | - |
 | 13. Password Generator Page | v1.3 | 6/6 | In Progress | - |
 | 14. Passphrase, Strength & Launch | v1.3 | 8/8 | In Progress | - |
