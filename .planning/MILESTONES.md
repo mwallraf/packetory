@@ -1,5 +1,39 @@
 # Milestones
 
+## v1.3 Password Generator & Tool Page Polish (Shipped: 2026-11-12)
+
+**Phases completed:** 5 phases, 26 plans, 47 tasks
+
+**Key accomplishments:**
+- Zero-JS server `ToolAbout` (two closed native details plus one escaped FAQPage JSON-LD from a single shared builder) wired end-to-end on /tools/uuid and pinned by unit and e2e tests
+- Global Enter shortcut now ignores focus on a summary (no more FAQ-open regenerating the UUID or re-running DNS), and Config gets its own FileTerminal icon with a throwing assertToolIcon replacing the silent Fingerprint fallback
+- RFC 5737 Config sample rendered server-side through the real highlighter with a shared TOKEN_CLASSES map, plus a 4-item FAQ whose privacy answer is limited to the shipped footer claim
+- Five tool pages now share the closed ToolAbout area with one escaped FAQPage JSON-LD each, and /tools/config gains its highlighted RFC 5737 worked example, 4-item FAQ and a new config-seo e2e.
+- A registry-driven vitest guard plus an 18-test Playwright spec prove the shared About area on all six tools: tool first, closed on load, native toggles, Tab order, and one JS-off FAQPage JSON-LD matching the visible FAQ item for item.
+- Playwright proof that Enter on a FAQ summary fires no UUID regenerate or DNS lookup, 320px light/dark About layout backstops on all six pages, a next-start JS-off About/JSON-LD parity spec reusing the 10-05 helper, and a green six-step release gate.
+- The whole default Subnet result (CIDR row, hero and all nine IPv4 cards) now ends at 504px at both laptop sizes, down from 975px, using one-row field cards, a 3-column grid at lg and the CIDR block beside the hero.
+- Unbiased Web Crypto password generation (Uint32 rejection sampling, whole-password resampling for one-of-each-set) with a total option-normalization trust boundary and deterministic fill helpers, no new dependencies.
+- generateBatch (1-20 passwords, NaN-safe clamping) plus stubbed-RNG proofs that randomInt has no modulo bias at its exact rejection limits, caps fills at 65,536 bytes, fails closed without Web Crypto, and draws nothing at import.
+- Exact BigInt inclusion-exclusion password entropy (128.0598 bits for the default, 21.8313 at L=4, never overstated), passphrase entropy, labels switching exactly at 40/75/100, log-space crack time with float-safe buckets, and an analytic proof that the 10,000-attempt retry bound essentially never exhausts (worst case 1.03% acceptance).
+- Static /tools/password shell with noindex metadata and a text-free skeleton, plus a client-only island that generates in a lazy initializer, fails closed on any throw, and shows a color-coded password with Copy and Regenerate
+- Length number input with native slider, four set switches with last-set lock, live-normalized symbol set editor and Avoid look-alikes, all through one commit() path that also mirrors the options (never the output) into the address bar with replaceState(null)
+- Phase 12's randomness and word-list guard now walks the password page, and a new pure page guard bans storage, router/fragment, analytics/console/network/download, form/title/raw-HTML surfaces, out-of-island generation and deep library imports, each proven by in-memory mutants on real page files.
+- Batch of 1-20 passwords with per-row copy, newline-joined Copy all, a Length-style batch-count input, and one polite live region that can only ever say fixed phrases, proven by an attribute scan that finds no password anywhere outside the visible value
+- Password tool made keyboard-first through the unchanged shared hook: `/` jumps to Length, Enter regenerates without ever double-firing on a focused button or switch, Esc resets every option and draft while keeping focus, and Ctrl/Cmd+C copies a single password unless the user has selected text.
+- Real-browser specs prove no generated password reaches the network, URL, history, storage, cookies, title, any attribute, any accessible name or the live region, the 128-character hero and 20 x 128 batch fit a 320px phone in light and dark, the skeleton is pinned to the measured 980/712px default island, and the full local release gate (typecheck, lint, 1333 unit tests, build, 194 dev e2e, 17 prod e2e) is green.
+- Password/Passphrase mode toggle with a sequence-token lazy loader for the EFF Large list, proven by a production-build spec that the 7,776-word list is never in initial JS and arrives as exactly one 62,303-character chunk on first use.
+- /tools/password now ships its indexable launch shell: final title, description and canonical with noindex removed, an intro, and a server-rendered About area (constants-only worked example, full EFF CC BY attribution, six FAQ items with a matching FAQPage JSON-LD) in which every number is read from lib/password.
+- A bookmarked `?mode=passphrase` link now restores Passphrase mode and its options through one deferred mount load guarded by the sequence token, and a failed word-list load shows a fail-closed error with a Retry that reloads the page for a ChunkLoadError (Turbopack caches rejected chunk imports) and re-calls the loader otherwise.
+- Settings-only strength panel (meter, floored bits, pool line, average crack time with its guess-rate assumption, Fast/bcrypt scenario toggle) rendered under the output in both modes and stable across Regenerate.
+- The password page's skeleton now reserves exactly the settled default island (1374px at 320px wide, 960px at 1280px), CLS is gated on default load, a passphrase bookmark and mode toggling, and typecheck, lint, 1440 unit tests, the build, 246 dev e2e tests and 22 prod e2e tests all pass in sequence.
+
+**Closeout:** override_closeout. All 5 phases verified passed (Phases 10, 12 and 13 reports regenerated at close); 35/35 requirements satisfied; audit status tech_debt.
+Known verification overrides: 2 newly acknowledged, 0 carried forward from a prior close (see STATE.md Deferred Items).
+
+**Tech debt carried:** Phase 10 WR-01/WR-02 (Ctrl/Cmd+C and Esc fire from the About area), WR-03 (`about-prod.spec.ts` not in CI); site footer contrast 4.34:1; Phase 11 before/after Lighthouse numbers never recorded (user decision); Tailwind "Invalid media query" warning from placeholder `min-[Npx]` text. Full list: `milestones/v1.3-MILESTONE-AUDIT.md`.
+
+---
+
 ## v1.2 Hash Generator (Shipped: 2026-10-17)
 
 **Phases completed:** 2 phases, 14 plans, 26 tasks
