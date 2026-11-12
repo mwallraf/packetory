@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_ALLOW_LIST, redactParams } from "./redact";
+import { DEFAULT_OPTIONS, PASSWORD_URL_KEYS, serializeOptions } from "../password";
 
 describe("redactParams", () => {
   it("reports zero params when the allow-list is empty (Phase 1 default, safe-by-default)", () => {
@@ -96,5 +97,25 @@ describe("redactParams", () => {
       redactParams("?text=hunter2%0Asecret", DEFAULT_ALLOW_LIST)
     ).toEqual({});
     expect(redactParams("?text=a&type=A", DEFAULT_ALLOW_LIST)).toEqual({});
+  });
+
+  it("PASSWORD regression: no password option param is ever allow-listed or reported (POUT-03, D-23)", () => {
+    for (const key of PASSWORD_URL_KEYS) {
+      expect(DEFAULT_ALLOW_LIST).not.toContain(key);
+    }
+    const nonDefault = {
+      ...DEFAULT_OPTIONS,
+      length: 32,
+      avoidLookalikes: true,
+      symbolSet: "!?",
+      mode: "passphrase" as const,
+      words: 8,
+    };
+    expect(serializeOptions(nonDefault)).not.toBe("");
+    expect(redactParams(serializeOptions(nonDefault), DEFAULT_ALLOW_LIST)).toEqual({});
+    expect(
+      redactParams("?" + serializeOptions(nonDefault), DEFAULT_ALLOW_LIST)
+    ).toEqual({});
+    expect(DEFAULT_ALLOW_LIST).toEqual([]);
   });
 });

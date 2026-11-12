@@ -7,9 +7,9 @@ test.describe("Landing page — tool registry grid", () => {
     await page.goto("/");
 
     const cards = page.getByTestId("tool-card");
-    await expect(cards).toHaveCount(6);
+    await expect(cards).toHaveCount(7);
 
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 7; i++) {
       const card = cards.nth(i);
       await expect(card.getByTestId("tool-card-name")).toBeVisible();
       await expect(card.getByTestId("tool-card-description")).toBeVisible();
@@ -33,7 +33,27 @@ test.describe("Landing page — tool registry grid", () => {
       "DNS Lookup",
       "Hash Generator",
       "MAC Address Inspector",
+      "Password Generator",
     ]);
+  });
+
+  test("the Password Generator card renders the KeyRound icon and links to /tools/password (PREG-01)", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const card = page.getByTestId("tool-card").filter({
+      has: page
+        .getByTestId("tool-card-name")
+        .getByText("Password Generator", { exact: true }),
+    });
+    await expect(card).toHaveCount(1);
+    await expect(card.locator("svg.lucide-key-round")).toHaveCount(1);
+    await expect(card.locator("a")).toHaveAttribute("href", "/tools/password");
+    // Password sorts last in the grid (featured first, then by name).
+    await expect(page.getByTestId("tool-card").last()).toContainText(
+      "Password Generator"
+    );
   });
 
   test("active cards have no 'Coming soon' badge and exactly one clickable anchor", async ({
@@ -42,9 +62,9 @@ test.describe("Landing page — tool registry grid", () => {
     await page.goto("/");
 
     const cards = page.getByTestId("tool-card");
-    await expect(cards).toHaveCount(6);
+    await expect(cards).toHaveCount(7);
 
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 7; i++) {
       const card = cards.nth(i);
       await expect(card.getByText("Coming soon")).toHaveCount(0);
       // Each active card renders exactly one stretched-link anchor (LP-01).

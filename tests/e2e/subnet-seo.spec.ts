@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openAbout } from "./helpers/about";
 
 test.describe("Subnet Calculator SEO metadata (SUBNET-04, SUBNET-05)", () => {
   test("metadata is unique and complete", async ({ page }) => {
@@ -30,6 +31,7 @@ test.describe("Subnet Calculator SEO metadata (SUBNET-04, SUBNET-05)", () => {
 test.describe("Subnet Calculator FAQ content (SUBNET-04, SUBNET-05)", () => {
   test("faq content is present and JSON-LD matches", async ({ page }) => {
     await page.goto("/tools/subnet");
+    await openAbout(page, "subnet", ["faq"]);
 
     const faqItems = page.getByTestId("subnet-faq-item");
     const visibleCount = await faqItems.count();
@@ -62,6 +64,7 @@ test.describe("Subnet Calculator worked example (SUBNET-04, SUBNET-05)", () => {
     page,
   }) => {
     await page.goto("/tools/subnet");
+    await openAbout(page, "subnet", ["worked-example"]);
 
     const workedExample = page.getByTestId("subnet-worked-example");
     await expect(workedExample).toBeVisible();

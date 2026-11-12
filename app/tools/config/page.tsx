@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { SITE_URL } from "@/app/sitemap";
+import { ToolAbout } from "@/components/ToolAbout";
+import { ConfigExample } from "./ConfigExample";
 import { ConfigToolLoader } from "./ConfigToolLoader";
+import { faqItems } from "./faq-data";
 
 const TITLE = "Network Config Syntax Highlighter — Packetory";
 const DESCRIPTION =
@@ -19,6 +22,10 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * /tools/config — Server Component shell. The About area (worked example and
+ * FAQ, CFG-01/CFG-02) comes from the shared `ToolAbout` (Phase 10).
+ */
 export default function ConfigPage() {
   return (
     <div className="flex flex-1 flex-col bg-background">
@@ -36,6 +43,10 @@ export default function ConfigPage() {
         <div className="mt-8">
           <ConfigToolLoader />
         </div>
+
+        <ToolAbout slug="config" faqItems={faqItems}>
+          <ConfigExample />
+        </ToolAbout>
       </main>
     </div>
   );

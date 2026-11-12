@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { openAbout } from "./helpers/about";
 
 test.describe("UUID Generator SEO metadata (QUAL-01)", () => {
   test("metadata is unique and complete", async ({ page }) => {
@@ -34,6 +35,8 @@ test.describe("UUID Generator SEO metadata (QUAL-01)", () => {
 test.describe("UUID Generator FAQ content (QUAL-02)", () => {
   test("faq content is present and JSON-LD matches", async ({ page }) => {
     await page.goto("/tools/uuid");
+    await expect(page.locator("details[open]")).toHaveCount(0);
+    await openAbout(page, "uuid", ["faq"]);
 
     const faqItems = page.getByTestId("uuid-faq-item");
     const visibleCount = await faqItems.count();
@@ -68,6 +71,7 @@ test.describe("UUID Generator FAQ content (QUAL-02)", () => {
 test.describe("UUID Generator worked example (QUAL-02)", () => {
   test("worked example shows a real v4 and v7", async ({ page }) => {
     await page.goto("/tools/uuid");
+    await openAbout(page, "uuid", ["worked-example"]);
 
     const v4Sample = page.getByTestId("uuid-worked-example-v4");
     await expect(v4Sample).toBeVisible();

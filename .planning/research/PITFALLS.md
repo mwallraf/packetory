@@ -1,342 +1,414 @@
 # Pitfalls Research
 
-**Domain:** In-browser multi-algorithm Hash Generator (text + file) added to an existing static-first Next.js 16 / React 19 tool site (Packetory v1.2, `/tools/hash`)
-**Researched:** 2026-10-14
-**Confidence:** HIGH on algorithm/encoding/streaming correctness (well-known, test-vector-verifiable) and on integration points (read directly from this repo: `lib/analytics/PacketoryAnalytics.tsx`, `lib/hooks/useKeyboardShortcut.ts`, `app/tools/*/…Loader.tsx`, `tsconfig.json`, `package.json`). MEDIUM on throughput/memory numbers (device-dependent, must be measured in-phase). LOW-flagged items are called out inline.
+**Domain:** Adding a password/passphrase generator and a "tool-first" page restructure (collapsible info sections, config-highlighter SEO parity, subnet compaction) to the existing static-first Packetory app (Next.js 16 App Router, Vitest + fast-check + Playwright, Vercel Analytics with an empty query-param allow-list)
+**Milestone:** v1.3 Password Generator & Tool Page Polish
+**Researched:** 2026-11-11
+**Confidence:** HIGH for codebase-specific findings (read directly from the repo) and for crypto/sampling pitfalls (well-established); MEDIUM for SEO/browser-behaviour claims (flagged inline); LOW items are labeled LOW.
 
-**Phase naming used below** (suggested; roadmapper may renumber — v1.1 ended at Phase 7):
-- **Core** = `lib/hash/` framework-agnostic engine + Vitest vectors/property tests (algorithms, UTF-8 encoding, incremental/chunked file hashing, CRC32, formatting)
-- **UI** = `/tools/hash` client island (text + file input, worker wiring, results grid, copy, keyboard, URL state, skeleton)
-- **Ship** = registry entry, per-tool SEO/FAQ/JSON-LD, analytics/privacy hardening, Playwright e2e, Lighthouse/bundle check
+> Scope note: this file covers pitfalls of ADDING v1.3 features to the existing system. Generic web advice is omitted. Every "codebase fact" below was verified by reading the repo on 2026-11-11 (file paths given).
+
+---
+
+## Suggested phase vocabulary used in the "Phase to address" fields
+
+Phase numbering continues from 10. The roadmapper may reshape this, but the pitfall mapping assumes this dependency order:
+
+| Label | Suggested phase | Why this order |
+|-------|-----------------|----------------|
+| **P10** | Shared "About this tool" disclosure component + migrate all 6 tools + Config parity (worked example, FAQ, JSON-LD, distinct icon) + fix shared keyboard hook + rewrite the e2e SEO specs | Touches every existing tool and 4 e2e spec files; must land before the password page so the new page is built on the final component, not retrofitted |
+| **P11** | `lib/password/` core: unbiased sampler, charset/look-alike model, entropy, wordlist chunk, URL-options (de)serializer | Correctness gate first (v1.2 lesson: build the trusted engine, then pure UI over it) |
+| **P12** | `/tools/password` UI + registry/nav/landing/sitemap + SEO + e2e (dev + prod) | Pure UI over P11 and P10 |
+| **P13** | Subnet compaction | Independent; last because it re-pins the skeleton and must be measured against the final About-section layout from P10 |
 
 ---
 
 ## Critical Pitfalls
 
-### Pitfall 1: Hashing the wrong bytes (encoding mismatch vs `sha256sum`)
+### Pitfall 1: A generated password baked into static HTML (SSR leak / CDN-cached secret)
 
 **What goes wrong:**
-User pastes `héllo 🚀` and gets a digest that differs from `printf 'héllo 🚀' | sha256sum`. Root causes: (a) feeding the library `str.charCodeAt()` values / Latin-1 / UTF-16 code units instead of UTF-8 bytes (classic with legacy npm md5/sha1 packages and `btoa`-style code); (b) Unicode normalization differences (NFC `é` U+00E9 vs NFD `e`+U+0301 hash differently; macOS filenames and some paste sources are NFD); (c) lone surrogates — `TextEncoder` silently replaces them with U+FFFD (`EF BF BD`), so the tool hashes different bytes than what the user "typed"; (d) the user's *other* tool used a different encoding (Windows PowerShell 5 `echo abc > f.txt` writes **UTF-16LE with BOM**; `certutil`, .NET `Encoding.Unicode`, Java `getBytes()` platform default).
+`/tools/password` is statically prerendered. If any code that produces a random password runs during the build/server render (a Server Component, a client component rendered on the server, `generateMetadata`, a module-level `const initial = generate()`), the SAME password is written into the prerendered HTML, served from Vercel's CDN to every visitor, and indexed by crawlers. Variant: it hydrates "fine" by accident if the client render happens to match, then the password is shared by everyone until the next deploy.
 
 **Why it happens:**
-JS strings are UTF-16 internally. Hash libraries often accept `string` and each treats it differently. Developers test only with ASCII `"abc"` where every encoding agrees.
+Someone removes `dynamic(..., { ssr: false })` "to improve LCP/CLS" or "because the skeleton flashes", or initialises state via a module-level constant. Next 16 does not warn: the page just works, and every visitor sees an identical "random" password.
 
 **How to avoid:**
-- One single choke point in `lib/hash/`: `encodeText(s) => new TextEncoder().encode(s)`; every hasher accepts only `Uint8Array`. Never pass strings into hash libs (even where they "support" them) — keeps the contract explicit and testable.
-- Never trim, normalize (NFC/NFD), or case-fold the input. Hash exactly what's in the textarea.
-- Show a live **"N bytes (UTF-8)"** next to the input — makes encoding mismatches self-diagnosing (emoji = 4 bytes, `é` = 2).
-- Mandatory non-ASCII vectors in Vitest: `"é"` (2 bytes), `"€"` (3), `"🚀"` (4), mixed ASCII+emoji, NFC vs NFD pair producing *different* digests (assert they differ — locks "no silent normalization"), lone surrogate `"\uD800"` → documented U+FFFD behavior. Generate expected values from Node `crypto`/`zlib` oracle, not from the implementation under test.
-- FAQ entry: "Why doesn't my hash match?" listing UTF-8 assumption, trailing newline, CRLF, BOM, UTF-16 (PowerShell). Optional differentiator (defer unless cheap): encoding selector UTF-8 / UTF-16LE.
+- Reuse the locked Server-shell + Client-island split exactly (`page.tsx` server shell -> `PasswordToolLoader.tsx` with `"use client"` + `dynamic(() => import("./PasswordTool"), { ssr: false, loading: <pinned skeleton/> })`). Never import the tool component into `page.tsx` directly.
+- Initialise the password in `useState(() => generate(...))` or an effect INSIDE the `ssr:false` island only. Never in module scope, never in props passed from the server.
+- The worked example on the page uses a FIXED, clearly-labelled sample constant (like `sampleV4` in `app/tools/uuid/faq-data.ts`), never a build-time random.
+- Add a regression test that fetches the raw HTML (`request.get("/tools/password")` in Playwright, or reads `.next/server/app/tools/password.html` in a prod-build test) and asserts (a) the skeleton testid is present, (b) the tool's output testid is NOT present, (c) no string matching the default 20-char all-sets shape appears outside the labelled sample.
+- Add a test that two fresh page loads show different passwords.
 
 **Warning signs:**
-Tests only use ASCII; implementation imports `utf8ToBytes`/`charCodeAt` loops ad hoc in multiple places; no byte-count displayed; hash of `"é"` differs from `printf 'é' | sha256sum`.
+`ssr:false` missing in the loader; hydration warnings (React #418/#423) in the console; the same password on two devices; the prod HTML containing a `data-testid="password-output"` element.
 
-**Phase to address:** Core (encoding choke point + vectors), UI (byte-count display), Ship (FAQ copy).
+**Phase to address:** P12 (guard test in P12; the rule is restated in P11's lib docs: "lib/password never self-seeds at import time").
 
 ---
 
-### Pitfall 2: Newline/whitespace confusion (`echo` vs `echo -n`, CRLF, textarea behavior, BOM)
+### Pitfall 2: Modulo bias, `Math.random`, and silent fallbacks in the sampler
 
 **What goes wrong:**
-The #1 "your tool is wrong" complaint for every hash site. `echo "abc" | sha256sum` hashes `abc\n` (4 bytes); `echo -n` / `printf` hashes `abc`. Windows text files end in `\r\n`. Additionally: the HTML `<textarea>` **API value normalizes line breaks to LF** (spec: CRLF → LF, lone CR → LF), so text pasted from a Windows CRLF file will *not* hash the same as `sha256sum file.txt` — silently, with no way for the user to notice. Smart-punctuation/auto-correct (iOS, macOS "smart quotes/dashes") rewrites `"` → `"`, `--` → `—` before the value reaches JS. Spellcheck/autocapitalize can alter text on mobile.
+`crypto.getRandomValues(new Uint32Array(1))[0] % pool.length` (or `Uint8 % 62`) makes low indices slightly more probable. `Math.random()` is not a CSPRNG. A "fallback" to `Math.random` when `crypto` is missing silently produces weak passwords. `array.sort(() => random - 0.5)` for shuffling is both biased and engine-dependent.
 
 **Why it happens:**
-Developers assume the textarea value == the bytes the user "meant". Users assume the tool == their shell. The gap (LF vs CRLF, trailing newline, BOM, autocorrect) is invisible.
+The modulo one-liner is the top search result; the skew with a 32-bit draw is tiny (about 1 part in 45 million for n=94) so tests never notice. Some sources even recommend skipping rejection sampling; do not copy that for a tool whose entire purpose is trustworthy randomness (and whose reviewers will grep for `%`).
 
 **How to avoid:**
-- Don't trim, and don't strip the trailing newline — a typed trailing `\n` is part of the input. Show a small inline hint when the input ends with a newline: "Input ends with a newline (1 byte) — `echo -n` omits it."
-- Explicitly document in UI help/FAQ: text mode hashes the *textarea content as UTF-8 with LF line endings*; **for exact bytes of an existing file, use File mode** (File mode reads raw bytes: BOM, CRLF, binary all preserved). This is the primary mitigation for CRLF — surface it in the CRLF hint rather than burying it.
-- Optional cheap differentiator: a "Line endings: LF (default) / CRLF" toggle applying `\n → \r\n` before encoding, with the byte count updating live. Decide in planning; don't half-build it (a toggle that converts only some newline cases is worse than none).
-- Textarea attributes: `spellCheck={false} autoComplete="off" autoCorrect="off" autoCapitalize="off"` and `data-gramm="false" data-1p-ignore data-lpignore="true"` (Grammarly / password-manager overlays). `autoCorrect="off"` is the only reliable defense against iOS smart-quote substitution. Also prevents Chrome enhanced-spellcheck sending typed secrets to a cloud service.
-- Test: a Playwright test that pastes `"a\r\nb"` and asserts the displayed byte count matches the documented behavior (3 bytes, LF-normalized), so a future change cannot silently alter it.
+- One audited primitive in `lib/password/random.ts`: `randomInt(maxExclusive)` using rejection sampling (`limit = floor(2^32 / n) * n`; redraw while `r >= limit`). All pool picks, word picks, shuffles and the appended-number digits go through it. No other file touches `crypto` or `%`.
+- Fisher-Yates shuffle built on `randomInt`; never `sort`-with-random-comparator.
+- Fail closed: if `globalThis.crypto?.getRandomValues` is absent, throw and show an inline "your browser can't generate secure randomness" error. NEVER fall back to `Math.random`. (`getRandomValues` works in insecure contexts too, unlike `randomUUID`/`subtle`, so this is a never-happens path that must still be fail-closed.)
+- `getRandomValues` throws `QuotaExceededError` above 65,536 BYTES per call (HIGH, per spec/browser behaviour). Draw in bounded chunks (for example <= 16 KiB) so a 20-item batch of long passwords plus rejection overdraw can never exceed it.
+- Add an ESLint `no-restricted-properties`/`no-restricted-syntax` rule (or a Vitest "source grep" test, in the style of the existing import-boundary guards in `lib/hash`) forbidding `Math.random` anywhere under `lib/password/` and `app/tools/password/`.
+- Test the sampler with a DETERMINISTIC stubbed `getRandomValues` that returns the exact boundary values (`limit - 1` accepted, `limit` rejected, `2^32 - 1` rejected for n=94) so bias handling is proven without flaky statistics. If a statistical check is also wanted, use a fixed large sample with a very loose tolerance (a chi-square at a normal significance level fails randomly ~5% of runs and will make CI flaky).
 
 **Warning signs:**
-`.trim()` anywhere in the input path; no `autoCorrect`/`spellCheck` attrs; byte count not shown; FAQ says nothing about newlines; issue reports of "SHA-256 of my file doesn't match".
+`%` applied to a random value; `Math.random` in the diff; a `try { crypto... } catch { Math.random }`; a `.sort(` near the shuffle.
 
-**Phase to address:** Core (never trim; optional CRLF transform in encoder), UI (attrs, hint, byte count, File-mode pointer), Ship (FAQ).
+**Phase to address:** P11.
 
 ---
 
-### Pitfall 3: SHA-3 vs Keccak confusion (Ethereum `keccak256`)
+### Pitfall 3: Entropy overstated by "guarantee one of each set", look-alike removal, duplicates and empty pools
 
 **What goes wrong:**
-SHA3-256 (NIST FIPS 202) and Keccak-256 (original submission, used by Ethereum/Solidity `keccak256`) differ **only in the padding/domain-separation byte (`0x06` vs `0x01`)**, so they produce completely different digests for identical input. Developers (a) wire the wrong function from a library that exports both (`keccak_256` vs `sha3_256`), (b) label SHA3-256 as "Keccak" or vice versa, (c) copy a "SHA3-256" vector that was actually produced by an Ethereum tool, and (d) users compare against `web3.utils.keccak256` and think the tool is broken.
+The strength meter and crack-time estimate show a number that is higher than the real entropy:
+- "Guarantee at least one of each enabled set" implemented as "pick one from each set first, fill the rest, shuffle" is NOT uniform over valid strings and has less entropy than `L * log2(N)`. The effect matters at short lengths (for example L = 6-8 with four sets) and is invisible at L = 20.
+- Look-alike removal shrinks the pool; if the formula still uses the unfiltered pool size, entropy is overstated.
+- The editable symbol set can contain duplicates (`!!@@`), multi-code-unit characters (emoji, `String.length` counts UTF-16 units), whitespace/invisible characters, or characters that are all look-alikes (`|`), so the effective set can become empty after filtering.
+- Everything disabled / empty symbol set with Symbols ON -> empty pool -> `log2(0)` = `-Infinity`/`NaN`, or an infinite rejection loop.
+- Required-set count greater than length (length 2, four sets) -> an unsatisfiable guarantee -> infinite loop in a rejection-based implementation.
 
 **Why it happens:**
-Naming overlap and that many npm packages named `sha3` historically implemented Keccak. Empty-string vectors look similar in structure so the mismatch isn't spotted by eyeballing.
+Each rule is added independently (sets, then look-alikes, then custom symbols, then guarantee) and the entropy function is written against the raw option object rather than against the final, filtered, deduplicated alphabet actually sampled.
 
 **How to avoid:**
-- Pin vectors from FIPS 202 / NIST CAVP, and assert both directions in tests:
-  - SHA3-256(`""`) = `a7ffc6f8bf1ed76651c14756a061d662f580ff4de43b49fa82d80a4b80f8434a`
-  - Keccak-256(`""`) = `c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470` (add as a **negative test**: SHA3-256 output must NOT equal this)
-  - SHA3-256(`"abc"`) = `3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532`
-- Label rows exactly "SHA3-256" / "SHA3-512" (FIPS 202). Do **not** add Keccak-256 in this milestone (scope is ~10 and Ethereum use is a different audience), but add a one-line FAQ: "SHA3-256 ≠ Ethereum's keccak256". If Keccak-256 is ever added it must be a separate, clearly-labelled row.
-- Import by explicit named export from the library's `sha3` module; code-review checklist item: "no `keccak_*` import in `lib/hash`".
+- Single pipeline: `options -> resolveAlphabets(options) -> {sets: string[][] (deduped by code point via Array.from, look-alike-filtered, empty sets dropped), pool}`. Generation AND entropy both consume ONLY `resolveAlphabets` output; nothing reads `options.symbols` directly afterwards.
+- Prefer ONE uniform scheme for the guarantee: rejection-sample the whole password from the pool and accept only if every enabled set is represented. This is uniform over the valid strings, so the exact entropy is `log2(#valid strings)`, computable with inclusion-exclusion over sets in BigInt (or simply report the conservative `L*log2(N)` rounded DOWN and say "up to"). If instead you use "pick-required-then-shuffle", document that entropy is reported as the conservative upper bound minus the guarantee loss, never as `L*log2(N)`.
+- Hard-validate before generating: pool size >= 1, `length >= number of enabled non-empty sets`, symbol set length capped (for example 64 code points) and stripped of whitespace/control characters. Show an inline message (not a crash) and keep the last valid result, like `parseCountInput` in `UuidTool.tsx`.
+- Bound the rejection loop (for example 1,000 attempts) and throw rather than spin if the acceptance probability is pathologically low.
+- Passphrase entropy rules (the common over-claims): `W * log2(listSize)` only. Deterministic capitalisation (capitalise every word / first letter) adds 0 bits. A FIXED separator adds 0 bits. An appended number adds `log2(range)` only if it is drawn randomly, and only that. `listSize` must be read from the loaded array's actual `.length` (never hard-coded 7776), because any word removed or filtered changes it. Sample words WITH replacement and say so.
+- fast-check properties: every output char is in the pool; length is exact; every enabled set is present; no look-alike character appears when the option is on; entropy is monotone in length and never `NaN`/`Infinity`; `resolveAlphabets` is idempotent.
 
 **Warning signs:**
-Library import named `keccak*`; SHA3 test vector sourced from a blog/Etherscan rather than FIPS 202/CAVP; the empty-string SHA3-256 starts with `c5d2…` (that's Keccak).
+Entropy shown for L=4/all sets that equals exactly `4*log2(94)`; `NaN bits` in the UI when toggling everything off; the page freezing when the length is set below the number of sets; entropy that doesn't change when look-alikes are toggled.
 
-**Phase to address:** Core.
+**Phase to address:** P11 (pure functions + property tests); P12 only renders the validation messages.
 
 ---
 
-### Pitfall 4: CRC32 is not one algorithm — variant, sign, byte order, padding, incremental state
+### Pitfall 4: Password regenerates under the user (or on the wrong triggers)
 
 **What goes wrong:**
-(a) **Variant**: "CRC32" (IEEE 802.3 / zlib / gzip / PNG / `crc32` CLI; poly `0xEDB88320` reflected) vs **CRC-32C Castagnoli** (iSCSI, SCTP, ext4, Btrfs; poly `0x82F63B78`) vs POSIX `cksum` CRC (different algorithm, appends length) vs CRC-32/BZIP2 (MPEG-2 non-reflected) vs CRC-32/JAMCRC. (b) **Signed output**: JS bitwise ops return signed int32 — CRC of `"123456789"` prints `-216151002` instead of `3421780262` unless you `>>> 0`. (c) **Display**: no zero-padding → `0x1a2b3c` shown as 6 digits instead of `001a2b3c`; leading zeros dropped when using `.toString(16)`. (d) **Byte order**: gzip trailers store CRC32 little-endian; most tools print the 32-bit value as big-endian hex — don't reverse bytes. (e) **Incremental/chunked file hashing**: initial value `0xFFFFFFFF` and final `^ 0xFFFFFFFF` must be applied **once per file**, not per chunk — per-chunk init/xor makes small-file text hash right and large-file hash wrong (chunk boundary bug). (f) Typed-array views: passing `u8.buffer` instead of the `Uint8Array` view ignores `byteOffset`/`length` of sliced chunks.
+The password changes right after the user clicks Copy, or when an unrelated piece of state changes (copy confirmation toggling, a show/hide toggle, a resize). The user copies one string and sees a different one on screen. Equally bad: the confirmation says "Copied!" next to a value that no longer matches (the exact WR-02 bug already fixed in the UUID tool).
 
 **Why it happens:**
-CRC "32-bit" has ~dozens of parameterizations; naive tests only check one string. Table-driven JS implementations are copy-pasted, many with the signed-int bug.
+Deriving the password during render (`useMemo(() => generate(options), [options, copied])`) or generating in an effect whose deps include a flag that changes on copy. React 19 StrictMode double-invokes initialisers/effects in dev, which can mask or amplify the problem.
 
 **How to avoid:**
-- Implement/choose **CRC-32/ISO-HDLC (IEEE, zlib-compatible)** only, labelled "CRC32 (IEEE 802.3, zlib/gzip/PNG)". noble-hashes has no CRC32, so this is hand-rolled (~20 lines, table-driven, `Uint32Array` table) or a tiny dep; either way it's the highest-bug-density module in the milestone — test accordingly.
-- Output: unsigned (`>>> 0`), `padStart(8, "0")`, lowercase hex to match other rows; offer decimal as secondary display only if cheap. Uppercase/lowercase toggle must apply to all rows uniformly.
-- Vectors: CRC32(`""`) = `00000000`; CRC32(`"a"`) = `e8b7be43`; CRC32(`"123456789"`) = `cbf43926` (the CRC catalogue "check" value). **Caution:** the milestone's cited RFC 3720 vectors are **CRC-32C (Castagnoli)** (e.g. `"123456789"` → `e3069283`) — using them to "verify" IEEE CRC32 will fail and can push someone to implement the wrong variant. Either cite the right source (CRC catalogue / zlib / RFC 1952 gzip) or add CRC32C as a separate labelled row (scope decision; recommend not adding in v1.2).
-- Include a vector with CRC value having leading zero byte(s) and one with high bit set (to catch signed/padding bugs).
-- Property test: for any bytes and any split point(s), `crc.update(a).update(b)` == one-shot over `a||b`. Oracle: Node `zlib.crc32` (Node ≥ 20.15 / 22.2 — MEDIUM confidence on exact version; check `node -v` used by CI) or `python -c zlib.crc32`.
-- Tooltip/FAQ on the CRC32 row: "IEEE/zlib variant. Differs from CRC32C and `cksum`."
+- Mirror the UUID pattern: the generated strings live in `useState`; they are replaced ONLY by (a) an options change, (b) Regenerate/Enter, (c) mount. Display formatting is a pure derivation; copy/show-hide/status state never touches generation.
+- Call `useCopyToClipboard().reset()` in an effect keyed on the generated array (same as `UuidTool.tsx`), so the "Copied!" never lingers next to a changed value.
+- Unit test: click Copy, then assert the displayed value is unchanged and the clipboard mock received exactly the displayed value.
 
 **Warning signs:**
-Negative number ever displayed; CRC row sometimes <8 chars; large-file CRC differs from small-file CRC of same content; test vector sourced from RFC 3720 for plain "CRC32".
+Value differs between "what I saw" and "what I pasted"; two generations per interaction in the console log; "Copied!" visible after Regenerate.
 
-**Phase to address:** Core (implementation + vectors + chunk property test); Ship (FAQ/label).
+**Phase to address:** P12.
 
 ---
 
-### Pitfall 5: Reading whole files into memory (ArrayBuffer OOM, iOS Safari kills the tab)
+### Pitfall 5: Password leaks into the URL, history, analytics, DOM attributes or the accessibility tree
 
 **What goes wrong:**
-`await file.arrayBuffer()` or `FileReader.readAsArrayBuffer(file)` on a multi-hundred-MB / GB file throws `RangeError`/`NotReadableError`, or on mobile Safari the tab is reloaded/killed with no error (iOS Safari effective per-tab memory is a few hundred MB to ~1 GB depending on device — MEDIUM confidence, device-dependent; measure). Even if the read succeeds, a 10-algorithm run may hold multiple copies (buffer + typed-array view + worker transfer copy).
+- The password (or the Hash-style "share link") ends up in `?pw=`, in `history.state`, in `document.title`, in a `key=`/`id=`/`title=`/`aria-label=`/`data-*` attribute, or in an `aria-live` region that screen readers read aloud on every regenerate.
+- Vercel Analytics reports the URL. The allow-list in `lib/analytics/redact.ts` is EMPTY, so `redactBeforeSend` strips every query param today; this is the safety net, but only if nobody "helpfully" adds option params to `DEFAULT_ALLOW_LIST`.
+- Options in the URL are attacker-controlled input: `?length=99999999`, `?count=1e9`, `?symbols=<huge string>`, unknown keys.
 
 **Why it happens:**
-The text path is whole-buffer and trivial; the file path is "the same code with `file.arrayBuffer()`". `crypto.subtle.digest()` (see Pitfall 8) also *requires* the whole buffer, nudging developers toward the unsafe path.
+Copy-by-analogy from the Hash tool (which has a capped Copy link carrying user text) or from the UUID tool (which has download/CSV export). For passwords both are anti-patterns. URL parsing is written against the happy path.
 
 **How to avoid:**
-- File path is **incremental only**: loop `for (offset; offset < file.size; offset += CHUNK) { const buf = await file.slice(offset, offset + CHUNK).arrayBuffer(); const u8 = new Uint8Array(buf); for (const h of hashers) h.update(u8); }`. `Blob.slice().arrayBuffer()` is universally supported (Safari 14+); `file.stream().getReader()` is also viable (Safari 14.1+) but `slice` is simpler to reason about and to cancel.
-- **Read each chunk once and feed all ~10 hashers** from it (not 10 passes over the file — 10x the I/O and 10x the progress UI).
-- CHUNK ≈ 1–8 MiB (start at 4 MiB; tune by measurement; smaller on mobile). Let each chunk go out of scope before the next read.
-- Unit-test the chunked path with a synthetic `Blob` of generated bytes (jsdom/Node 20+ have `Blob.slice().arrayBuffer()`); property: chunked digest == one-shot digest for random sizes with chunk sizes that don't divide the length, including chunk sizes of 1, 63, 64, 65 (hash block boundaries).
-- Playwright: set a large-ish generated file (e.g. 256 MB via `setInputFiles` with a buffer or a temp file) and assert correct digest + page stays responsive; do **not** assert on 1+ GB in CI.
-- Ship a documented practical limit message rather than crashing: e.g. soft warning above N GB ("large file — this may take several minutes; keep tab open"), never a hard crash.
+- URL carries OPTIONS ONLY: `mode, len, upper, lower, digits, symbols, symset, nolook, words, sep, cap, num, count`. Avoid generic names that a later author might reuse for content (`pw`, `p`, `q`, `text`, `value`).
+- Write with `window.history.replaceState(null, "", url)` (state argument `null`, per the project's raw-History-API decision); read with `new URLSearchParams(window.location.search)` inside the `ssr:false` island. Do NOT use `useSearchParams()` (forces a Suspense/CSR bailout in a static build).
+- Do NOT add any password option to `DEFAULT_ALLOW_LIST`. Add a unit test that `redactBeforeSend` strips `?len=20&symbols=1&symset=%21%40` to the bare path. (Keeping the options out of analytics is the privacy-consistent default.)
+- Parser is hostile-input-safe: clamp every number (`len` 4-128, `count` 1-20, `words` 3-12), whitelist `mode`/`sep` values, cap and sanitise `symset`, ignore unknown keys, never throw. Round-trip property test with fast-check: `parse(serialize(o)) == o` over all options including a symbol set containing `# & % + = ? / \ " ' < >` and non-ASCII.
+- Serializer test + e2e test: after generating and copying, `page.url()` contains no substring of the visible password and `history.state === null`.
+- No `download`/CSV/JSON export, no local-history ("last 5 passwords") and no `localStorage` of generated values. Batch offers per-item copy and Copy-all only.
+- Rows use index+generation-counter keys, never the password as the React `key`. Per-row accessible names are "Copy password 3", never the value. The shared live region announces "Copied" / "New password generated", not the password.
+- Never `console.log` the value; never pass it to Vercel `track()`.
 
 **Warning signs:**
-Any `arrayBuffer()` / `readAsArrayBuffer` call on the full `File`; works on desktop with 50 MB but never tested above 500 MB; iOS manual test = page reload.
+Any `replaceState` call whose URL builder receives the output array; `title={password}`; the 20-char string appearing in the accessibility snapshot; `?len=` appearing in Analytics dashboards.
 
-**Phase to address:** Core (chunked engine as the only file API), UI (progress/cancel/limit message), Ship (large-file e2e).
+**Phase to address:** P11 (parser/serializer + clamping + tests), P12 (DOM/a11y/e2e assertions). The analytics test can land in P11.
 
 ---
 
-### Pitfall 6: Main-thread jank — live-as-you-type and file hashing blocking the UI
+### Pitfall 6: Browser password managers, autofill, translate and clipboard history
 
 **What goes wrong:**
-Pure-JS hashing is 10–50x slower than native; running ten algorithms (SHA-512/SHA3 in JS are the slowest) synchronously on every keystroke is fine for 100 bytes but freezes input for a 5 MB paste, and a file hash on the main thread freezes the entire tab (no progress repaint, no cancel, browsers show "page unresponsive"). Inversely, shipping *everything* via a Worker adds a post-load latency before the default result appears (CLS/flash) and complicates tests.
-
-**Why it happens:**
-"Live" is read as "synchronous on `onChange`". File hashing is written as an async loop, which *looks* non-blocking but each chunk's `update()` still runs on the main thread between awaits.
+- A generated password inside an `<input>` (especially `type="password"`) makes Chrome/Safari/1Password/Bitwarden offer to "save this password" or autofill it into other fields; options inputs (symbol set, separator) get autofill suggestions or are saved to autofill history.
+- Google Translate / browser translation rewrites a passphrase (translating words).
+- Spellcheck underlines passphrase words; Grammarly-style extensions read the field.
+- The clipboard retains the password: Windows clipboard history (Win+V), macOS Universal Clipboard to a nearby iPhone, third-party clipboard managers. A web page cannot mark clipboard content sensitive, and it cannot reliably clear it (writing is only allowed with document focus; reading to verify requires a permission prompt).
+- "Copy all" puts up to 20 passwords on the clipboard in one string.
 
 **How to avoid:**
-- Split by size, measured not guessed: **small text (≤ ~64–256 KB, set the threshold from a benchmark of the slowest algorithm) → synchronous on the main thread with no debounce** (instant, preserves the "live" feel); **larger text and all files → Web Worker** with debounce (~150–250 ms) for large text only.
-- Worker is a *thin shell* around `lib/hash` (messages: `{id, kind:'text'|'file', …}` → `{id, progress}` / `{id, digests}` / `{id, error}`). Keep all logic in `lib/hash` so Vitest tests it without a Worker (jsdom has none).
-- Progress updates throttled (≤ ~10 Hz via time check, not per chunk) to avoid React re-render storms; render progress in a reserved-height slot (no CLS).
-- Cancel = bump sequence id and `worker.terminate()` (+ lazily recreate); terminate is the only way to interrupt a synchronous hash loop inside the worker. Terminate worker on unmount (React 19 StrictMode double-mount in dev creates/terminates twice — verify no leaked workers).
-- Worker construction `new Worker(new URL("./hash.worker.ts", import.meta.url), { type: "module" })` works under Turbopack/webpack, but **dev-works/prod-breaks is a classic failure** — the Playwright suite must run against `next build && next start` (CI already builds; confirm e2e uses the production server, not `next dev`) with at least one file-hash test through the real worker.
-- Do not use `requestIdleCallback`/chunked `setTimeout` main-thread hashing as a substitute — still janky, unsupported on Safari for rIC.
+- Render the password in a non-form element (`<output>`/`<code>`/`<div>`), `translate="no"`, `spellCheck={false}`, and `user-select: all` on the value element so a single click selects the whole string (double-click stops at symbols otherwise). No `<form>` wrapper (avoids "save password" submit heuristics). On any text inputs the tool does have: `autoComplete="off"`, `spellCheck={false}`, plus the vendor opt-outs (`data-1p-ignore`, `data-lpignore="true"`, `data-bwignore`). The project already sets `autoComplete="off"` on every other tool's inputs; add a unit test per input as `HashTool.test.tsx` does.
+- Do not build "auto-clear clipboard after N seconds": it can clobber something the user copied afterwards and is unreliable when the tab loses focus. Instead, state the limitation honestly in the FAQ (clipboard history can keep a copy).
+- Keep the project's established honest-wording convention: the Hash e2e spec forbids absolute claims (`never leaves`, `never stored`, `never sent`, `private`, `100%`, `tracking`). Apply the same banned-phrase test to the password FAQ/worked example: say "generated in your browser with `crypto.getRandomValues`", not "nobody can see it".
+- Reuse the existing copy hook; a Ctrl/Cmd+C shortcut is disabled in batch view (the UUID WR-03 lesson) because there is no visible confirmation target.
 
 **Warning signs:**
-INP regressions in Lighthouse, typing lag with big paste, progress bar never animating during file hash, worker errors only visible in production build, duplicate worker instances in DevTools.
+A password manager "save" prompt in manual testing (1Password + Bitwarden + Chrome built-in); translated words in the output; double-click selecting only part of the password.
 
-**Phase to address:** UI (threshold, worker, cancel), Core (pure, Worker-agnostic API), Ship (prod-build worker e2e + Lighthouse INP/TBT).
+**Phase to address:** P12.
 
 ---
 
-### Pitfall 7: Stale / mixed results (race conditions across text edits, file swaps, mode switches)
+### Pitfall 7: Wordlist bloats the initial bundle, loads wrongly, or is silently replaced
 
 **What goes wrong:**
-Edit text during a large hash → older result arrives later and overwrites newer. Drop file B while file A is still hashing → A's digests labelled with B's filename. Switch from File to Text mode → old file digests flash under new text. Ten results set via ten `setState` calls → briefly rows from different inputs. Copy-all copies half-stale values. Playwright flakes because assertion races worker completion.
-
-**Why it happens:**
-The exact bug class this repo already hit twice (Phase 4 CR-01: race guard wired into only some paths; Phase 5 applied the lesson up front). Worker adds one more async hop.
+- A static `import wordlist from ...` puts roughly 50-60 KB of raw word data (about 25-30 KB gzip; estimate, MEDIUM, measure it) into the initial tool chunk although most visitors only see Password mode, hurting the Lighthouse 90+ / minimal-JS budget.
+- Lazy loading introduced, but: passphrase mode on a bookmarked URL (`?mode=passphrase`) has no list yet and shows an empty/collapsed area (CLS) or throws on Regenerate; the chunk 404s after a deployment (deployment skew with an open tab); the code silently falls back to a tiny built-in list or `Math.random` (entropy now wrong and the meter lies).
+- Entropy computed before the list loads, or from a hard-coded 7776.
+- Licensing: the EFF wordlists are CC BY 3.0 US, which requires attribution (MEDIUM: multiple secondary sources agree; the EFF page itself could not be fetched). Shipping the list without credit is a compliance miss. Modified lists (removing words) are derivatives and should say so.
+- The EFF large list contains a few hyphenated entries (for example `drop-down`, `felt-tip`, `t-shirt`, `yo-yo`; from memory, verify) which look like extra separators when the separator is `-`. Removing them changes the list size; the entropy formula must therefore read the real length.
 
 **How to avoid:**
-- Apply the existing Key Decision verbatim: **every path that supersedes in-flight work (text keystroke, file drop/pick, mode switch, clear/Esc, unmount, URL-load) must bump the sequence token *and* cancel (terminate worker / abort loop)**. List all entry points in the plan and test each one (the project already learned that testing only the "obvious" path is insufficient).
-- Model input as one discriminated state: `source = {kind:'text', value} | {kind:'file', file} | {kind:'none'}` and results as one atomic object `{ id, digests }` set in a single state update; render only if `result.id === currentId`.
-- Tag results with the input identity (file name + size + lastModified, or text length) and show it ("Hashed: report.pdf · 12.4 MB") so a user can see which input the visible digests belong to.
-- Copy buttons read from the displayed result object at click time; disabled/placeholder while `computing` (never copy `—`).
-- Worker messages carry `id`; main thread drops any message whose id ≠ current.
-- e2e: slow-file-then-text, file-A-then-file-B, text-edit-during-large-text, Esc during hashing; use a deliberately slow large generated file to widen the race window deterministically.
+- Choose the EFF large list (7,776 words, about 12.9 bits/word; HIGH) and keep it as ONE joined string in its own module (`lib/password/wordlist.ts`), split once at load, loaded with `await import("@/lib/password/wordlist")` only when passphrase mode is first needed (or idle-prefetched after the first paint). A joined string parses faster than an array literal of 7,776 strings.
+- Skeleton: the passphrase panel has the same pinned height as the loaded state (see Pitfall 13). Loading state disables Regenerate/Copy rather than producing output. Load failure -> inline error with Retry; NEVER fall back to another list or another RNG.
+- Integrity test (Vitest): exactly the expected count, no duplicates, all entries `^[a-z-]+$`, and a pinned SHA-256 of the canonical text (the repo already has `lib/hash`) so an accidental edit fails CI. Entropy reads `words.length`.
+- Add the attribution (list name, EFF, CC BY 3.0 US, link, "unmodified"/"modified") to the About section or the footer of the page.
+- Prod-build e2e (`playwright.prod.config.ts`, the same mechanism as `tests/e2e-prod/hash-worker.spec.ts`): on `/tools/password` in Password mode the wordlist chunk is NOT requested; switching to Passphrase requests it exactly once; no third-party host is contacted. Record the chunk's gzip size in the PR and set a budget.
 
 **Warning signs:**
-Results object built incrementally across multiple setStates; no `id` in worker messages; only one "stale" test written; bug reports of "wrong hash for the file I dropped second".
+`next build` output showing `/tools/password` first-load JS jumping by 25 KB or more; an `import` of the wordlist at the top of `PasswordTool.tsx`; an entropy readout that shows 51.7 bits while the list is still loading.
 
-**Phase to address:** UI (state model + token), Ship (race e2e matrix).
+**Phase to address:** P11 (module, integrity test, entropy from real length), P12 (lazy-load behaviour, error state, prod e2e, attribution).
 
 ---
 
-### Pitfall 8: Web Crypto assumptions (secure context, async-only, no streaming, no MD5/SHA-3/RIPEMD/SHA-224)
+### Pitfall 8: The new disclosure component breaks the existing SEO e2e specs (and CI will not tell you)
 
 **What goes wrong:**
-(a) `crypto.subtle` is **undefined on non-secure origins** (plain `http://192.168.x.x:3000` when testing on a phone from the LAN, or any non-localhost http dev host) → `TypeError: Cannot read properties of undefined (reading 'digest')`. Production is HTTPS so it works in prod and breaks only in dev/device testing. (b) `subtle.digest` is async-only → can't compute inside synchronous render/derive paths; pushes you to effect+state and creates flash-of-empty. (c) `subtle.digest` takes a **whole** buffer (no `update()`), so it can't hash files incrementally. (d) Web Crypto covers only SHA-1/256/384/512 — no MD5, SHA-224, SHA3, RIPEMD-160 (MDN; browser native SHA-3 not available in the standard — treat as absent). (e) Mixing two implementations (native for SHA-2 on small text, JS for the rest/for files) means two code paths that must agree; a divergence (e.g. native given `u8.buffer` ignoring `byteOffset`) shows up only for sliced views.
-
-**Why it happens:**
-"Use the platform" is good advice that's wrong here: the algorithm set and the file streaming requirement force a JS library anyway.
+Moving Worked example and FAQ into closed-by-default sections makes their content non-visible. Existing specs assert VISIBILITY and a specific DOM shape:
+- `tests/e2e/uuid-seo.spec.ts` (lines ~45-51, 73-80), `subnet-seo.spec.ts` (lines ~40-45, 67-79), `dns-seo.spec.ts` (lines ~42-53, 85-91) call `toBeVisible()` on FAQ questions and worked-example children. Playwright treats content in a closed `<details>` as hidden, so these fail.
+- `hash-seo.spec.ts` reads `faqItems.nth(i).locator("p")` and expects paragraph 0 = question, paragraph 1 = answer; `dns-seo.spec.ts` uses `node.querySelector("p")?.textContent`. If the question becomes a `<summary>` (or `<h3>`), these index/selector assumptions break.
+- `hash-seo.spec.ts` "does not overflow at 320px" calls `toBeVisible()` then measures `scrollWidth`; a closed section has no layout box.
+- `toHaveCount(1)` on `script[type="application/ld+json"]` (hash/uuid specs): adding a second JSON-LD block (for example `WebApplication`) for any tool breaks it.
+- The Playwright CI job was REMOVED on 2026-10-17 (see PROJECT.md Key Decisions), so none of this turns a PR red. It surfaces only if someone runs `npm run test:e2e` locally.
 
 **How to avoid:**
-- **Single implementation: one zero-dependency JS library for all algorithms (project's chosen direction: noble-style, Uint8Array in/out, incremental `create().update().digest()`), used for both text and file.** Rationale: sync, no secure-context dependency, incremental, Worker-safe, one code path. Do not add `crypto.subtle` as a speed optimization in v1.2 (two paths, async, can't stream); revisit only if measured file-hash throughput is unacceptable, and then behind a cross-check property test (native vs JS on random bytes).
-- If `subtle` is ever used: feature-detect `globalThis.crypto?.subtle`, pass an exact-length `Uint8Array` (copy the slice if `byteOffset ≠ 0`), and fall back to the JS path.
-- If the chosen library is noble-hashes **v2** (verified latest 2.4.0, ESM-only, zero deps): import paths are `@noble/hashes/sha2.js`, `/sha3.js`, `/legacy.js` (MD5, SHA-1, RIPEMD-160 live in `legacy.js`) — the `.js` suffix is required and v1-era paths (`/sha256`, `/ripemd160`) from tutorials/LLM snippets **do not exist**. `tsconfig` uses `moduleResolution: "bundler"` (OK). Confirm in the Core phase's first task with a throwaway import test.
-- Noble-specific gotchas: `digest()` **destroys** the hasher (calling twice throws) — create a fresh instance per run or use `clone()` for snapshots; `update()` rejects non-`Uint8Array` (convert ArrayBuffers: `new Uint8Array(buf)`); `legacy.js` exports are named "legacy" on purpose — good hook for the security messaging (Pitfall 12).
+- Decide the DOM contract once, in the shared component, and keep it stable: `<details data-testid="{slug}-worked-example">` / `<details data-testid="{slug}-faq">`; one `data-testid="{slug}-faq-item"` per Q/A; question in a fixed element, answer in a `<p>`. Update the four spec files in the SAME phase and give them a shared helper `openAbout(page, "faq" | "worked-example")` that clicks the summary and asserts `[open]`.
+- Content/JSON-LD equality tests must NOT depend on open state: use `textContent()`/`toBeAttached()`/`toHaveText()` (these work on closed `<details>`); use `toBeVisible()` only after the helper opens it.
+- Add NEW assertions: both sections exist, are closed by default (`details` has no `open` attribute), and their content is still in the server HTML (fetch via `request.get()` and check the text is present, which is the actual SEO guarantee).
+- Make the guarantee run in CI without Playwright: a Vitest + Testing Library test of the shared component (renders N items into DOM, no `open`, JSON-LD built from the same items). Vitest IS in the CI gate.
+- Make "run `npm run test:e2e` and `npm run test:e2e:prod` locally" an explicit pre-merge checklist item for P10, P12 and P13 verification (the v1.2 retrospective already flags this).
+- Also update the hard-coded counts: `tools/registry.test.ts` (length 6, slug list, sorted order, status map), `tests/e2e/home.spec.ts` (6 cards), `tests/e2e/navigation.spec.ts` (6 drawer links, "six nav links at 640px"), `app/sitemap.test.ts`.
 
 **Warning signs:**
-`crypto.subtle` in code review; `import … from "@noble/hashes/sha256"` (v1 path); `Hash instance has been destroyed` errors on second render; app works on desktop https but throws on phone over LAN http.
+Green PR, red local e2e; `toBeVisible` timeouts on FAQ text; a test that "passes" only because it was loosened to `toBeAttached` everywhere (then add the opened-state assertion back).
 
-**Phase to address:** Core (library choice + import verification + single-path rule), UI (never call digest twice on the same instance).
+**Phase to address:** P10 (component + spec rewrite); P12 (new-tool count updates).
 
 ---
 
-### Pitfall 9: Secrets in the URL — "bookmarkable text state" for a tool people paste passwords into
+### Pitfall 9: Wrong disclosure implementation (Radix/JS accordion) removes content from the HTML
 
 **What goes wrong:**
-People paste passwords, API keys, tokens, and PII into hash tools to hash them. Writing the input into `?text=` (the Subnet/DNS `replaceState` pattern) leaks it to: browser history and **cross-device history sync**, bookmarks, shared screenshots/links, the `Referer` of any outbound link click (mitigated by `Referrer-Policy` default but verify), screen-share, and — critically — **Vercel request logs** (the query string reaches the CDN/edge on page load even for a static route). **Analytics redaction does not cover these**: `redactBeforeSend` only protects what `@vercel/analytics` sends. Specific integration bug in this repo: `redactBeforeSend` does `event.url.split("?")` and, if there is no `?`, **returns the event untouched** — so any state placed in the URL **fragment** (`/tools/hash#text=hunter2`) bypasses the redaction entirely if Vercel Analytics includes the hash in `event.url` (LOW confidence whether it does; treat as "must test" and fix defensively). Also a `?` inside the fragment or an `&` in the value can confuse the naive split.
-
-**Why it happens:**
-The brief/milestone lists "bookmarkable text state" as a feature; the pattern is already established and cheap; the risk is specific to hash tools (users hash secrets).
+Using a client accordion (shadcn/Radix `Accordion`/`Collapsible`) unmounts closed content (Radix `Presence`), so the Worked example/FAQ text is NOT in the server HTML, undermining the whole "content stays in the HTML for SEO/JSON-LD" requirement and the JSON-LD/visible-content match. It also turns six server-rendered pages into client islands (extra JS on pages where the milestone goal is less JS). Controlled `open={false}` on a native `<details>` in a re-rendering client component force-closes a section the user opened.
 
 **How to avoid:**
-- **Default: do NOT auto-write input to the URL.** Satisfy "bookmarkable" via an explicit, user-initiated **"Copy link to this input"** action (writes `?text=` or `#` only at that moment) or an opt-in "Remember in URL" toggle that defaults OFF. Flag this to the roadmapper/user as a requirement refinement — it deviates from the Subnet/DNS auto-sync pattern deliberately.
-- Cap URL payload (e.g. ≤ ~1–2 KB encoded; above that, no link offered with a "too long to share" note). Never put *file* contents/names in the URL.
-- Reading `?text=` on load is fine (static page reads `window.location.search`, not `searchParams`, per existing pattern) — but then immediately `replaceState` to strip it (so a later bookmark/copy of the address bar from a shared link doesn't re-share it)? Decide in planning; at minimum do not re-emit it.
-- Do **not** add `text` (or `input`, `data`, `v`) to `DEFAULT_ALLOW_LIST` — keep the safe-by-default allow-list, and add a unit test to `redact.test.ts` asserting `?text=` is stripped. Extend `redactBeforeSend` to also drop the fragment (`event.url.split(/[?#]/)[0]` + allow-listed params) and unit-test URLs with `#…`, `?a=b#c`, and a `?` inside the fragment.
-- Prefer a fragment over a query for share links if a link feature ships (fragment is never sent to the server → keeps it out of Vercel logs) — but only after the analytics fix + test above.
-- Add the page to privacy disclosure language: "Nothing you type is sent anywhere" must be **true** — see Pitfall 11. (Legal/privacy text change requires human approval per project automation model.)
+- Use native `<details>/<summary>` in a SERVER component (`components/ToolAbout.tsx`), no `open` prop, no client state, zero JS. (`components/ui` currently contains no accordion/collapsible; do not add one for this.)
+- One shared component takes `{ slug, workedExample: ReactNode, faqItems }` and renders BOTH the FAQ and its `<script type="application/ld+json">` from the same `faqItems` (no per-page copy of the JSON-LD builder; today UUID/Subnet/DNS/MAC/Hash each duplicate it). This makes drift structurally impossible (see Pitfall 10).
+- Two top-level disclosures (Worked example, FAQ); do not nest a `<details>` per question (more clicks, harder to test, no benefit).
+- Do not animate height with JS; no `max-height` transitions.
 
 **Warning signs:**
-`window.history.replaceState` on every keystroke in the hash tool; `text` appears in a Vercel Analytics URL; a grep of the allow-list shows a hash-tool param; fragment state with unmodified `redactBeforeSend`.
+`"use client"` at the top of the About component; closed content missing from `curl` output; the `open` prop appearing in JSX.
 
-**Phase to address:** UI (share-link design), Ship (analytics fix, redact tests, privacy review). **Needs a user/roadmap decision before UI planning.**
+**Phase to address:** P10.
 
 ---
 
-### Pitfall 10: "Fully local" claim silently violated (input or filename leaks via telemetry, errors, logs)
+### Pitfall 10: JSON-LD / visible FAQ drift and over-promising SEO
 
 **What goes wrong:**
-The trust proposition of a hash tool is "nothing is uploaded". It gets broken accidentally by: custom analytics events carrying algorithm/inputs/filenames/sizes; an error boundary/reporter that attaches state; `console.log` of input during debugging committed to prod; a third-party font/CDN/script added for the new page (violates the "no third-party requests" NFR); `next/link` prefetch irrelevant but a library that lazy-fetches a WASM blob from a CDN; sample "Try it" links.
+- Visible FAQ gains markup (links, `<code>`, entities, line breaks) while JSON-LD stays plain text, or vice versa; the existing equality e2e tests compare `textContent` to the JSON-LD `text` exactly.
+- Hard-coded numbers in prose go stale: "20 characters is about 131 bits" in a password FAQ, or "7,776 words", when the defaults/list change.
+- Config page gets a FAQ but no JSON-LD (it has neither today: `app/tools/config/page.tsx` has no `faq-data.ts`, no worked example).
+- Expecting a rich-result payoff: Google's FAQ rich-result documentation limits it to well-known government/health sites (HIGH, official docs), and some third-party reports claim FAQ rich results were removed for all sites in May 2026 (LOW, could not be confirmed against Google's own docs). Either way the JSON-LD gives packetory.dev no SERP accordion. Keep it for consistency and machine readability, but do not spend extra effort or write FAQ copy for rich results.
+- Collapsed content and ranking: Google's stated position (2016, reiterated 2020; MEDIUM, nothing newer found) is that content hidden for UX in accordions/tabs is indexed with full weight under mobile-first indexing, provided it is in the DOM. Native `<details>` content is in the DOM, so this is fine; no workaround needed. Do not hide content deceptively.
 
 **How to avoid:**
-- Hash island makes **zero network requests while hashing** — enforce with a Playwright test: `page.on('request')` collected after page load; type text, drop a file; assert no new requests (other than the already-known analytics pageview beacon) and none containing the input/filename.
-- No custom analytics events from this tool (or only with a fixed, non-input enum such as "tool used").
-- Lint/grep gate in CI or review checklist: no `console.log` in `lib/hash`/`app/tools/hash`; no `fetch`/`XMLHttpRequest`/`navigator.sendBeacon` in `lib/hash`.
-- Self-contained bundle: no WASM/worker assets from a CDN (if a WASM lib is ever picked, it must be bundled and served same-origin).
-- Pre-ship: manual DevTools Network tab check on a production preview.
+- FAQ answers stay PLAIN STRINGS in `faq-data.ts` (rendered as text, no inline markup) so the equality contract holds. If rich answers are wanted later, add a separate plain-text field for JSON-LD.
+- Derive numbers from code, not prose: `faq-data.ts` for the password tool imports `DEFAULT_OPTIONS`, `entropyBits()`, and `WORDLIST_SIZE` and interpolates them; a Vitest test pins the rendered strings.
+- Keep exactly ONE JSON-LD `<script>` per page (existing tests count 1). Escape `<` as `<` as the existing pages do (keep it in the shared component).
+- Add `app/tools/config/faq-data.ts` + a `config-seo.spec.ts` mirroring `hash-seo.spec.ts`.
+- Config's worked example must use obviously fake data (RFC 5737 documentation addresses such as `192.0.2.0/24`, placeholder hostnames, no realistic `enable secret`/`snmp-server community` values), because it is a tool people paste real device configs into and repo/secret scanners flag realistic secrets.
 
 **Warning signs:**
-New dependency pulls `fetch`; analytics `track()` call in the tool; network panel shows requests on keystroke.
+`textContent` mismatch in the equality test; JSON-LD count of 2; numbers in FAQ prose that no code produces.
 
-**Phase to address:** UI (no events), Ship (network-silence e2e + review).
+**Phase to address:** P10 (shared component, Config parity), P12 (password FAQ derived from constants).
 
 ---
 
-### Pitfall 11: Misleading users into hashing passwords with MD5/SHA-1 (security messaging)
+### Pitfall 11: The global `Enter` shortcut fires when a `<summary>` is activated
 
 **What goes wrong:**
-Putting MD5/SHA-1/CRC32 next to SHA-256 as equal-looking "hashes" with copy buttons implicitly endorses them, and the dominant misuse of hash sites is people generating unsalted fast hashes for passwords/signatures. Over-correcting is also a failure: modal warnings/interstitials (banned by project UX rules), scary red banners on every row, or claims like "secure" that overstate (SHA-256 of a password is *also* wrong for password storage).
+`lib/hooks/useKeyboardShortcut.ts` guards the global Enter handler with `target.closest('button, [role="button"], [role="radio"], a[href]')`. A focused `<summary>` is none of these. Pressing Enter on a focused "FAQ" summary toggles the disclosure AND triggers the tool's global `enter` handler: UUID regenerates, the password regenerates, Subnet/DNS blur or re-run. For a password tool, the value changes while the user is reading the FAQ.
 
 **How to avoid:**
-- Per-row subtle labels: MD5 / SHA-1 / RIPEMD-160 / CRC32 get a "legacy — not collision-resistant" or (CRC32) "checksum, not cryptographic" text badge (not color-only; accessible text), tooltip/`aria-describedby` detail.
-- One persistent, low-key line under the results (not modal, not dismiss-required): "Fast hashes are for checksums and integrity — never store passwords with them. Use Argon2id, scrypt or bcrypt." Dedicated FAQ item with the same message (SEO + disclosure). Wording must avoid legal-style claims (legal text needs human approval).
-- Don't sort/bold legacy algorithms to the top; keep one fixed, documented order (e.g., SHA-2 family first, then SHA-3, then legacy) — also avoids CLS from reordering.
-- No "HMAC"/"salt"/"password" features in this milestone (anti-feature) — out of scope, and implies password use.
+- Add `summary` (and `details`) to the interactive-target selector in `isInteractiveTarget`, with a unit test in `useKeyboardShortcut.test.ts`. Fix it in P10 (it affects all existing tools as soon as `<summary>` elements exist on every page).
+- Check the other new controls against the same guard: Radix `Switch` renders a `button` (covered); native `<input type="checkbox">` is not covered (Enter does not activate a checkbox, so Enter would regenerate, which is acceptable but decide it deliberately); a number input for length/count is an editable target (Enter there should regenerate, as with UUID's count field).
+- e2e: focus a summary, press Enter, assert it opened AND the displayed value is unchanged.
 
 **Warning signs:**
-Row list with identical styling for MD5 and SHA-256; a modal/toast warning; copy of "secure hashing" in meta description.
+Password/UUID changing when the FAQ is toggled by keyboard.
 
-**Phase to address:** UI (badges + footer note), Ship (FAQ/meta copy review).
+**Phase to address:** P10.
+
+---
+
+### Pitfall 12: Disclosure a11y regressions (marker, focus, headings)
+
+**What goes wrong:**
+`list-none` on `<summary>` hides the marker in Chrome/Firefox but Safari still shows `::-webkit-details-marker`; a custom chevron is added without `aria-hidden`; `outline-none` removes the focus ring so keyboard users cannot see where they are (the project is "keyboard-first"); putting an `<h2>` inside `<summary>` flattens heading semantics in some screen readers, while removing the heading loses the page outline; the summary's touch target is smaller than 44 px (the codebase uses `h-11 min-w-11` for controls).
+
+**How to avoid:**
+- Style once in the shared component: `list-none [&::-webkit-details-marker]:hidden`, a lucide `ChevronRight` with `aria-hidden` rotated by `group-open:rotate-90` (Tailwind 4 `open:`/`group-open:` variants), `focus-visible:ring-[3px] focus-visible:ring-ring/50` as on other controls, `min-h-11` on the summary, `cursor-pointer`.
+- Keep an `<h2>` ("About this tool") above the two disclosures for the outline, and let the summaries be plain text. Manually test with VoiceOver (macOS) and NVDA if available: summary announced as "button, collapsed/expanded".
+- Do not rely on browser find-in-page auto-expanding closed `<details>` (behaviour differs between browsers; MEDIUM). If deep links to the FAQ matter, add an explicit `id` and a tiny client effect that opens the matching `<details>` for `location.hash`; otherwise accept that anchors do not open it.
+- Contrast: the "muted" About area must still meet WCAG AA (4.5:1) in BOTH light and dark themes; check `text-muted-foreground` on the muted background.
+
+**Warning signs:**
+Double chevrons in Safari; tabbing to a summary shows nothing; muted text failing Lighthouse contrast.
+
+**Phase to address:** P10.
+
+---
+
+### Pitfall 13: CLS from the new layout (island swap, pinned heights, platform differences)
+
+**What goes wrong:**
+- User-initiated `<details>` toggles are excluded from CLS (they follow input), so toggling is not the CLS risk. The real risk is the island-vs-skeleton height gap: every loader pins a skeleton height (`SubnetToolLoader` 420 px, `ConfigToolLoader` 520 px, `HashToolLoader` 2240/1612 px). When the tool's real height changes (Subnet compaction, new Password layout), a stale pin makes everything beneath (now the About section and footer) jump when the island paints.
+- The Password tool's height depends on mode (password vs passphrase options), batch count, and wrapping of the displayed value at 320 px.
+- The v1.2 lesson repeats: a height measured on macOS can differ on Linux Chromium because of glyph-advance rounding; v1.2 fixed it with `text-rendering: geometricPrecision` on monospace output.
+
+**How to avoid:**
+- New `PasswordToolLoader` skeleton pinned from a MEASURED island height at 320 px and at >= `sm`, rounded up to a multiple of 4, with a `password-layout.spec.ts` cloned from `hash-layout.spec.ts` (reads the pins from the loader source; island vs pin within 4 px; CLS observer < 0.01).
+- Make the options panel the same height for Password and Passphrase modes (reserve the taller one) so `?mode=passphrase` on first load does not shift; the default state (count = 1) is what is pinned, and batch growth is user-initiated.
+- Apply `font-variant-ligatures: none` plus `text-rendering: geometricPrecision` to the password output (also prevents a ligature turning `!=`, `->`, `<=`, `==` into a single glyph: verify whether Geist Mono's contextual alternates affect these; MEDIUM) and use a monospace face with a clearly slashed/dotted zero so `0/O` and `l/1/I` are distinguishable.
+- Extend the layout-spec pattern to Subnet and Config (neither has one) as part of the change that touches their heights.
+- Run the layout specs on Linux (the `mcr.microsoft.com/playwright:v1.61.1-noble` image the v1.2 retro used) once before merge, and push the branch early so Linux CI (typecheck/lint/test/build) runs from day one.
+- Run Lighthouse (mobile + desktop) on the preview deployment for `/tools/password` and `/tools/subnet` (v1.2 left `/tools/hash` unmeasured, so this is a known gap); target 90+ in every category.
+
+**Warning signs:**
+`h-[Npx]` constants not recently touched after a layout change; CLS > 0.01 in the observer; the footer moving when the tool appears.
+
+**Phase to address:** P12 (Password pins + spec), P13 (Subnet pins + new spec), P10 (verify nothing moved when the About section was relocated).
+
+---
+
+### Pitfall 14: Subnet compaction "fits" only on the wrong viewport, and regresses mobile
+
+**What goes wrong:**
+- "Fits 1366x768" is read as `viewport = 1366x768`, but the real inner viewport on a 1366x768 laptop is roughly 1366 x 630-680 after browser chrome and the OS taskbar, and at Windows 125%/150% display scaling it is closer to 1093 x 500 or 911 x 410 CSS px. Passing at an idealised 768 px high viewport still scrolls on real devices.
+- Before the tool even starts, the page spends about 190 px on chrome: sticky header (~64 px), `py-12` main padding (48 px), the 32 px `h1` plus `mt-8` gap. Compacting the field grid alone cannot reach the goal.
+- The IPv6 result has more rows than IPv4 (compressed + expanded, first/last, count, reverse zone, subdivision buttons); the "fit" claim is silently only true for the IPv4 default.
+- Compaction by removing information or hiding the binary/mask rows behind toggles violates the "zero-effort, full output" core value.
+- Compaction by shrinking controls below target size or text below the project's type scale (14/16/20/32 px) hurts a11y and the "one-click copy everywhere" rule; per-field copy buttons are `h-11 min-w-11` today.
+- A denser multi-column grid (for example 3-4 columns at `lg`) overflows narrow columns: IPv6 expanded address (39 chars) and the binary mask (35 chars) need `min-w-0` + `break-all`; at 320-375 px the grid must collapse to 1-2 columns. Existing e2e covers 320 px wrapping; layout changes can break it silently.
+- Using `vh` units to force a fit (for example `max-h-[calc(100vh-...)]`) breaks on mobile Safari's dynamic toolbar (use `dvh` if at all, but prefer not to depend on viewport height).
+- Changing DOM order to achieve a visual grid (CSS `order`) changes tab/reading order.
+
+**How to avoid:**
+- Write the acceptance test precisely: Playwright viewports `1366x650` (primary) and `1280x600` (stress), asserting that, for the default IPv4 CIDR on load, the bottom of the last output row (`getBoundingClientRect().bottom`) is <= `window.innerHeight` with `scrollY === 0`, header included. Add a separate documented target for IPv6 (state what is expected: for example "everything except the subdivision row" or a second, longer target), rather than leaving it implicit.
+- Reduce page chrome on this route (smaller top padding, tighter h1 spacing, or a one-line tool title) as part of the plan, not only the grid. Keep the DOM order = reading order.
+- Compact via density, not removal: 2-column to 3-4 column grid at `lg`, tighter label/value stacking, smaller gaps; no new font sizes; keep all copy controls with >= 24 px targets minimum (WCAG 2.2 AA 2.5.8) and keep 44 px where the page already uses it, or enlarge the hit area with padding/pseudo-elements rather than the visible box.
+- Re-run the existing Subnet e2e and unit suites unchanged (testids are the contract; do not rename `subnet-ipv4-grid`, `subnet-ipv6-grid`, `subnet-hero`, `subnet-copy-*`). Manually check 320, 375, 768, 1024, 1366 widths in light and dark, with a long IPv6 /48 value and an invalid-input message showing.
+- Re-measure and re-pin `SubnetToolLoader`'s skeleton (currently 420 px) per breakpoint; add `subnet-layout.spec.ts` (Pitfall 13).
+- Do this phase after P10 so the About section relocation is already settled.
+
+**Warning signs:**
+Horizontal scrollbar at 320 px; clipped IPv6 text; scrollbar visible at 1366x650; the Subnet skeleton visibly jumping.
+
+**Phase to address:** P13.
 
 ---
 
 ## Moderate Pitfalls
 
-### Pitfall 12: Bundle size / Lighthouse regression
+### Pitfall 15: Seventh tool overflows the nav and breaks hard-coded counts
 
-**What goes wrong:** Importing the whole library (`import * as noble`) or each algorithm from a barrel pulls unused code; importing the library in **both** the main island chunk and the Worker duplicates it; adding a polyfill or a heavy file-drop dependency (`react-dropzone` ~ unnecessary) bloats a tool whose pages target 90+ Lighthouse. Hash code leaking into the shared layout/landing bundle (e.g. by importing from `lib/hash` in `tools/registry.ts` for an example hash) penalizes every page.
-**Prevention:**
-- Per-module deep imports only; no `export *` barrel in `lib/hash/index.ts` that the island imports wholesale (or ensure it's tree-shake-clean — verify).
-- Island loaded via the existing `next/dynamic(..., {ssr:false})` Loader pattern; registry and SEO page must not import hash algorithm code (the worked-example digests can be hard-coded constants or computed at build time in a Server Component, which adds zero client JS).
-- Hand-roll drag-and-drop (≈30 lines + `<input type="file">`), no dropzone dependency.
-- Record `next build` route JS size for `/tools/hash` vs `/tools/mac` baseline in the phase; budget it (suggest: island + libs ≲ 40–60 KB gzip, worker separate and not on the critical path — LOW confidence on numbers, set from measurement). Lighthouse run on the production preview for `/tools/hash` and for `/` (landing must not regress).
-**Warning signs:** `/` first-load JS grew after the milestone; two copies of `sha512` in the build analyzer output.
-**Phase to address:** Core (deep imports), UI (loader split), Ship (size/Lighthouse gate).
+**What goes wrong:**
+`tests/e2e/navigation.spec.ts` asserts that six nav links fit at 640 px without horizontal overflow (a v1.2 decision, "research A5"); `SiteHeader` shows the inline nav from `sm` (640 px) up. A seventh link ("Password") may wrap or overflow at 640-700 px. Landing page grid goes from 6 to 7 cards (orphan card in a 2/3-column grid).
 
-### Pitfall 13: Hydration mismatch and CLS when results appear
+**Prevention:** Test the header at 640 and 700 px with seven links BEFORE writing the tool; if it does not fit, either raise the inline-nav breakpoint (`sm` -> `md`) in `SiteHeader`/`MobileNav` or shorten `shortName`. Update the hard-coded 6s in `tools/registry.test.ts`, `home.spec.ts`, `navigation.spec.ts` and `sitemap.test.ts`. Registry: `slug: "password"`, `category: "generate"`, `clientOnly: true`, `featured: false` (do not change the featured pair casually; `getSortedTools` ordering is asserted).
+**Phase to address:** P12.
 
-**What goes wrong:** Default result computed during SSR vs client (they'd match for a constant sample, but a `?text=`/localStorage-derived initial state wouldn't) → hydration error. Skeleton shorter than the real 10-row grid → layout shift when island mounts. Results rows of unequal wrapped height (SHA-512/SHA3-512 = 128 hex chars wrapping at 320px; CRC32 = 8) jump when switching placeholder → value. Drag-over overlay or progress bar inserted into flow pushes the grid down. Copy-confirmation text changing button width.
-**Prevention:**
-- Keep the established Server-shell + `ssr:false` client-island pattern; read `window.location.search` inside the island only (never `searchParams` in `page.tsx` — it opts the page out of static rendering).
-- Skeleton with fixed `min-height` equal to the measured 10-row grid at both mobile (320px) and desktop; all 10 rows always rendered (placeholders when computing) in a fixed order; `font-mono break-all` for digests; reserved-height slots for the byte-count line, newline hint, progress bar, and error message; drag-over state as a border/ring/outline (no layout properties) and an absolutely-positioned overlay.
-- Copy confirmation via fixed-width icon swap (reuse `useCopyToClipboard` as other tools do).
-- "Default result on load" (UX non-negotiable): prefill a sample (e.g. `hello world`) so all rows show immediately after mount; consider server-rendering the *sample's* digests (constant, computed at build in a Server Component) inside the page's worked-example section for SEO — never inside the island.
-- Verify with the existing 320px check and Lighthouse CLS = 0 on production preview.
-**Warning signs:** React hydration warning in console; Lighthouse CLS > 0; rows jumping when typing the first character.
-**Phase to address:** UI, Ship (Lighthouse verification).
+### Pitfall 16: New icon string silently renders the UUID icon
 
-### Pitfall 14: Keyboard model collisions with a multi-line `<textarea>` (first such tool)
+**What goes wrong:**
+`components/ToolCard.tsx` resolves `tool.icon` through an `ICONS` map and falls back to `Fingerprint` when the key is missing. A registry entry with an icon name that is not in the map (Password and the new distinct Config icon) silently shows the fingerprint, and the unit test for the registry does not fail. Replacing the map with `import * as Icons from "lucide-react"` would pull the whole icon set into the landing bundle.
+**Prevention:** Add each new icon to the explicit named-import map (for example `KeyRound` for Password and a config-appropriate icon such as `FileCode`/`ScrollText` for Config; check that the lucide version exports them), keep named imports for tree-shaking, and add a `registry.test.ts`/`ToolCard.test.tsx` assertion that every registered icon exists in the map and that all icons are unique across tools (this also guards the Network-reused-by-Subnet-and-Config issue).
+**Phase to address:** P10 (Config icon), P12 (Password icon).
 
-**What goes wrong:** Subnet/DNS/MAC use single-line inputs; `useKeyboardShortcut` was designed around that. In a `<textarea>`: **`Enter` must insert a newline** (which changes the hash), but the hook's `enter` handler fires for any non-button target (textarea included, per `isInteractiveTarget`) — wiring `enter` to "recompute/blur" makes Enter blur the field or double-fire. `Esc` clearing the textarea can destroy a long pasted input with no undo. The `/` shortcut correctly ignores editable targets. `Ctrl/Cmd+C` copy-primary-result is ignored in editable targets (fine — native copy keeps working), but then the default state (focus in textarea) has no keyboard route to "copy SHA-256", and selecting digest text with the mouse then pressing Cmd+C must still copy the selection.
-**Prevention:** Do **not** register `enter` for the hash tool (live hashing needs no execute action); make `Esc` clear only when it's cheap to reverse (store previous value for one-step restore, or clear only when text is empty → blur) — decide in planning; offer explicit shortcut/button for "copy primary hash" that works while the textarea is focused (e.g., `Ctrl/Cmd+Shift+C`, documented), and "copy all"; add unit tests to the tool for Enter-in-textarea inserting a newline and not copying/blurring; Playwright keyboard flow: `/` → type → Tab through rows → Enter on copy button copies once.
-**Warning signs:** Enter in textarea blurs; double clipboard writes; Esc loses input without recovery.
-**Phase to address:** UI.
+### Pitfall 17: Strength meter / crack-time presentation
 
-### Pitfall 15: Drag-and-drop & file-input edge cases
+**What goes wrong:**
+Absurd or false-precision numbers ("4.3 septillion years"), an unstated guess-rate assumption, float overflow/`Infinity` for long lengths (`2^bits` exceeds float64 range around 1024 bits; length 128 with a 94-char pool is ~839 bits, close enough to matter if lengths are raised later), "Weak" labels for deliberately short user choices, colour-only meter, announcement spam on every regenerate.
+**Prevention:** Compute in log space (`log10(seconds) = bits*log10(2) - log10(rate)`), cap display at "more than a billion years"/"centuries+". State ONE labelled assumption (for example "offline attack, 10^10 guesses/second against a fast hash"; average case is half the keyspace, so subtract 1 bit). Do not claim "uncrackable". Define thresholds in bits in one constant with the rationale in a comment. Use `role="meter"`/`<meter>` with `aria-valuenow` and a text label so colour is not the only signal; update the live region only when the LABEL changes, not on every Regenerate (entropy only depends on options, not on the output). Pin the label container width/height to avoid text-length layout shift. Never use zxcvbn (decided: too heavy; and it scores generated passwords wrongly).
+**Phase to address:** P11 (math), P12 (presentation).
 
-**What goes wrong:** (a) Missing `preventDefault` on `dragover`/`drop` → the browser navigates away to open the dropped file, discarding state; (b) `dragenter/dragleave` flicker from child elements; (c) drag-only UI with no keyboard/mobile path (iOS has no drag-and-drop); (d) dropping a folder yields a zero-size/unreadable "file" and a confusing `NotFoundError`; (e) multiple files dropped — unspecified behavior; (f) 0-byte file (valid: SHA-256 `e3b0c442…b855`) treated as "no file"; (g) file modified/removed or cloud placeholder (iCloud/OneDrive) fails mid-read with `NotReadableError`; (h) `accept` attribute on input restricting types needlessly; (i) selecting the same file twice doesn't re-trigger `change` (input value not reset).
-**Prevention:** Real `<input type="file">` + visible `<label>`/button (keyboard + mobile primary path), drop zone as enhancement; `preventDefault` on `dragover`+`drop` for the zone and (defensively) window-level to stop accidental navigation; use `dragenter/leave` counter or `pointer-events-none` on children; take first file only and state it; treat `size === 0 && type === ""` carefully (show "0 bytes" hashes for genuine empty files; show "folders aren't supported" on read error); catch read errors into a visible, non-modal error state with retry; reset `input.value=""` after selection; no `accept`. e2e via Playwright `setInputFiles` (works with hidden input) for picker path and a synthetic `DataTransfer` drop test.
-**Phase to address:** UI, Ship (e2e).
+### Pitfall 18: Keyboard model conflicts for the new tool
 
-### Pitfall 16: Test vectors incomplete or self-referential
+**What goes wrong:**
+`/` should focus the length input, `Enter` regenerate, `Esc` reset, Ctrl/Cmd+C copy; but a global Enter also fires from options inputs (number fields), Esc "reset to defaults" regenerates and clobbers a password the user was about to copy, and the Copy shortcut targets a value with no visible confirmation in batch view.
+**Prevention:** Reuse `useKeyboardShortcut` unchanged apart from the Pitfall 11 fix. Decide semantics explicitly: Esc resets OPTIONS to defaults and regenerates (document it, show it in a shortcut hint); Ctrl/Cmd+C copies the first password only when `count === 1` (as `UuidTool.tsx` does); `/` does not fire while focus is in an editable field (already guaranteed by the hook). Per-item copy buttons have unique accessible names.
+**Phase to address:** P12.
 
-**What goes wrong:** Vectors generated by running the implementation (tautology), only `"abc"`/`""` tested (misses padding-boundary bugs), no multi-block or long-input test, no chunked-equals-oneshot test, SHA3 sponge-rate boundaries untested, RIPEMD-160 variant confusion (RIPEMD-160 vs RIPEMD-128/256/320 vs Bitcoin double-hash), library upgrades silently change nothing because tests are tautological.
-**Prevention (concrete vector set to require in Core):**
-- **MD5 (RFC 1321 §A.5 7-vector suite)**: `""`→`d41d8cd98f00b204e9800998ecf8427e`, `"a"`, `"abc"`→`900150983cd24fb0d6963f7d28e17f72`, `"message digest"`, alphabet, alnum, 80-digit string.
-- **SHA-1 / SHA-224 / SHA-256 / SHA-384 / SHA-512 (FIPS 180-4 examples / NIST CAVP)**: `""`, `"abc"` (SHA-1 `a9993e36…d89d`; SHA-256 `ba7816bf…15ad`), the 448-bit `"abcdbcdecdef…nopq"` two-block message, 896-bit message for SHA-384/512, and the **one-million `a`** vector (also the long-input/chunking test).
-- **SHA3-256/512 (FIPS 202 examples / CAVP ShortMsg)**: `""`, `"abc"`, plus inputs of rate−1, rate, rate+1 bytes (rate 136 for SHA3-256, 72 for SHA3-512). Add the Keccak negative test (Pitfall 3).
-- **RIPEMD-160 (Bosselaers reference vectors)**: `""`→`9c1185a5c5e9fc54612808977ee8f548b2258d31`, `"abc"`→`8eb208f7e05d987a9b044a8e98c6b087f15a0bfc`, `"message digest"`, alphabet, the 8×"1234567890" vector, million `a`.
-- **CRC32** per Pitfall 4 (and *not* RFC 3720 unless CRC32C is a separate algorithm).
-- **Padding-boundary lengths** 0,1,55,56,57,63,64,65,111,112,113,119,120,127,128,129 bytes for MD5/SHA-1/SHA-2/RIPEMD; compare against Node `crypto.createHash` as an independent oracle with `fast-check` random bytes (project already has `fast-check` + `@fast-check/vitest`). Caveat: Node/OpenSSL 3 may not expose `ripemd160` (it moved between OpenSSL providers) — guard with `try/catch` and fall back to the published vectors (MEDIUM confidence; check CI's Node version).
-- **Chunk-split property:** for random data and random split points, incremental == one-shot, per algorithm.
-- Mix of Uint8Array views with non-zero `byteOffset` (subarray) to catch buffer-vs-view bugs.
-- Playwright smoke: type `abc`, assert the 10 rows equal the pinned vector table (one e2e, not 10).
-**Phase to address:** Core (blocking acceptance criterion: "all vectors green before UI work starts"), Ship (e2e smoke).
+### Pitfall 19: Custom symbol set edge cases
 
-### Pitfall 17: Output-format inconsistencies
+**What goes wrong:**
+User pastes a long string, whitespace, emoji, quotes/backslash that break the URL, or an empty string while "Symbols" is on. Chars that are look-alikes (`|`, `` ` ``, `'`) get filtered making the set empty. Site-compat expectations (some sites reject certain symbols) are not explained.
+**Prevention:** Normalise on blur/change: `Array.from`, strip whitespace/control, dedupe, cap length; on empty with Symbols ON, show "Add at least one symbol or turn Symbols off" and retain the last valid password; preset chips ("Common", "Safe for most sites") optional; URL-encode with `URLSearchParams` only (never string concatenation) and test the round trip.
+**Phase to address:** P11 (normalise function), P12 (UX).
 
-**What goes wrong:** Mixed upper/lower case across rows; a case toggle that only re-cases some rows; copy-all format differing from what's displayed; CRLF/trailing-space inside copied values; no way to match `sha256sum`'s lowercase default; hex vs Base64 expectations (some APIs want Base64, e.g. SRI `sha384-…`).
-**Prevention:** Single `formatDigest(bytes, {case})` in `lib/hash`; lowercase default (matches `sha256sum`, `openssl`); case toggle applied centrally and persisted nowhere sensitive; copy-all as `Algorithm: hex` lines (newline `\n`), unit-tested; Base64 display = optional differentiator, defer unless trivial (don't ship half-built).
-**Phase to address:** Core (formatter), UI.
+### Pitfall 20: Test-only pitfalls specific to randomness
 
-### Pitfall 18: SEO/registry integration slips
+**What goes wrong:**
+Flaky statistical tests; tests that assert a specific output (impossible) or assert "different from last time" with a 1-in-N chance of equal outputs (for example batch of 1 with length 4 and one set); jsdom's `crypto` differs from the browser, hiding `QuotaExceededError`; fast-check shrinking logs print generated passwords into CI logs (acceptable for test data only).
+**Prevention:** Use deterministic stubs for sampler tests; for "two loads differ" e2e use the default 20-char all-sets config (collision probability negligible); include a sampler test that requests the maximum batch x maximum length and asserts no call exceeds 65,536 bytes.
+**Phase to address:** P11.
 
-**What goes wrong:** Tool added to `registry.ts` with wrong `category` (union is `"network"|"dns"|"web"|"encode"|"generate"` — hash fits `generate` or `encode`; adding a new category forces shared-nav edits, violating the "register one entry only" architecture rule), `clientOnly:true` omitted, JSON-LD FAQ not content-matched to visible FAQ (Phase 2–5 established the rule), worked example hash values that don't match what the tool computes (hand-typed in FAQ; later drift), canonical/sitemap relying on registry (automatic — don't hand-edit), `status:"beta"` visually indistinguishable (known a11y debt), "related tools" still unbuilt.
-**Prevention:** Single `faq-data.ts` consumed by both visible FAQ and JSON-LD; worked-example digests produced from the same `lib/hash` at build time or asserted by a unit test; reuse existing `tools/registry.test.ts` expectations; do not touch nav components.
-**Phase to address:** Ship.
+### Pitfall 21: Parity work on Config page inherits its odd layout
+
+**What goes wrong:**
+`app/tools/config/page.tsx` is `max-w-6xl` with a 3xl inner heading, whereas the other tool pages are `max-w-3xl`; dropping the shared About component in unchanged yields a section whose width/position differs from the other five pages. The Config tool has no layout spec and a 520 px skeleton that may not match the real island (the rich-text/plain-text preview).
+**Prevention:** Make the About component width-agnostic (inherits the parent's container) and place it in a `max-w-3xl` wrapper on Config; measure and re-pin the Config skeleton; add `config-seo.spec.ts` and keep the existing `config.spec.ts` untouched. The config tool processes pasted device configs: keep the FAQ wording free of absolute privacy claims (same banned-phrase test as Hash).
+**Phase to address:** P10.
 
 ---
 
 ## Minor Pitfalls
 
-### Pitfall 19: Number/size formatting and progress math
-**What goes wrong:** Progress as `offset/size` with `size === 0` → NaN/Infinity; progress exceeding 100% on last chunk; throughput/ETA flicker; showing bytes with inconsistent units (MB vs MiB).
-**Prevention:** Guard zero-size, clamp 0–1, pick one unit convention (MiB/GiB with 1 decimal), no ETA (it's noisy) or smoothed ETA only. **Phase:** UI.
+### Pitfall 22: Details element cosmetic traps
 
-### Pitfall 20: Clipboard in non-secure/permission contexts
-**What goes wrong:** `navigator.clipboard.writeText` unavailable on insecure origins and can reject without user gesture; copy-all during computing copies placeholders.
-**Prevention:** Reuse existing `useCopyToClipboard` (already shipped and tested across 4 tools) — don't reimplement; keep visible confirmation; disable copy while computing. **Phase:** UI.
+**What goes wrong:** The Worked example is longer than expected on mobile and `break-all` monospace blocks overflow when the section is opened at 320 px (the old hash test only checked this while always-visible).
+**Prevention:** Keep the overflow-at-320px assertion, but run it after opening the section via the helper. Keep `data-testid` on the `<details>` wrapper and measure the inner content.
 
-### Pitfall 21: Large-text paste / textarea performance
-**What goes wrong:** Pasting 10–50 MB of text into a controlled React `<textarea>` makes React/DOM sluggish independent of hashing; byte-count via `new TextEncoder().encode(s).length` on every keystroke duplicates encoding work.
-**Prevention:** Set a text-mode soft cap (e.g. warn above ~1–5 MB: "use File mode for big inputs"); compute byte length once and reuse the encoded array for hashing; avoid re-rendering the digest grid unless digests changed (`React.memo` rows). **Phase:** UI.
+### Pitfall 23: Printing / no-JS
 
-### Pitfall 22: Timing/side-channel and "compare" expectations
-**What goes wrong:** Users expect a "compare with expected hash" field (verifying downloads is the #2 use case); string `===` compare is fine for checksums (not secrets) but case/whitespace/`sha256:` prefix/ `  filename` suffix mismatches cause false "mismatch".
-**Prevention:** If a compare field ships (strong differentiator, see FEATURES), normalize: trim, lowercase, strip `sha256:` prefix and trailing `  filename`, auto-detect algorithm by length; otherwise defer. **Phase:** UI (only if in scope).
+**What goes wrong:** Closed `<details>` content is omitted from print.
+**Prevention:** Accept (tool-first design); optional `@media print { details > * { display:block } }` is not worth it for v1.3.
+
+### Pitfall 24: Dev vs prod divergence for the wordlist chunk
+
+**What goes wrong:** `npm run dev` (the default Playwright webServer) does not reproduce production chunk splitting, preload behaviour or the exact "no request until passphrase" property.
+**Prevention:** The chunk-loading assertions belong in the prod e2e project (`playwright.prod.config.ts`), alongside the existing worker spec.
 
 ---
 
@@ -344,146 +416,134 @@ Row list with identical styling for MD5 and SHA-256; a modal/toast warning; copy
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|-------------------|----------------|-----------------|
-| `await file.arrayBuffer()` for files | 3 lines, matches text path | OOM / iOS tab kill on large files; later rewrite to chunked | Never (chunked engine is the only file API) |
-| Everything on main thread (no Worker) | No worker wiring/test setup | Jank on large text, frozen tab on files, no cancel | Only for text under the measured threshold |
-| Auto-writing text to URL on each keystroke (copy Subnet pattern) | Reuses existing code; "bookmarkable" | Secrets in history/sync/Vercel logs; analytics gap for fragment | Never by default; explicit user action only |
-| Tests with outputs generated by the implementation | Fast to write | Zero regression value; encoding/variant bugs invisible | Never |
-| Two code paths (native subtle for SHA-2 + JS for rest) | Faster SHA-2 on small text | Divergence bugs, secure-context failures, async plumbing | Only after measured need + native-vs-JS property test |
-| Hand-copied CRC32 snippet | Quick | Signed output, per-chunk init bugs | Only with the full vector + chunk-split tests |
-| Hard-coded worked-example digests in FAQ | Fast SEO copy | Drift from actual tool output | Only if a unit test asserts them against `lib/hash` |
-| Skipping prod-build worker e2e | CI faster | Worker breaks in prod only | Never |
+| `Uint32 % n` without rejection sampling | 3 lines of code | Provable (if tiny) bias in a tool whose product is randomness; reviewers will flag it | Never |
+| Keep per-page FAQ/JSON-LD builders and only wrap them in `<details>` | Smaller diff in P10 | Five duplicated builders keep drifting; password and config add two more | Never (shared component is the point of P10) |
+| Hard-code entropy numbers in FAQ copy | Quick to write | Silent drift from the calculator | Never; interpolate from lib constants |
+| Static-import the wordlist | No loading state | +25-30 KB gzip on every Password-mode view | Never |
+| Loosen e2e `toBeVisible` to `toBeAttached` everywhere | Specs go green fast | The opened-state UX is no longer tested | Only for JSON-LD/content-equality tests; keep one opened-state assertion per tool |
+| Pin skeleton heights from a macOS measurement only | Fast | CI/Linux CLS regressions (happened in v1.2) | Only if `geometricPrecision` is applied and one Linux-image run is done |
+| Skipping Lighthouse on the new/changed pages | Saves time | 90+ target unverified (already the case for `/tools/hash`) | Not for the new Password page; run it on the preview deployment |
+| Copy UUID's download/CSV export onto passwords | Feature parity | Plaintext secrets written to disk and download history | Never |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|----------------|------------------|
-| `lib/analytics/PacketoryAnalytics.tsx` (`redactBeforeSend`) | Assuming query-only redaction covers all URL state; `split("?")` with no `?` returns event untouched (fragment bypass) | Strip fragment, keep allow-list empty for hash, add unit tests for `#`, `?a#b`, and `text=` |
-| `lib/analytics/redact.ts` allow-list | Adding `text` so analytics "shows usage" | Never add input-bearing params; allow-list stays safe-by-default |
-| `useKeyboardShortcut` | Registering `enter` (fires in textarea); expecting `copy` to work with textarea focus | Don't register `enter`; add a separate documented chord for primary copy; test Enter-newline |
-| `tools/registry.ts` | New `category` value or hand-editing nav/landing/sitemap | One entry, existing category (`generate`/`encode`); registry test passes untouched |
-| `next/dynamic(..., {ssr:false})` Loader pattern | Reading `searchParams` in `page.tsx` (breaks static rendering); skeleton height mismatch | Read `window.location.search` inside island; fixed-height skeleton matching 10 rows |
-| Web Worker under Next 16 / Turbopack | Works in `next dev`, breaks in prod build; Vitest/jsdom has no Worker | Thin worker over `lib/hash`; e2e against production build; unit-test core directly |
-| `@noble/hashes` v2 | v1 import paths; reusing destroyed hasher; passing ArrayBuffer | `.js`-suffixed module paths (`sha2.js`, `sha3.js`, `legacy.js`); fresh instance per run; `new Uint8Array(buf)` |
-| `useCopyToClipboard` | Reimplementing clipboard code per tool | Reuse; disable while computing |
-| Playwright | Asserting immediately after typing against async worker result | `expect.poll`/auto-waiting locators on a "ready" attribute; deterministic slow-file fixtures |
-| TypeScript (target ES2020, per `tsconfig.json`) | Using BigInt/`Uint8Array.fromHex`/`toHex` (newer baselines) in `lib/hash` formatters | Hand-write hex conversion (`Array.from(u8, b => b.toString(16).padStart(2,"0")).join("")`) — LOW-cost, runs everywhere |
+| Vercel Analytics (`lib/analytics/redact.ts`) | Adding password option names to `DEFAULT_ALLOW_LIST` "so we can see usage" | Leave the allow-list empty; add a test that option params are stripped |
+| Next.js static prerender | Reading `searchParams` in `page.tsx` or using `useSearchParams()` | Read `window.location.search` inside the `ssr:false` island (existing pattern) |
+| `useKeyboardShortcut` | Assuming `<summary>`/checkbox are "interactive" for the Enter guard | Extend `isInteractiveTarget` and test it (Pitfall 11) |
+| `useCopyToClipboard` | One hook instance for N batch rows (shared "Copied!" state) | One small `CopyButton` per row (as `DigestRow` does) or a single hook with a `copiedIndex`; reset on regeneration |
+| `ToolCard` icon map | New icon key not in map -> silent fallback | Explicit named imports + uniqueness/existence test |
+| Playwright config | `npm run dev` only | Add prod-config specs for chunk-loading and network silence |
+| EFF wordlist | Treating it as public domain | CC BY 3.0 US attribution on the page |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|----------------|
-| Sync 10-hash recompute on every keystroke | Input lag, Lighthouse TBT/INP | Size threshold → worker + debounce above it | Pastes ≳ 0.5–2 MB (measure slowest algo) |
-| One pass per algorithm over the file | 10x I/O time, 10 progress bars | One read, feed all hashers per chunk | Any file > ~100 MB |
-| Per-chunk React state updates | Re-render storm, slower hashing | Throttle progress (~10 Hz), update a ref + occasional setState | Files > ~100 MB with 1 MiB chunks |
-| Large chunk size on mobile | Memory spike, tab reload | 1–4 MiB chunks; tune on real iOS | Files > few hundred MB on iPhone |
-| JS SHA-3/SHA-512 throughput | Slow file hash with all 10 on | Show progress + cancel; consider letting user deselect algorithms (defer) | ~1 GB+ files (minutes) — set expectation in UI copy |
-| Duplicate library in main + worker chunks | Bundle +25–40 KB | One execution model per input class; analyzer check | Always (Lighthouse budget) |
-| Re-encoding text for byte count and hashing separately | 2x work per keystroke | Encode once, reuse | Large pastes |
+| Wordlist in initial chunk | First-load JS +25-30 KB, Lighthouse TBT/LCP drop | Dynamic import on Passphrase | Immediately (every page view) |
+| Regenerating the whole batch on each keystroke in the length/symbol-set field | Jank with batch = 20 x length 128 | Cheap enough, but debounce or skip while the field value is invalid | Only if sampling is accidentally O(n^2) (for example string concatenation in loops, `indexOf` for pool lookups) |
+| Rejection loop with a tiny acceptance probability | UI freeze at length 4 with four sets | Bound attempts; precondition `length >= sets`; or construct-then-shuffle with documented entropy | Short lengths with many sets |
+| Float `2**bits` in crack-time | `Infinity`/`NaN` rendering | Log-space math | Lengths above about 150 chars with a large pool |
+| Re-measuring layout in JS to "fit" Subnet | Layout thrash, CLS | Pure CSS density changes | n/a |
 
 ## Security Mistakes
 
 | Mistake | Risk | Prevention |
 |---------|------|------------|
-| Input/file name in URL, analytics events, or logs | Secrets/PII exposure (history, sync, Vercel logs) — HIGH | Pitfalls 9, 10: opt-in share links, fragment-safe redaction, no custom events |
-| Trusting `?text=` as safe HTML | XSS if ever rendered via `dangerouslySetInnerHTML` | Render only as text/`value`; never HTML; React default escaping |
-| Presenting MD5/SHA-1 as suitable for security | Users hash passwords/signatures with broken algos — MEDIUM | Legacy badges + persistent calm note (Pitfall 11) |
-| Third-party scripts/CDN for libs or fonts on this page | Breaks "fully local" claim and CSP-friendliness | Bundle everything same-origin |
-| Browser spellcheck/autocorrect/extension overlays on the textarea | Secrets sent to cloud spellcheck; text silently altered | `spellCheck/autoCorrect/autoComplete` off, `data-gramm=false` |
-| Persisting last input in `localStorage` | Secrets at rest in browser | Don't persist input; (brief allows local convenience storage for non-sensitive outputs only — hash inputs are sensitive) |
-| Zip-bomb-like expectations / huge files DoS the user's own tab | Self-DoS only; no server risk | Progress, cancel, soft limit message |
+| Password in prerendered HTML | Same secret served to all visitors | `ssr:false` island + raw-HTML e2e test (Pitfall 1) |
+| `Math.random`/modulo bias/silent fallback | Weak or skewed passwords | Single audited `randomInt`, fail closed (Pitfall 2) |
+| Password in URL/history/title/attributes/aria-live | Leak via history, analytics, screen readers | Options-only URL, `replaceState(null, ...)`, neutral announcements (Pitfall 5) |
+| Options URL as DoS vector (`?len=1e9`, huge `symset`) | Tab freeze/OOM on a shared link | Clamp/whitelist in the parser; unit tests with hostile input |
+| Overclaiming privacy in FAQ ("never leaves your browser", "private") | Misleading statement (extensions, clipboard history) | Use the established banned-phrase test; describe mechanism not guarantees |
+| Realistic secrets in the Config worked example | Secret scanners/real-credential confusion | RFC 5737 addresses, placeholder tokens |
+| Clipboard retention not disclosed | User assumes the copy disappears | One honest FAQ line; no fake auto-clear |
+| Export/download of passwords | Plaintext on disk | Do not build it |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-----------------|
-| Empty page on load until user types | Violates "zero-effort default result" | Prefilled sample text; all 10 rows populated immediately |
-| No indication of what bytes were hashed | "Your tool is wrong" reports | Live "N bytes (UTF-8)" + newline hint |
-| Text mode silently normalizes CRLF | Windows users can't match `sha256sum` | Hint pointing to File mode for exact bytes; optional LF/CRLF toggle |
-| Results re-order or rows pop in/out | CLS, scanning difficulty | Fixed order, always 10 rows, reserved heights |
-| 128-char digests overflow at 320px | Horizontal scroll | `break-all`, mono font, verified at 320px (existing check) |
-| Copy with no visible feedback | Violates non-negotiable | Reuse `useCopyToClipboard` confirmation on each row + copy-all |
-| Cancel not offered for file hashing | User stuck on huge file | Cancel button + Esc cancels in-flight file hash (before clearing) |
-| Drag-and-drop as the only file path | Mobile/keyboard users blocked | Visible file button + labelled input |
-| Modal warnings about MD5 | Banned UX; annoying | Inline badges + one calm note |
-| Mixed case outputs | Copy/paste mismatches | One central case setting |
+| Password hidden by default (`type=password`) | Violates "instant useful output"; no readable output to compare/copy | Show it in monospace, `user-select: all`; optional hide toggle |
+| Look-alike characters indistinguishable | Mistyped passwords | Monospace with slashed zero, and default look-alike avoidance as an option (not forced) |
+| Shortcut hint hidden | Keyboard-first value lost | One-line hint under the tool as on other tools |
+| Info sections open and tall on mobile | Tool pushed off-screen (the milestone's reason for existing) | Closed by default, tool-first order, muted styling |
+| Strength label flips on every Regenerate | Noise | Label depends on options only |
+| Passphrase mode shows an empty box while loading | Looks broken | Pinned skeleton, disabled actions, clear error + Retry |
+| Copy confirmation missing in batch | Silent failure | Per-row confirmation and a Copy-all confirmation; shortcut disabled in batch |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Encoding:** Often missing non-ASCII vectors — verify `"é"`, `"€"`, `"🚀"` match `printf … | sha256sum` for every algorithm
-- [ ] **Newlines:** Often missing the trailing-newline/CRLF explanation — verify byte count shown, hint present, FAQ entry exists, textarea attrs (`autoCorrect=off`, `spellCheck=false`) set
-- [ ] **SHA3:** Often missing Keccak negative test — verify SHA3-256("") starts `a7ffc6f8…`, not `c5d24601…`
-- [ ] **CRC32:** Often missing high-bit/leading-zero cases — verify never negative, always 8 chars, chunked == one-shot, `"123456789"` = `cbf43926`, and RFC 3720 vectors not misapplied
-- [ ] **Large files:** Often only tested at 10 MB — verify 256 MB+ file hashes correctly with responsive UI, progress, and cancel; manual iOS Safari check with a ≥500 MB file
-- [ ] **Worker in prod:** Often only works in `next dev` — verify e2e on `next build && next start`
-- [ ] **Stale results:** Often only text-edit path tested — verify file→file, file→text, text→file, Esc, mode switch, unmount all cancel in-flight work
-- [ ] **No-network:** Often assumed — verify Playwright asserts zero new requests while hashing text and files
-- [ ] **URL state:** Often auto-written — verify input is NOT in the URL unless user explicitly shares; `text` not in allow-list; fragment redacted in `redactBeforeSend` with unit tests
-- [ ] **Keyboard:** Often copied from single-line tools — verify Enter inserts newline in textarea, Cmd/Ctrl+C on a selection copies the selection, `/` focus works, Tab order through rows/copy buttons is logical
-- [ ] **Empty/zero-byte:** Often treated as "no input" — verify empty text and a 0-byte file both show correct empty-input digests (SHA-256 `e3b0c442…b855`, CRC32 `00000000`)
-- [ ] **Drag-drop:** Often missing `preventDefault` — verify a drop outside the zone doesn't navigate away; file input resets so same file can be re-picked
-- [ ] **CLS/Lighthouse:** Often passes on desktop only — verify CLS 0 and 90+ on production preview at 320px
-- [ ] **Bundle:** Often unchecked — verify `/` and other tool routes' first-load JS unchanged; hash libs only in the hash island/worker chunks
-- [ ] **SEO:** Often drifts — verify FAQ JSON-LD content-matches visible FAQ; worked-example digests asserted by test; registry-only change (no nav edits)
-- [ ] **a11y:** Often skipped — verify labelled textarea/file input, `aria-live="polite"` for progress/completion (not per-keystroke), legacy badges are text not color-only, focus-visible rings
-- [ ] **Security note:** Often missing — verify legacy-algorithm labels and the calm password note present, no modals
+- [ ] **Password generator:** prerendered HTML contains no password and no output element (raw-HTML test), and two page loads differ.
+- [ ] **Sampler:** no `Math.random`, no `%` on random values outside `randomInt`; boundary test with stubbed `getRandomValues`; no call over 65,536 bytes at max batch x max length.
+- [ ] **Entropy:** uses the filtered, deduplicated alphabet and the real wordlist length; correct for guarantee-one-of-each; never `NaN`/`Infinity`; deterministic capitalisation/fixed separator add 0 bits.
+- [ ] **URL:** options only; `history.state` null; parser clamps hostile values; round-trip property test with awkward symbols; analytics strips the params (unit test).
+- [ ] **Clipboard/password managers:** no `<form>`/password input; `autoComplete="off"` + vendor opt-outs on option inputs; `translate="no"`; honest FAQ line.
+- [ ] **Wordlist:** loaded only in Passphrase mode (prod e2e proves it); failure state with Retry and no fallback; integrity test (count, uniqueness, pinned hash); CC BY 3.0 attribution on the page.
+- [ ] **About sections (all 6 tools + Password):** native `<details>`, closed by default, content present in server HTML, exactly one JSON-LD script, JSON-LD generated from the same `faqItems`, Enter on a focused summary does NOT trigger the tool.
+- [ ] **e2e specs:** uuid/subnet/dns/hash SEO specs updated with `openAbout` helper; new `config-seo.spec.ts`; counts of 6 updated to 7 in registry/home/navigation/sitemap tests; `npm run test:e2e` and `npm run test:e2e:prod` run locally (CI does not run them).
+- [ ] **Nav:** seven links verified at 640 px and 700 px; mobile drawer shows 7.
+- [ ] **Icons:** Password and Config icons in the `ICONS` map and unique across tools.
+- [ ] **CLS/layout:** skeleton pins re-measured for Password, Subnet and Config; layout specs exist and pass; Linux image run done; Lighthouse 90+ on preview for `/tools/password` and `/tools/subnet`.
+- [ ] **Subnet compaction:** passes at 1366x650 and 1280x600 for IPv4 default; IPv6 target stated and met; no horizontal overflow at 320/375; copy controls retained; existing subnet testids unchanged; light and dark checked.
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|---------------|----------------|
-| Wrong encoding path shipped | LOW | Fix single encoder choke point; add vectors; redeploy (stateless tool) |
-| SHA3/Keccak mislabel | LOW | Swap import, add negative test, correct FAQ |
-| CRC32 variant/sign bug | LOW–MEDIUM | Fix formatter/state handling; add chunk-split + vector tests; if users relied on wrong values, note in changelog |
-| `arrayBuffer()` file path shipped | MEDIUM | Replace with chunked engine behind same function signature (hence: engine is the only API from day one) |
-| Worker fails in prod | MEDIUM | Fix URL/bundler config; add prod-build e2e; temporary fallback to main-thread chunked hashing with `setTimeout(0)` yields |
-| Secrets leaked via URL/analytics | HIGH | Remove auto URL-write; purge/ignore affected analytics URLs in Vercel dashboard; fix redaction; add tests; consider disclosure (needs human approval for legal text); cannot un-leak browser-history copies |
-| Stale-result race | MEDIUM | Add sequence token + worker terminate to *all* entry paths (audit all, not just reported one — per Phase 4 retro) |
-| Bundle regression | LOW–MEDIUM | Switch to deep imports, split worker/main, remove barrel |
-| Hydration/CLS regressions | LOW | Fix skeleton height/reserved slots; re-run Lighthouse |
+| Password baked into static HTML | HIGH if shipped | Redeploy immediately (the build output is the leak); add the raw-HTML test; purge CDN cache; note any crawled copies are inert once redeployed |
+| Modulo bias discovered after release | MEDIUM | Replace the sampler (single file by design); add the boundary test; no data migration since passwords are never stored |
+| Entropy overstated | LOW | Fix `resolveAlphabets`/formula; update FAQ constants (derived, so automatic) |
+| e2e specs left red after P10 | LOW | Run the suite locally, add `openAbout` helper, fix selectors |
+| JSON-LD drift | LOW | Move to shared component; add the equality unit test |
+| CLS regression from stale skeleton | LOW | Re-measure on the Linux image, update pin, rerun layout spec |
+| Wordlist bloats first load | LOW | Move to dynamic import; verify via prod e2e |
+| Nav overflow with seventh tool | LOW | Raise the nav breakpoint or shorten the label |
+| Subnet compaction fails on real laptops | MEDIUM | Re-test at 1366x650/1280x600; trim page chrome as well as the grid |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
 |---------|------------------|--------------|
-| 1. Encoding mismatch | Core (+UI byte count) | Non-ASCII vectors vs Node oracle; Playwright byte-count assertion |
-| 2. Newline/CRLF/textarea | Core + UI + Ship (FAQ) | Playwright paste `a\r\nb`; hint visible; attrs asserted |
-| 3. SHA3 vs Keccak | Core | Positive FIPS 202 + negative Keccak vector tests |
-| 4. CRC32 variant/format | Core | Check value `cbf43926`, padding, unsigned, chunk-split property, zlib oracle |
-| 5. Memory / whole-file reads | Core (engine) + UI (progress/cancel) | Chunk-equals-one-shot property; 256 MB e2e; iOS manual |
-| 6. Main-thread jank | UI (+Core pure API) | Benchmark-derived threshold; worker e2e on prod build; Lighthouse TBT/INP |
-| 7. Stale/mixed results | UI | Race e2e matrix covering every superseding path |
-| 8. Web Crypto assumptions / lib import specifics | Core | Single-implementation rule; import smoke test; no `crypto.subtle` grep |
-| 9. Secrets in URL / analytics fragment bypass | UI + Ship | `redact.test.ts` new cases; no auto-URL-write test; **decision needed pre-UI planning** |
-| 10. "Fully local" violation | UI + Ship | Playwright network-silence test; grep gates |
-| 11. Password/legacy-hash messaging | UI + Ship | Visual/a11y review; FAQ item present |
-| 12. Bundle size | Core + UI + Ship | Build output compare vs baseline; analyzer; Lighthouse on `/` and `/tools/hash` |
-| 13. Hydration / CLS | UI + Ship | Console clean; CLS 0 at 320px/desktop |
-| 14. Textarea keyboard collisions | UI | Keyboard e2e + component tests |
-| 15. Drag-drop/file input edges | UI + Ship | Picker + drop e2e, 0-byte, folder, reselect |
-| 16. Test-vector completeness | Core | Vector table + oracle property tests as blocking gate |
-| 17. Output formatting | Core + UI | Formatter unit tests; copy-all snapshot |
-| 18. Registry/SEO integration | Ship | Registry test; FAQ JSON-LD content-match test |
-| 19–22. Minor | UI | Component tests |
-
-## Roadmap Implications (for synthesizer)
-
-1. **Core first and gated on vectors.** The riskiest correctness items (1, 3, 4, 5, 8, 16) are all UI-independent and cheaply testable in Node. Make "vector table + chunk-split property tests green" an exit criterion before any UI work.
-2. **One explicit pre-UI decision for the user/roadmapper:** how "bookmarkable text state" is delivered without leaking secrets (Pitfall 9) — recommended: explicit "Copy link" (or opt-in toggle), never auto-write; plus the `redactBeforeSend` fragment fix.
-3. **UI phase needs the worker + sequence-token design up front** (Pitfalls 6, 7) and a decision on text-mode soft cap, `Esc` semantics, and optional LF/CRLF toggle.
-4. **Ship phase includes** production-build worker e2e, network-silence test, Lighthouse/bundle check, FAQ with the "why doesn't my hash match" and "SHA3 ≠ keccak256" and password note.
-5. **Phases likely needing deeper phase-level research:** Core (library selection/CRC32 sourcing — benchmark noble vs alternatives on the target algorithms and measure gzip size; confirm Node oracle availability for RIPEMD-160/zlib.crc32 in CI's Node version) and UI (Worker bundling under Next 16/Turbopack, iOS Safari memory limits — real-device test). Ship phase is standard patterns.
+| 1 SSR/static password leak | P12 (rule in P11) | Raw-HTML e2e test; two-load-differ test |
+| 2 Modulo bias / Math.random / fallback | P11 | Stubbed-boundary unit test; lint/grep guard; byte-limit test |
+| 3 Entropy errors | P11 | fast-check properties; unit tests for empty pool, length < sets, duplicates |
+| 4 Password regenerates under user | P12 | RTL test: copy then value unchanged; reset-on-change test |
+| 5 URL/history/analytics/DOM leaks | P11 + P12 | Serializer test, `history.state` e2e, redact test, hostile-input parser tests |
+| 6 Password managers/clipboard/translate | P12 | Attribute unit tests; manual 1Password/Bitwarden/Chrome check; FAQ banned-phrase test |
+| 7 Wordlist bundle/load/license | P11 + P12 | Integrity test; prod e2e chunk assertion; chunk size noted in PR; attribution present |
+| 8 SEO specs and hard-coded counts break | P10 (+P12) | Local e2e + prod e2e green; Vitest component test in CI |
+| 9 Wrong disclosure implementation | P10 | `curl` shows closed content; no `"use client"` in About component |
+| 10 JSON-LD drift / SEO expectations | P10 + P12 | Equality test; one JSON-LD script; numbers interpolated from constants |
+| 11 Enter on `<summary>` | P10 | Hook unit test + e2e |
+| 12 Disclosure a11y | P10 | Manual VoiceOver pass; Lighthouse a11y; focus-visible check |
+| 13 CLS/pins/platform | P12, P13, P10 | Layout specs; Linux image run; Lighthouse on preview |
+| 14 Subnet compaction | P13 | 1366x650 and 1280x600 assertions; 320/375 overflow tests; unchanged subnet testids |
+| 15 Nav with 7 tools | P12 | Header test at 640/700 px; updated counts |
+| 16 Icon fallback | P10 + P12 | Registry/ToolCard icon-existence and uniqueness test |
+| 17 Strength/crack-time | P11 + P12 | Unit tests for log-space math; a11y check of meter |
+| 18 Keyboard conflicts | P12 | Keyboard unit/e2e tests |
+| 19 Symbol set edge cases | P11 + P12 | Property tests; hostile-input tests |
+| 20 Randomness test flakiness | P11 | Deterministic stubs only |
+| 21 Config page layout/skeleton | P10 | `config-seo.spec.ts`, layout spec |
 
 ## Sources
 
-- Repo (HIGH, direct reads): `lib/analytics/PacketoryAnalytics.tsx` (`redactBeforeSend` split-on-`?` behavior), `lib/analytics/redact.ts`, `lib/hooks/useKeyboardShortcut.ts` (Enter/copy guards), `app/tools/mac/MacToolLoader.tsx` (Loader/skeleton pattern), `tools/registry.ts` (category union), `tsconfig.json` (ES2020, bundler resolution), `package.json` (fast-check, vitest, no hash lib yet), `.planning/PROJECT.md` (Key Decisions: race-guard rule, `replaceState` URL pattern, Server-shell/Client-island)
-- npm registry (HIGH): `@noble/hashes` 2.4.0 — zero dependencies; exports `./legacy.js`, `./sha2.js`, `./sha3.js`, `./sha3-addons.js` (no CRC32; v1-style paths absent); `hash-wasm` 4.12.0 (~1.8 MB unpacked — WASM alternative, not recommended for bundle/CSP reasons, MEDIUM)
-- [MDN SubtleCrypto.digest()](https://developer.mozilla.org/docs/Web/API/SubtleCrypto/digest) — algorithm list (SHA-1/256/384/512 only), async, whole-buffer (MEDIUM-HIGH, via search result)
-- [caniuse SubtleCrypto.digest](https://caniuse.com/mdn-api_subtlecrypto_digest) — broad SHA-2 support; no SHA-3 data found (MEDIUM)
-- [mojoauth SHA3-256 in browser](https://mojoauth.com/security-guides/sha3-256-in-javascript-in-browser.md) — SHA-3 not in Web Crypto; use a library (LOW-MEDIUM, secondary)
-- [WHATWG HTML textarea element (API value vs raw vs form-submission value)](https://www.w3.org/TR/2012/WD-html5-20121025/the-textarea-element.html), [zzz.buzz — Three Normalizations of textarea value](https://zzz.buzz/2017/12/21/javascript-traps-and-pitfalls-three-normalizations-of-textarea-elements-value/) — API value uses LF (MEDIUM; spec text from 2012 draft, re-check against current WHATWG standard in the UI phase with a real paste test)
-- Domain knowledge, to be re-verified by test in Core (MEDIUM-HIGH): FIPS 180-4 / FIPS 202 / RFC 1321 / RIPEMD-160 reference vectors cited above; CRC catalogue check value `cbf43926` for CRC-32/ISO-HDLC; RFC 3720 Appendix B.4 vectors are CRC-32C; SHA-3 vs Keccak padding byte difference; PowerShell 5 redirect writes UTF-16LE+BOM
-- Not verified in this research (LOW): exact iOS Safari per-tab memory ceilings; whether Vercel Analytics includes `location.hash` in `event.url`; exact Node version availability of `zlib.crc32` and OpenSSL `ripemd160` in CI — each flagged above for in-phase verification
+Codebase (HIGH, read directly 2026-11-11):
+- `/Users/mwallraf/Developer/packetory.dev/.planning/PROJECT.md`, `.planning/RETROSPECTIVE.md` (v1.2 lessons: pinned skeletons, Linux glyph rounding, CI e2e removed)
+- `app/tools/{hash,uuid,subnet,dns,mac,config}/page.tsx`, `*Loader.tsx`, `faq-data.ts`; `app/tools/uuid/UuidTool.tsx` (regenerate/copy/reset pattern, WR-02/WR-03)
+- `lib/hooks/useKeyboardShortcut.ts` (Enter guard selector), `lib/hooks/useCopyToClipboard.ts`, `lib/analytics/redact.ts`, `lib/analytics/PacketoryAnalytics.tsx`
+- `components/ToolCard.tsx` (icon map + `Fingerprint` fallback), `components/SiteHeader.tsx`, `tools/registry.ts`, `tools/registry.test.ts`
+- `tests/e2e/{hash,uuid,subnet,dns}-seo.spec.ts`, `home.spec.ts`, `navigation.spec.ts`, `hash-layout.spec.ts`; `playwright.config.ts`, `vitest.config.ts`
+
+External (confidence as marked):
+- EFF Large Wordlist is CC BY 3.0 US, 7,776 words, about 12.9 bits/word: https://www.eff.org/document/passphrase-wordlists and secondary sources (e.g. https://github.com/philthompson/eff_diceware, https://sts10.github.io/2023/05/04/copyrighting-word-lists.html) — MEDIUM (EFF page not directly readable; multiple secondary sources agree)
+- `crypto.getRandomValues` throws `QuotaExceededError` above 65,536 bytes (byte length, not element count); rejection sampling is the standard modulo-bias fix: https://bugzilla.mozilla.org/show_bug.cgi?id=1236176, https://1password.com/blog/generating-strong-passwords — HIGH for the limit, MEDIUM for the bias-magnitude discussion
+- Google FAQPage documentation (rich results restricted to well-known government/health sites): https://developers.google.com/search/docs/appearance/structured-data/faqpage — HIGH; claim of full removal in May 2026 (https://www.techwyse.com/news/ai-search/google-faq-rich-results-deprecated-2026, https://searchengineland.com/faq-schema-rise-fall-seo-today-463993) — LOW, unconfirmed
+- Content in accordions/tabs indexed with full weight under mobile-first indexing (Google statements 2016/2020; no newer confirmation): https://www.seroundtable.com/amp/google-mobile-first-content-hidden-in-tabs-25658.html, https://www.searchenginejournal.com/googles-mueller-on-myth-of-hidden-tab-content/358724/ — MEDIUM
+- Radix/shadcn accordion unmounts closed content (from library behaviour, not re-verified in this session) — MEDIUM
+- Browser find-in-page expansion of `<details>`, Safari marker behaviour, Geist Mono ligatures — from general knowledge, not verified in this session — LOW-MEDIUM; verify during P10/P12 manual testing
 
 ---
-*Pitfalls research for: in-browser multi-algorithm Hash Generator (Packetory v1.2)*
-*Researched: 2026-10-14*
+*Pitfalls research for: Packetory v1.3 (Password Generator & Tool Page Polish)*
+*Researched: 2026-11-11*

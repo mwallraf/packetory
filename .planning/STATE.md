@@ -1,46 +1,43 @@
 ---
 gsd_state_version: "1.0"
-milestone: v1.2
-milestone_name: Hash Generator
-current_phase: 09
-current_phase_name: hash-tool-page-text-hashing
-status: planning
-stopped_at: All v1.2 phases complete, ready to complete milestone
-last_updated: "2026-10-17T09:02:42.706Z"
-last_activity: 2026-10-17
-last_activity_desc: Quick 261017-f4s — CI hash-layout fix, e2e job dropped from CI
-state_head: ab869bc70b0ff7a8a05f35bfbd0373d3f74355c5
+milestone: v1.3
+status: Awaiting next milestone
+stopped_at: v1.3 milestone archived and tagged
+last_updated: "2026-11-12T14:34:37.385Z"
+last_activity: 2026-11-12
+last_activity_desc: "Milestone v1.3 shipped as PR #17"
+state_head: 84f6e2c666d25f9f189c5514a0d91b7acfd0ad4f
 progress:
-  total_phases: 2
-  completed_phases: 9
-  total_plans: 14
-  completed_plans: 14
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 26
+  completed_plans: 26
   percent: 100
+milestone_name: Password Generator & Tool Page Polish
+current_phase: 14
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-10-17)
+See: .planning/PROJECT.md (updated 2026-11-12)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** v1.2 complete — ready for milestone close
+**Current focus:** Planning next milestone (v1.3 shipped 2026-11-12)
 
 ## Current Position
 
-Phase: 09 (hash-tool-page-text-hashing) — last v1.2 phase, complete
-Plan: 9 of 9
-Status: Milestone complete — ready for /gsd-complete-milestone
-Last activity: 2026-10-17 - Completed quick task 261017-f4s: Fix PR #16 CI hash-layout failure and drop e2e job from CI
-
-Progress: [██████████] 100%
+Phase: Milestone v1.3 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-11-12 -- Milestone v1.3 shipped as PR #17
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 38
+- Total plans completed: 64
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -57,10 +54,15 @@ Progress: [██████████] 100%
 | 07 | 1 | - | - |
 | 08 | 5 | - | - |
 | 09 | 9 | - | - |
+| 10 | 6 | - | - |
+| 11 | 1 | - | - |
+| 12 | 5 | - | - |
+| 13 | 6 | - | - |
+| 14 | 8 | - | - |
 
 **Recent Trend:**
 
-- Last 5 plans: none yet
+- Last 5 plans: none yet in v1.3
 - Trend: -
 
 *Updated after each plan completion*
@@ -106,41 +108,77 @@ Progress: [██████████] 100%
 | Phase 09 P06 | 12 min | 3 tasks | 8 files |
 | Phase 09 P07 | 6 min | 2 tasks | 7 files |
 | Phase 09 P09 | 20 min | 2 tasks | 2 files |
+| Phase 10 P01 | 20 min | 2 tasks | 7 files |
+| Phase 10 P02 | 6 min | 3 tasks | 8 files |
+| Phase 10 P03 | 2 min | 2 tasks | 6 files |
+| Phase 10 P04 | 10 min | 3 tasks | 9 files |
+| Phase 10 P05 | 6 min | 2 tasks | 3 files |
+| Phase 10 P06 | 5 min | 3 tasks | 3 files |
+| Phase 11 P01 | 20min | 3 tasks | 6 files |
+| Phase 12 P01 | 3 min | 3 tasks | 9 files |
+| Phase 12 P02 | 3 min | 3 tasks | 3 files |
+| Phase 12 P03 | 6 min | 3 tasks | 4 files |
+| Phase 12 P04 | 3 min | 3 tasks | 6 files |
+| Phase 12 P05 | 8min | 3 tasks | 6 files |
+| Phase 13 P01 | 12min | 3 tasks | 11 files |
+| Phase 13 P02 | 4 min | 3 tasks | 6 files |
+| Phase 13 P03 | 7 min | 2 tasks | 2 files |
+| Phase 13 P04 | 5 min | 2 tasks | 6 files |
+| Phase 13 P05 | 12 min | 2 tasks | 4 files |
+| Phase 13 P06 | 2 min | 2 tasks | 3 files |
+| Phase 14 P01 | 5 min | 2 tasks | 9 files |
+| Phase 14 P02 | 5 min | 2 tasks | 7 files |
+| Phase 14 P03 | 7min | 2 tasks | 7 files |
+| Phase 14 P04 | 12min | 2 tasks | 5 files |
+| Phase 14 P05 | 20min | 2 tasks | 11 files |
+| Phase 14 P06 | 15min | 2 tasks | 7 files |
+| Phase 14 P07 | 12min | 3 tasks | 10 files |
+| Phase 14 P08 | 40min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
 ### Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table. v1.2 locked decisions (user-confirmed before roadmap, do not reopen):
+Full decision log lives in PROJECT.md Key Decisions; v1.2 phase-level decisions are archived with `.planning/milestones/v1.2-phases/`. Active for v1.3:
 
-- [v1.2]: Hash engine = `@noble/hashes@2.4.0` (imported only from `lib/hash/engine.ts`) + hand-rolled IEEE CRC32
-- [v1.2]: URL state = read `?text=` on load; write only via explicit "Copy link" (length-capped), never auto-written
-- [v1.2]: Extras in scope = paste-to-verify, `sha256sum` copy format, Base64 toggle; HMAC deferred to Future
-- [v1.2]: Registry category = `encode`
-- [v1.2 roadmap]: TEXT-04 ("Copy link") placed in Phase 9 with the rest of the text path (research had Copy link in the file phase) so Phase 9 ships a complete text-only tool
-- [Phase 08]: 08-01: job.ts derives algorithm ids from Object.keys(FACTORIES); algorithms.ts/format.ts deferred to 08-02
-- [Phase 08]: 08-01: HashSmoke ready flag uses useSyncExternalStore on window.__hashSmoke (lint forbids setState in effect)
-- [Phase 08]: 08-02: single-use assertion accepts both noble messages (hash was destroyed for SHA2/MD family and CRC32; digest() was already called for Keccak-based SHA3)
-- [Phase 08]: 08-03: No production code changed; client/worker-core import sets untouched for 08-04 boundary guard
-- [Phase 08]: 08-04: boundary guard specifier regex covers from/bare/dynamic import()/require(); guard test excludes itself from the walk
-- [Phase 08]: UAT: worker client returns raw `Uint8Array` digests — Phase 9 UI must hex/Base64 via `lib/hash/format.ts`; Firefox + Safari module-Worker smoke passed manually
-- [Phase 08]: 08-05: Production proof uses mandatory node:crypto/zlib oracles for all 10 algorithms; supersede bound stays 2000 ms; CI runs test:e2e:prod sequentially after test:e2e
-- [Phase 09]: Copy link is absolute and capped at 2,000 encoded chars (inclusive); disabled for empty text; URL never auto-written
-- [Phase 09]: Registry/FAQ privacy wording limited to "Hashing runs in your browser" + "The link contains your text" (D-27, unit-test enforced)
-- [Phase 09]: Esc restores the sample but stashes typed text for "Restore your text"; Esc ignores open dialogs and IME composition
-- [Phase 09]: Skeleton heights pinned (2240px @320, 1612px @1280) for zero CLS
-- [Quick 261017-cnt]: origin/main (Config Syntax Highlighter, PRs #14/#15) merged into the v1.2 branch; 6 active tools, six-link nav fits at 640px
-- [Phase 09]: 09-01: sample digests stored as hex constants; 150 ms debounce only above 1 MiB; soft-cap copy per D-07a; select-on-focus selects sync + rAF with mouseup guard
-- [Phase 09]: 09-02: onmessageerror optional on WorkerLike; postMessage throw keeps worker, messageerror tears it down
-- [Phase 09]: Hash slug 'hash' registered as public sitemap URL (D-25); registry description limited to 'in your browser' privacy wording, guarded by unit test (D-27)
-- [Phase 09]: 09-04: Copy-all format state lives inside OutputToolbar; payloads joined with newline, no trailing newline; checksum lines always lowercase hex with two-space dash; encoding is display-only and never re-hashes (CRC32 stays hex under Base64)
-- [Phase 09]: 09-05: BSD tag parsed via lastIndexOf(')') + anchored tail regex (linear), 0x strip applied to hex candidate only, base64url folded to standard Base64
-- [Phase 09]: 09-08: privacy-adjacent FAQ answer limited to the two approved D-27 statements, pinned by exact-equality test
-- [Phase 09]: 09-08: worked-example digest lines use whitespace-pre-wrap so the two-space sha256sum separator survives
-- [Phase 09]: 09-06: Copy link is absolute (origin + /tools/hash?text=), disabled for empty text, cap of 2,000 encoded chars is inclusive; ?text= is read once and never written
-- [Phase 09]: 09-07: copy-chord Shift/Alt guard lives in the shared useKeyboardShortcut hook; Esc ignores open dialogs; Restore your text stashes Esc-replaced text until next edit
-- [Phase 09]: Hash skeleton pinned to measured island heights 2240px/1612px (09-09)
-- [Quick 261017-f4s]: digests render with text-rendering:geometricPrecision so Linux Chromium wraps like macOS (skeleton pins hold cross-platform); CI e2e job removed by user decision to save Actions minutes — test:e2e and test:e2e:prod are local-only (supersedes 08-05 CI note)
+- [Roadmap v1.3]: The user set the phase order: About + Config parity + `<summary>` Enter fix (10) → Subnet compaction (11) → `lib/password` core (12) → password UI. The UI work is split into Phase 13 (random-password page, options, copy/batch, URL, keyboard, output hygiene) and Phase 14 (passphrase, strength/crack time, registry/nav, SEO/About, Lighthouse), so the tool is only advertised in the nav once it is complete
+- [Roadmap v1.3]: Phase 12 owns PWD-04 only. Its success criteria cover the library guarantees behind PWD-07/POUT-03 (shown to users in 13) and PHR-01..03/STR-01..04 (shown to users in 14)
+- [v1.3 scoping]: EFF Large list kept unmodified (7,776 words) with an FAQ note on its 4 hyphenated words; Config icon `FileTerminal`; Subnet gate 1366×650 + 1280×600; length 4–128 (20), words 3–20 (6), batch 1–20; strength from settings, no zxcvbn; zero new dependencies
+- CI merge gate = typecheck/lint/test/build only (e2e job removed 2026-10-17); run `npm run test:e2e` and `npm run test:e2e:prod` locally before merging
+- Hash skeleton pins (2240px @320, 1612px @1280) depend on `text-rendering: geometricPrecision` on digest rows — re-measure if digest typography changes
+- Outside contributions (e.g. KoffeePi's Config highlighter) can land on GitHub `main` independently — fetch and merge `origin/main` before starting new work
+- [Phase 10]: 10-01: ToolAbout takes worked-example markup as children; FaqJsonLd colocated in components/ToolAbout.tsx; plain border-t separator
+- [Phase 10]: Unknown tool icons throw (assertToolIcon + Object.hasOwn) instead of falling back to Fingerprint; icon names unique across registry
+- [Phase 10]: Enter guard keys on closest('summary') only (INFO-04); focusable content inside an open disclosure behaves like non-interactive elements
+- [Phase 10]: 10-03: Config privacy FAQ answer is exactly 'No.' + shipped footer sentence + strip-secrets tip (D-15); rich copy phrased 'should keep' (D-17); ConfigExample uses the server path with shared lib/config/token-classes
+- [Phase 10]: 10-04: Config led as tracer; its 320px overflow is measured on the About section, not documentElement
+- [Phase 10]: 10-05: About guard compares repo-relative posix paths and scans only non-comment lines; JS-off parity assertions live once in tests/e2e/helpers/about-parity.ts for reuse on the production build
+- [Phase 10]: 10-06: 320px About overflow measured on the section (scrollWidth + right edge), not documentElement; hash alone keeps the document-level check
+- [Phase 11]: Subnet main widens to max-w-6xl at lg; CIDR block shares a row with the hero; field cards are one row with 3 columns at lg (P-1, P-3, P-4)
+- [Phase 11]: 12px IPv4/IPv6 family badge stays 12px; SUBNET-10 reworded to body text (U-1)
+- [Phase 11]: Lighthouse before/after capture deferred to milestone UAT after Phase 14; SUMMARY holds PENDING rows (U-2)
+- [Phase 12]: Password option normalization lives in charset.ts with resolveAlphabet; ToolOptions field names and constants are the cross-phase contract
+- [Phase 12]: 12-02: random.ts unchanged; all SC-2 proofs (rejection boundaries, byte cap, fail-closed Web Crypto, import silence) pass against the 12-01 implementation; generateBatch clamps count via clampBatchCount
+- [Phase 12]: Plan 12-03: one-string pool (symbols-only, 1 symbol) has exactly 0 bits; entropy property asserts >= 0, never overstated
+- [Phase 12]: 12-04: loader memo stores and compares the same promise (RESEARCH Pattern 4 sketch never cleared); eff-large.ts pinned by joined and raw SHA-256; licence header wording is a human-check for milestone UAT
+- [Phase 12]: 12-05: parseOptions always hands URLSearchParams a string with exactly one leading '?' so '??x' keeps a '?x' key; serializeOptions returns '' for defaults with no leading '?'
+- [Phase 13]: 13-01: Password island generates only in a lazy initializer (unguarded window read) and handlers; every throw fails closed with an error panel and no password
+- [Phase 13]: 13-01: Skeleton heights h-[1000px] sm:h-[732px] and hero h-[124px] are provisional estimates; 13-06 pins them
+- [Phase 13]: 13-02: commit() path writes the options-only URL (replaceState null) synchronously between setOptions and generation; a bookmarked mode=passphrase is dropped by the mount rewrite until Phase 14
+- [Phase 13]: 13-03: page guards duplicate Phase 12 helpers; barrel-only import rule strict for Phase 13 (Phase 14 must relax for word-list loader)
+- [Phase 13]: 13-04: Live region announcements follow the copy hook copied flag via setTimeout(0) effects, never the click; StatusPhrase union admits fixed phrases only
+- [Phase 13]: 13-04: Accepted gaps: same-target double copy within 2s not re-announced; clipboard write resolving after Regenerate may briefly show Copied!
+- [Phase 13]: 13-05: Esc reuses commit(DEFAULT_OPTIONS) plus draft resets (no remount, focus kept); copy chord handler undefined unless exactly one result, with a local getSelection guard; lib/hooks unchanged
+- [Phase 13]: 13-06: skeleton pinned h-[980px] sm:h-[712px] from measured 977.9/708.4px; final pin and CLS gate deferred to Phase 14
+- [Phase 14]: 14-01: loaded EFF list is cached even when its load continuation is stale; only applying the result is token-gated
+- [Phase 14]: 14-01: Esc keeps the current mode; page-guards allow exactly @/lib/password/wordlist from the island
+- [Phase 14]: 14-02: FAQ and worked example share defaultFigures/aboutTime from faq-data.ts; production flight leak scan exempts RSC element references ($hex:props:children...) emitted by the About chevrons
+- [Phase 14]: 14-03: mount-time passphrase load deferred a tick and cancelled in effect cleanup so StrictMode awaits one load; Retry reloads page only for ChunkLoadError
+- [Phase 14]: 14-04: strength level from raw bits and all figures floored via formatBits (append-number shows 80 bits, not 81); scenario is display-only island state reset by Esc
+- [Phase 14]: 14-05: Esc keeps the current mode; word-count draft mirrors Length rules; shared RangeRow/BatchCountRow for both panels
+- [Phase 14]: 14-06: repeat-copy re-announce via post-copy counters in island/rows; lib/hooks unchanged
+- [Phase 14]: Password sorts last in nav/grid/sitemap (featured first, then name), not between MAC and Subnet; nav links use px-2 (23.4px slack at 640px)
+- [Phase 14]: 14-08: Skeleton pinned to measured default island (1374px base, 960px sm); passphrase hero pin 178px base, 122px sm for word-list loading/error; default CLS gate held at 0.001
 
 ### Pending Todos
 
@@ -148,7 +186,10 @@ None yet.
 
 ### Blockers/Concerns
 
-- Accepted (2026-10-17): analytics `redactBeforeSend` passes events through untouched when there's no `?`, so URL-fragment state would bypass redaction — no tool uses fragments today; INTG-03 descoped with Phase 10.
+- [v1.3]: The STR-02 example in REQUIREMENTS.md ("84 chars · 128 bits") doesn't match the PWD-05 default symbol set. That set has 23 symbols, so the default pool is 85 (about 128.2 bits at 20 chars). Displayed and FAQ numbers must come from `lib/password` constants, not from the requirement text
+- [v1.3 Phase 14]: The password privacy/clipboard FAQ wording needs explicit human approval (PREG-02; legal/privacy text is a human gate)
+- [Phase 10]: Code review WR-01/WR-02 open (advisory) — global Ctrl/Cmd+C and Esc still fire on selected About text / focus inside About; WR-03: prod About parity spec not in CI (Playwright removed from CI 2026-10-17). Manual checks pending: Safari chevron, VoiceOver, CLS re-measure (D-18)
+- Accepted (2026-10-17): analytics `redactBeforeSend` passes events through untouched when there's no `?`, so URL-fragment state would bypass redaction — no tool uses fragments today; v1.3 password state must stay in query params, never `#fragment`
 - Tech debt carried from v1.0: `/api/mac-vendor` interim API-proxy (build-time OUI dataset is the intended architecture); no rate limiting on it (AR-05-01); related-tool links and a per-tool accessibility re-audit still deferred.
 - Tech debt carried from v1.1: DOM-02 redirects and DOM-04 runbook deliberately descoped — revisit if duplicate-content SEO or the `www` TLS gap becomes a priority.
 
@@ -161,18 +202,26 @@ None yet.
 
 ## Deferred Items
 
-Items acknowledged and carried forward from previous milestone close:
+Items acknowledged and deferred at milestone close, most recent first:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| *(none)* | | | |
+| deferred_items | v1.3 Phase 14/deferred-items.md: 14-04 boundary-guard failures from FAQ text (already resolved in 14-05) | acknowledged | 2026-11-12 |
+| deferred_items | v1.3 Phase 14/deferred-items.md: 14-08 site footer contrast 4.34:1 (a11y 96) and local-only /_vercel/insights 404 | acknowledged | 2026-11-12 |
+| verification_gap | Phase 08 VERIFICATION.md stale at v1.2 close (override_closeout, user choice) | acknowledged | 2026-10-17 |
+| verification_gap | Phase 09 VERIFICATION.md stale at v1.2 close (override_closeout, user choice) | acknowledged | 2026-10-17 |
+
+## Deferred Verification
+
+None. The batched UAT for phases 11-14 was completed on 2026-11-12, and the stale Phase 10, 12 and 13 reports were regenerated (all passed).
 
 ## Session Continuity
 
-Last session: 2026-10-15T18:19:54.310Z
-Stopped at: Phase 09 complete, ready to plan Phase 10
+Last session: 2026-11-12T00:13:56.895Z
+Stopped at: Phase 14 complete — all phases complete
 Resume file: None
 
 ## Operator Next Steps
 
-- Start Phase 9 with /gsd-discuss-phase 9 (or /gsd-plan-phase 9)
+
+- Start the next milestone with /gsd-new-milestone

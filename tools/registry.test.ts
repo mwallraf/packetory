@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
+import { ICONS, assertToolIcon } from "@/components/ToolCard";
 import { getSortedTools, getToolBySlug, tools } from "./registry";
 
 describe("tools/registry", () => {
   it("contains the active tool entries", () => {
-    expect(tools).toHaveLength(6);
+    expect(tools).toHaveLength(7);
     const slugs = tools.map((t) => t.slug).sort();
-    expect(slugs).toEqual(["config", "dns", "hash", "mac", "subnet", "uuid"]);
+    expect(slugs).toEqual(["config", "dns", "hash", "mac", "password", "subnet", "uuid"]);
   });
 
   it("getSortedTools() sorts by featured desc, then name asc (case-insensitive)", () => {
@@ -17,6 +18,7 @@ describe("tools/registry", () => {
       "dns",
       "hash",
       "mac",
+      "password",
     ]);
   });
 
@@ -51,6 +53,7 @@ describe("tools/registry", () => {
       mac: "active",
       hash: "active",
       config: "active",
+      password: "active",
     });
   });
 
@@ -73,5 +76,17 @@ describe("tools/registry", () => {
     ]) {
       expect(description).not.toContain(forbidden);
     }
+  });
+
+  it("every registered icon has an explicit ICONS entry (CFG-03)", () => {
+    for (const tool of tools) {
+      expect(Object.hasOwn(ICONS, tool.icon), `${tool.slug}: ${tool.icon}`).toBe(true);
+      expect(() => assertToolIcon(tool.icon)).not.toThrow();
+    }
+  });
+
+  it("Config uses FileTerminal and no two tools share an icon (CFG-03)", () => {
+    expect(getToolBySlug("config")?.icon).toBe("FileTerminal");
+    expect(new Set(tools.map((t) => t.icon)).size).toBe(tools.length);
   });
 });

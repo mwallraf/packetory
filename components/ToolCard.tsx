@@ -1,9 +1,11 @@
 import Link from "next/link";
 import {
   Cpu,
+  FileTerminal,
   Fingerprint,
   Globe,
   Hash,
+  KeyRound,
   Network,
   type LucideIcon,
 } from "lucide-react";
@@ -21,15 +23,30 @@ import type { ToolDefinition } from "@/tools/registry";
 /**
  * Maps a registry `icon` string (project-brief.md §8.1) to its lucide-react
  * component. Every icon referenced by tools/registry.ts MUST have an entry
- * here.
+ * here, and a missing one throws (CFG-03: no silent fallback to another
+ * tool's icon).
  */
-const ICONS: Record<string, LucideIcon> = {
+export const ICONS: Record<string, LucideIcon> = {
   Fingerprint,
   Network,
   Globe,
   Cpu,
   Hash,
+  FileTerminal,
+  KeyRound,
 };
+
+/** Throws unless `name` is an own-property ICONS entry (prototype keys such
+ * as `toString` never resolve). A void assertion, not a component-returning
+ * helper, so `const Icon = ICONS[name]` stays lint-clean under
+ * react-hooks/static-components. */
+export function assertToolIcon(name: string): void {
+  if (!Object.hasOwn(ICONS, name)) {
+    throw new Error(
+      `Unknown tool icon "${name}": add it to ICONS in components/ToolCard.tsx`
+    );
+  }
+}
 
 const CATEGORY_LABELS: Record<ToolDefinition["category"], string> = {
   network: "Network",
@@ -40,7 +57,8 @@ const CATEGORY_LABELS: Record<ToolDefinition["category"], string> = {
 };
 
 export function ToolCard({ tool }: { tool: ToolDefinition }) {
-  const Icon = ICONS[tool.icon] ?? Fingerprint;
+  assertToolIcon(tool.icon);
+  const Icon = ICONS[tool.icon];
   const isPlanned = tool.status === "planned";
   const href = `/tools/${tool.slug}`;
   const isNavigable = !isPlanned;

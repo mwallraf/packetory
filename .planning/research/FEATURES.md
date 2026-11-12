@@ -1,258 +1,296 @@
 # Feature Research
 
-**Domain:** Online hash generator / checksum tool (text + file, fully in-browser) — new tool `/tools/hash`, milestone v1.2
-**Researched:** 2026-10-14
-**Confidence:** MEDIUM-HIGH (competitor surveys partly from live fetches of sha1-online.com and emn178 online-tools, partly from domain knowledge of CyberChef / it-tools / browserling / md5hashgenerator-style tools whose pages could not be fully fetched; behaviors of Web APIs and hash conventions are HIGH)
+**Domain:** Online password / passphrase generator (fully local), plus tool-page "About" collapsibles, Config-tool SEO parity, and Subnet layout compaction — milestone v1.3
+**Researched:** 2026-11-11
+**Confidence:** MEDIUM-HIGH. Bitwarden (SDK + clients source), KeePassXC (source) and the EFF wordlist (downloaded and measured) are HIGH. LastPass is MEDIUM (page fetched, but length range/default not stated). 1Password and passwordsgenerator.net are LOW-MEDIUM: official pages were unreachable, so findings come from forum posts and recollection. Google FAQ/hidden-content stance is HIGH for the rich-result removal and MEDIUM (secondary reporting) for collapsed-content weighting.
 
-Scope note: this file covers ONLY what the Hash Generator adds. Existing shell, registry, copy hook (`useCopyToClipboard`), keyboard hook (`useKeyboardShortcut`), SEO/FAQ pattern, URL-state-via-History-API pattern and analytics allow-list are reused, not re-researched.
+Scope note: this file covers ONLY what v1.3 adds. The shell, registry, `useCopyToClipboard`, `useKeyboardShortcut`, the Server-shell + `next/dynamic(ssr:false)` client-island pattern, History-API URL state, the safe-by-default analytics allow-list, and the per-tool SEO/FAQ pattern are reused, not re-researched. The v1.2 hash research is in git history.
 
-## How the Domain Works (survey summary)
+---
 
-| Site | Model | Notable behavior |
-|------|-------|------------------|
-| sha1-online.com (user's reference) | One text box, huge algorithm list (SHA-1/256/384/512, MD2/4/5, RIPEMD-128..320, Tiger, HAVAL, Whirlpool, Snefru, GOST, Adler-32, CRC32/32b), hash shown after submit | Dated, ad-laden, long exotic-algorithm tail. The "all algorithms on one page" idea is what to copy; the look and the submit-button friction are what not to. (HIGH, live fetch; interactive controls did not render in the fetch, so file/compare/HMAC absence is unverified) |
-| emn178 online-tools | One page per algorithm + separate "File Checksum" page per algorithm | Input encoding selector (UTF-8, UTF-16LE/BE, Hex, Hex-ignore-non-hex, Base64, many legacy code pages), output encoding (hex lower, hex UPPER, Base64), Auto Update toggle, Remember Input, Enable HMAC + key field with own encoding, Share Link button, text and file split across separate pages. (HIGH, live fetch) |
-| CyberChef | Recipe pipeline | "Generate all hashes" op lists ~50 hashes at once; HMAC op; input/output encoding via separate From/To Hex/Base64 ops; powerful but not zero-effort. (MEDIUM, domain knowledge) |
-| it-tools.tech "Hash text" | Single text box, shows MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512, SHA-3, RIPEMD-160 simultaneously, digest-encoding dropdown (Hex/Base64/Base64url/Bin), each row has a copy button | Closest to Packetory's "all at once, live" target. Text only; no file mode. (MEDIUM, from memory; fetch returned only the title) |
-| md5hashgenerator-style / browserling | Single algorithm per page, submit button, often server-side | Reason users distrust them for sensitive data; "runs in your browser" is a selling point. (MEDIUM) |
-| Checksum verifiers (sgalinski SHA-512 Verifier, abacktools Integrity Checker, octoclip File Integrity, elysiatools) | File (+ text) in, paste expected hash, big MATCH/MISMATCH | Algorithm often inferred from hash length; strips spaces/colons/dashes; some accept `sha256:` prefix; side-by-side display; no site found highlighting differing characters. (MEDIUM, web search) |
+## Part 1 — Password Generator (`/tools/password`)
 
-The dominant user jobs, in order: (1) "give me the MD5/SHA-1/SHA-256 of this string" (2) "what is the checksum of this downloaded file, and does it match what the vendor published" (3) "debug why my hash differs from the other system's" (newline / encoding / case / HMAC). Packetory's all-at-once, live, zero-submit model serves (1) by default; (2) and (3) are where the differentiators live.
+### How the domain works (survey summary)
 
-## Feature Landscape
+| Product | Model | Verified behavior |
+|---------|-------|-------------------|
+| **Bitwarden** (web/ext/SDK) | Password and Passphrase as two modes. | Password defaults (clients repo): length 14, upper+lower+digits on, special OFF, min 1 per enabled set (min number 1, min special 0). Newer SDK default: length 16, special off, "avoid ambiguous" off. Boundaries: length 5–128, min digits/special 0–9, SDK rejects length < 4. **"Avoid ambiguous" removes exactly `I O l 0 1`.** Special set is only `!@#$%^&*` (8 chars; users complain). Each enabled set is guaranteed at least `max(min,1)` chars by sampling that many from the set, then filling the rest from the union and shuffling (Rust `SliceRandom::shuffle`). **No sets enabled returns an error** (`NoCharacterSetEnabled`). Passphrase defaults: **6 words, `-` separator, capitalize OFF, include number OFF**; "include number" adds a single digit. (HIGH) |
+| **KeePassXC** | Basic/Advanced toggle for passwords, separate Passphrase tab; live entropy display and quality label. | Advanced has an "Exclude look-alike characters" checkbox and a "Pick characters from every group" checkbox. **Look-alike set: lower `l`; upper `B G I O`; digits `0 1 6 8`; pipe `\|`** (plus one EASCII char). Pick-from-every-group: one char per non-empty group, fill remainder from the union, then Fisher-Yates shuffle; minimum length = number of groups. Invalid settings (no group and no custom set, length ≤ 0, exclusions empty a group) make the generator "invalid", with no fallback. **Passphrase defaults: 7 words, space separator, EFF large wordlist**; entropy = `words * log2(listSize)`. **Quality bands (bits): Poor < 40, Weak 40–74, Good 75–99, Excellent ≥ 100.** (HIGH) |
+| **LastPass** web generator | One panel: length, Uppercase/Lowercase/Numbers/Symbols toggles, Generate, Copy with "Copied" confirmation. | Strength label Weak/Average/Strong from **zxcvbn**; says "at least 15 characters". Length range/default not stated on the page. (MEDIUM) |
+| **1Password** web/ext | Types: Random, Memorable (words), Smart, PIN. | Reported default ~19–20 chars with digits and symbols. Memorable separators: hyphens, spaces, periods, commas, underscores, numbers, numbers+symbols; Capitalize toggle. Community moderators say suggestions optimize entropy, not length. (LOW-MEDIUM, forum sources) |
+| **passwordsgenerator.net** | Long single-page form. | Site unreachable during research; from prior knowledge it has include symbols/numbers/lower/upper, "exclude similar characters", "exclude ambiguous characters", "generate on your device", "no duplicate characters", auto-copy, print. (LOW — treat as design inspiration for the anti-feature list only) |
+
+**Pattern across all of them:** the settings panel is the product. Output is one monospace string plus a copy button and a regenerate button. The sophisticated ones always guarantee that every enabled set appears, expose length as slider+number, and show strength as a derived number. The cluttered ones (passwordsgenerator.net family) accumulate checkbox options (no duplicates, no sequential, auto-copy, print) that either reduce entropy or surprise the user.
+
+### Behavioral spec the roadmap should lock (derived from the survey)
+
+| Question | What competitors do | Recommendation for Packetory |
+|----------|--------------------|------------------------------|
+| Guarantee at least one char from each enabled set? | Bitwarden: always (min 1). KeePassXC: opt-in checkbox. | **Always on, no toggle.** Sites reject passwords missing a class; cost is negligible (~0.17 bits at 20 chars / 4 sets, computed). Algorithm: pick 1 from each enabled set, fill the rest from the de-duplicated union, Fisher-Yates shuffle, all with rejection-sampled `crypto.getRandomValues` (no `% n` bias). |
+| Per-set minimum counts (min digits/symbols)? | Bitwarden 0–9, 1Password counts. | **Defer** (see anti-features). The "≥1 per set" rule covers 95% of site policies. |
+| Length bounds | Bitwarden 5–128 (SDK floor 4); KeePassXC wide. | **4–128**, hard-clamped; effective minimum = number of enabled sets. Default **20**. Slider + numeric input kept in sync; out-of-range typed values clamp on blur, never show an error. Short lengths are allowed but the meter shows them as Weak (honesty beats paternalism). |
+| All sets disabled | Bitwarden/KeePassXC: error/invalid/disabled Generate. | **Make the state unreachable.** The last enabled set's toggle is disabled with an explanatory `title`/helper text ("At least one character set is required"). Same rule for an emptied or fully-filtered custom symbol set: revert to the default symbol set on blur and note it. A URL with zero sets falls back to defaults. This preserves "always a result on screen". |
+| Look-alike set | Bitwarden `I O l 0 1`; KeePassXC `l B G I O 0 1 6 8 \|`. | **Remove `0 O o 1 l I \|`** (7 chars). Bitwarden's set plus lowercase `o` (the Bitwarden docs text itself names "0 and o") and pipe. Do NOT adopt KeePassXC's `B G 6 8` (too aggressive; shrinks digits to 6). Apply the filter to the final pool (after union and custom symbols), then recompute pool size for entropy. Label it "Avoid look-alikes" with a tooltip listing the removed chars. Default OFF (maximizes entropy; matches Bitwarden). |
+| Default symbol set | Bitwarden 8 chars `!@#$%^&*`. KeePassXC many groups. | **`!@#$%^&*()-_=+[]{};:,.?`** (23): excludes quotes, backslash, backtick, `/`, `<>`, `~`, `\|` that sites and shells commonly mishandle. Editable field (printable ASCII 0x21–0x7E only, whitespace stripped, duplicates removed, length-capped ~40). |
+| Strength tiers | KeePassXC bits bands; LastPass/Bitwarden zxcvbn score. | See Strength meter below. |
+| Passphrase defaults | Bitwarden 6 / `-` / off / off. KeePassXC 7 / space. | **6 words, `-` separator, Capitalize OFF, Append number OFF**, EFF long list (7776 words, 12.92 bits/word → 77.5 bits). Word count 3–20. Separator is a short free-text field (max ~3 chars, may be empty) with preset chips (`-` space `.` `_` `,`). |
+| Batch | Not offered by most managers; common on web generators. | 1–20, default 1. Batch list rows each have a Copy; one "Copy all" (newline-joined). |
 
 ### Table Stakes (Users Expect These)
 
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| All ~10 algorithms computed at once, shown as labeled rows | sha1-online.com and it-tools both do this; users hate re-picking an algorithm | LOW (UI) / MEDIUM (lib) | Proposed set MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-512, RIPEMD-160, CRC32. See "Algorithm list sanity check" below |
-| Live hashing as you type, no submit button | Packetory core value; it-tools and emn178 "Auto Update" do this | LOW | Text hashing is microseconds. Use synchronous compute (or `useDeferredValue`) below a byte threshold (suggest ~256 KB), debounce/worker above it, so pasting a large blob never janks typing |
-| Non-empty default result on load | Brief non-negotiable (zero-effort default) | LOW | Pre-fill a recognizable sample (e.g. `hello world`) with the textarea text pre-selected on focus so first keystroke replaces it. Same demo-on-load pattern as the other 4 tools. Do NOT default to empty (empty-string hashes are valid but read as "broken" to a first-time visitor); mention the empty-string hashes in the FAQ/worked example instead |
-| Per-hash copy button with visible confirmation | Brief non-negotiable | LOW | Reuse `useCopyToClipboard`; one button per row |
-| Copy all | Existing convention across all 4 tools | LOW | See export-format discussion below; default is labeled lines |
-| Lowercase/UPPERCASE hex toggle | emn178 has it; vendors publish either case; sha1-online users expect to match a published upper-case digest | LOW | Reuse the UUID tool's case toggle (`toggle-group`). Default lowercase (what `sha256sum` prints). Toggle only affects display/copy, never recomputes |
-| Text input is UTF-8 and says so | Every serious tool states encoding; most "hash differs" support questions are encoding | LOW | Show "N bytes (UTF-8)" under the textarea. Cheap, high trust |
-| File input: drag-and-drop + picker, never uploaded | User-locked scope; privacy is the core reason to use a local tool | MEDIUM | Visible "processed in your browser, never uploaded" copy. Picker must be keyboard-operable (a real `<button>` triggering a hidden `<input type=file>`); drop zone is a bonus, not the only path |
-| Streaming/incremental file hashing (never `file.arrayBuffer()` of the whole file) | Multi-GB ISOs are the canonical use case; whole-file buffering crashes tabs | MEDIUM-HIGH | Web Crypto `digest()` is one-shot only (no incremental API) and lacks MD5/SHA-3/RIPEMD/CRC32 anyway, so a library with `update()`/`digest()` streaming is mandatory. Read via `Blob.stream()` or `slice()` chunks (e.g. 1-4 MB). One pass over the file feeds all 10 hashers |
-| File progress indicator + cancel | Hashing 1 GB x 10 algorithms can take tens of seconds; no feedback looks hung | MEDIUM | Determinate progress bar (bytes read / size), filename and size shown, Cancel button and `Esc` cancel. Must be CLS-free (reserve space) |
-| Main thread stays responsive during file hashing | Page hang is unacceptable for "keep it open as a bookmark" tool | MEDIUM-HIGH | Web Worker strongly recommended (library choice affects this: pure-JS SHA-3 is slow, WASM much faster per hash-wasm's own benchmarks; directional only, re-benchmark in STACK). Worker bundling under Next 16 (`new Worker(new URL(...))`) is a phase-planning risk |
-| Clear/reset | Existing convention (`Esc` resets) | LOW | `Esc` clears text, drops file, cancels in-flight hashing, restores sample |
-| Correctness verified against published test vectors | Wrong hash = total loss of trust; brief demands boundary testing | MEDIUM | NIST/RFC vectors (empty string, `abc`, million-`a`), plus multi-chunk file test proving chunked == one-shot at chunk boundaries (0, 1, chunk-1, chunk, chunk+1 bytes) |
-| Per-tool SEO: title/meta/OG, worked example, FAQ + FAQPage JSON-LD | Existing convention on every tool | LOW | FAQ gold mines: "Why is my hash different from `sha256sum`?" (trailing newline), MD5/SHA-1 not for security, SHA3-256 vs Keccak-256, is my data uploaded, how to verify a download |
-| Mobile 320px, light/dark, CLS-free | Existing non-negotiable | LOW-MEDIUM | 10 rows of 64-128 hex chars: must wrap (`break-all`) at 320px; SHA-512/SHA3-512 are 128 chars |
-| Registry entry (nav, landing card, sitemap automatic) | Architecture intent | LOW | One `tools/registry.ts` entry. Note `category` union has no "crypto/hash" member (`"network" \| "dns" \| "web" \| "encode" \| "generate"`); use `"encode"` or add a member if the landing page groups by category (small touch to a shared type, check `registry.test.ts`) |
+| Random 20-char password visible on load | Core value; every generator shows one immediately | LOW | Client-only generation → follow Server-shell + `ssr:false` island; reserve a fixed-height output block to avoid CLS (the same pinned-skeleton lesson as hash). Never SSR a random value (hydration mismatch). |
+| Length control (slider + number input), 4–128 | Universal | LOW | Slider must be keyboard-operable (arrow keys) and labeled; `/` focuses the number input. |
+| Upper / lower / digits / symbols toggles | Universal | LOW | Use existing `Switch`/`Toggle`; last-enabled guard (see spec). |
+| At least one char from each enabled set | Sites reject otherwise; Bitwarden/KeePassXC both implement | LOW-MEDIUM | The only subtle part of the generator; unit + property tests (every output contains each enabled set; every char ∈ pool; length exact). |
+| Unbiased CSPRNG sampling | Trust; "Math.random()" generators are the classic red flag | LOW-MEDIUM | `crypto.getRandomValues` + rejection sampling (`Uint32Array`, reject ≥ largest multiple of n) and Fisher-Yates with the same unbiased `randInt`. Chi-square/bounds sanity test with a stubbed RNG. |
+| Avoid look-alikes option | Bitwarden/KeePassXC/passwordsgenerator.net all have it | LOW | Definition above. Must also filter custom symbols. |
+| Editable symbol set | Sites restrict allowed symbols; brief requires it | LOW-MEDIUM | Normalize on blur/change: strip whitespace, drop non-printable-ASCII, dedupe (entropy would be overcounted otherwise), cap length. Empty → revert to default. |
+| Passphrase mode: word count, separator, capitalize, append number | Bitwarden/KeePassXC/1Password all have these | MEDIUM | EFF long list (62 KB raw words / ~24.5 KB gzip, measured). Lazy-load via dynamic `import()` only on Passphrase selection (or idle prefetch); show reserved-height placeholder if URL opens in passphrase mode. |
+| Regenerate button + Enter shortcut | Universal | LOW | Reuse `useKeyboardShortcut` `enter` (existing native-button focus guard applies). |
+| One-click copy with visible confirmation | Project non-negotiable | LOW | Reuse `useCopyToClipboard`; per-row copy in batch plus Copy all; `aria-live` confirmation like UUID/Subnet. |
+| Strength meter (bits + label) | KeePassXC/LastPass/Bitwarden all show strength | LOW-MEDIUM | Entropy-based from settings (see below). Text label + bits, not color alone. |
+| Crack-time estimate | Brief requirement; cheap trust signal | LOW | Single stated assumption (see below). |
+| Batch 1–20 | Brief requirement | LOW | Reuse UUID batch patterns (count input, list, copy-all). Copy-all newline-joined. |
+| Options-only bookmarkable URL state | Existing convention; brief requirement | LOW-MEDIUM | `replaceState` via History API (Key Decision). Params: mode, len, sets (u/l/d/s), symbols (custom), amb, count, words, sep, cap, num. **Never write the password.** Strict parse+clamp on load; invalid values fall back to defaults silently. Params are not on the analytics allow-list, so they are excluded automatically (verify with a redact test). |
+| Keyboard-first | Project non-negotiable | LOW | `/` focus length, `Enter` regenerate, `Esc` reset options to defaults, Ctrl/Cmd+C copies single result when focus is not in an editable field. In batch mode follow the UUID precedent: the shortcut copy is disabled where there is no visible confirmation, or copy the first item with a confirmation. |
+| 320px / light-dark / no CLS | Existing non-negotiable | LOW-MEDIUM | 128-char passwords must `break-all`; use `text-rendering: geometricPrecision` (hash lesson) so Linux/macOS wrap identically and pinned heights hold. |
+| Registry entry + SEO + worked example + FAQ/JSON-LD | Architecture intent | LOW | One `tools/registry.ts` entry (`category: "generate"`, new icon, e.g. `KeyRound`) — **and add the icon to `ICONS` in `components/ToolCard.tsx`**, which silently falls back to `Fingerprint` (UUID's icon) when missing. |
 
 ### Differentiators (Competitive Advantage)
 
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| **Paste-to-verify: expected-hash box that highlights the matching row** | The single most common reason people hash a file is to compare with a published checksum. Competitors make you eyeball 64 hex chars. Because we compute ALL algorithms, no algorithm picker is needed: paste any digest, and whichever row equals it lights up with a clear MATCH badge; none equal = clear "no match" state | LOW-MEDIUM | Normalize pasted value: trim, lowercase, strip whitespace/colons/dashes, strip `sha256:`-style prefix, and accept a whole `sha256sum` line (`<hash>  <filename>`: take first token). Also accept Base64 form of a digest (compare both encodings). Ambiguities to handle explicitly: 40 hex = SHA-1 or RIPEMD-160, 64 hex = SHA-256 or SHA3-256, 128 hex = SHA-512 or SHA3-512 — match against every row, highlight all that equal (collisions are impossible in practice). Non-hex/wrong-length input shows a hint ("looks like 12 chars, expected 8/32/40/56/64/96/128"), not a red error. Comparison need not be constant-time (local, nothing secret). Accessibility: match result must be conveyed by text + icon + `aria-live`, not color alone. Differing-character highlighting (diff) is a nice-to-have, not required |
-| Byte-exact trailing-newline guidance (the `echo` vs `echo -n` gotcha) | #1 "my hash doesn't match the CLI" cause. A textarea never adds a trailing newline; `echo foo \| sha256sum` hashes `foo\n` | LOW | Cheapest valuable option: a one-line hint near the input + FAQ entry. Optional upgrade: "Append trailing newline" toggle (hashes `text + "\n"`), default OFF, shown in byte count. Related hidden trap: `textarea.value` normalizes CRLF to LF, so pasting Windows-line-ending text silently changes the bytes; file mode is the exact path. State this in FAQ. A "line ending: keep LF / convert to CRLF" control is an anti-feature at this scope |
-| `sha256sum`-compatible copy format | Engineers paste straight into a `SHA256SUMS` file or a README | LOW-MEDIUM | Export formats via the same toggle pattern as UUID (text / CSV / JSON): (1) **Labeled list** default: `SHA-256: <hex>` per line, (2) **Checksum format** `<hash>  <filename>` (two spaces, GNU coreutils; filename `-` for text input, matching `sha256sum` stdin), emitted per algorithm that has a coreutils equivalent (`md5sum`, `sha1sum`, `sha224sum`, `sha256sum`, `sha384sum`, `sha512sum`; others get a `# ALGO` comment or are omitted), (3) JSON. Do NOT offer CSV (filenames are free text: CSV/spreadsheet formula-injection risk, see UUID decision T-02-06 which only accepted it because the alphabet was hex+hyphen). Uses the file's real name; GNU escapes backslash/newline in filenames with a leading `\`, handle or strip |
-| Base64 output (plus hex) | Needed for SRI (`integrity="sha384-..."`), HTTP `Digest`/`Content-MD5` headers, JWT/JWS-ish debugging; emn178 and it-tools offer it | LOW | Output-encoding toggle: Hex lower / Hex UPPER / Base64 (one control subsumes the case toggle, mirrors emn178). Bonus within scope: a "SRI" copy format for SHA-256/384/512 (`sha384-<base64>`), very developer-relevant and tiny |
-| HMAC mode | Devs debug webhook signatures (GitHub/Stripe style HMAC-SHA256) here; emn178 and CyberChef have it; sha1-online does not | MEDIUM | Key field + "Enable HMAC" toggle; applies to the 8 cryptographic hashes (not CRC32, shown as "n/a" and greyed). Web Crypto HMAC handles SHA-1/256/384/512 only, so MD5/SHA-224/SHA-3/RIPEMD need library HMAC. **Privacy: key must never be written to the URL, never in analytics.** Text-only vs also files: allow both only if lib supports streaming HMAC (it does via `update()`), else text-only. Recommended as P2 / "add after validation" given the ~10-algorithm lock and zero-effort ethos; it also adds a second input and error states to a currently single-input tool |
-| Input encoding selector (UTF-8 / Hex / Base64) | Lets users hash raw bytes (a pasted hex blob, a Base64 binary) without a file; emn178's headline feature | LOW-MEDIUM | Limit to 3 options (UTF-8 default, Hex, Base64). Skip UTF-16 and legacy code pages (emn178's long tail). Needs inline validation (odd-length hex, invalid Base64) with the same inline-error style as other tools. P2 |
-| Algorithm-aware hints per row | Security-literate users appreciate honesty | LOW | Small badge on MD5/SHA-1 ("not collision-resistant, fine for checksums, not for security") and CRC32 ("error-detection only"), plus a note that the page is not for password storage (use bcrypt/Argon2). Pure copy/FAQ, no logic. Also doubles as SEO content |
-| Hash both file *and* text in one page without mode switching | emn178 splits text and file across separate pages; one page is simpler | LOW-MEDIUM | Drop a file onto the page → the input area shows filename/size/progress and results rows update; "Clear" returns to text mode. Single state machine `idle(text) \| hashing(file) \| done(file)` |
-| Explicit "Copy share link" (instead of live URL sync) | Bookmarkable state requirement without leaking secrets | LOW | See privacy discussion below |
-| Hashing shortcuts consistent with other tools | Keyboard-first parity | LOW | See keyboard section below |
+| **Settings-driven strength meter (no zxcvbn)** | For machine-generated secrets entropy is exact: `L*log2(N)` (passwords) or `W*log2(7776) (+3.32 if number)`. zxcvbn is both heavy and meaningless on truly random strings. The meter is also stable across Regenerate (depends on settings, not the specific output), so no flicker or repeated screen-reader chatter | LOW | Count capitalize as 0 bits; count separator as 0 bits; count the appended digit as `log2(10)`; count pool size after dedupe and look-alike filtering. Optional exact count with the ≥1-per-set rule (inclusion-exclusion over ≤4 sets, 16 terms) — difference < 0.5 bit at defaults, so plain `L*log2(N)` is acceptable. |
+| Honest crack-time line with its assumption stated | Competitors show a label with no basis. State: "~X at 10 billion guesses/second (offline, fast hash)" | LOW | Use zxcvbn's published offline-fast-hash scenario (10^10 guesses/s) as the single assumption; expected time = `2^(H-1)/rate`. Humanize (seconds → minutes → hours → days → years → thousands/millions/billions; cap at "more than 1 trillion years"). Put the rate in the visible text, not only a tooltip; one FAQ item explains it. Optional later: a slow-hash (10^4/s) toggle. |
+| Show pool size / bit count inline ("85 characters · 128 bits") | Lets engineers sanity-check policy requirements | LOW | Same numbers feed the meter; trivial once computed. |
+| Colorized character classes in the output (digits/symbols tinted) | Bitwarden and 1Password do it; helps reading and typing manually | LOW | Redundant cue only (glyphs already distinguish), keep contrast AA in both themes; copy must copy the raw string (render spans, copy from state, not DOM). |
+| Passphrase: 4 hyphenated-word pitfall handled | EFF long list contains `drop-down`, `felt-tip`, `t-shirt`, `yo-yo` (verified in the downloaded list). With a `-` separator these look like extra words; entropy still correct | LOW | Either filter those 4 (lose log2(7776/7772) ≈ 0.0007 bits — negligible, but then say "7,772 words" honestly) or keep and note. Recommend filter, and compute entropy from the actual list length. |
+| Wordlist attribution in About | EFF lists are CC BY 3.0 (US) per third-party sources (MEDIUM) | LOW | Credit "EFF Large Wordlist" in the About area; confirm license text on eff.org before shipping. |
+| "Reset to defaults" (Esc / link) | Settings-heavy pages need an escape hatch | LOW | Mirrors Subnet/Hash `Esc` behavior. |
+| Passphrase mode keeps Password settings (and vice versa) | Toggling back and forth does not lose configuration | LOW | One state object, mode just selects which panel/generator is used. |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|-----------------|-------------|
-| Auto-writing the input text into the URL on every keystroke (as DNS/Subnet do for `?name=` / `?cidr=`) | "Bookmarkable text state" is in the milestone brief; consistent with other tools | People hash secrets: passwords, API keys, tokens, PII. A live-updating URL leaks them into browser history, tab-sync/session-restore, bookmarks, shared screenshots, copied links, and any referrer/uptime/log tooling. Unlike a CIDR it is arbitrary free text of unbounded size (URL length limits too). The existing analytics allow-list is safe by default (a `text` param would not be reported) but history/sharing exposure remains | Read `?text=` on load (so shared links work and can be demonstrated in docs/FAQ), but only **write** it from an explicit "Copy link" action, capped (e.g. <= 1-2 KB, button disabled/hint beyond that), with a one-line "link contains your text" notice. Never write file data, HMAC key, or file names. Do NOT add `text`/`key`/`hmac` to the analytics allow-list. Needs a conscious decision against the milestone's "bookmarkable text state" wording; flag in requirements |
-| Hashing the textarea contents server-side / API route | "Consistency with MAC/DNS routes" | Defeats local-first promise and privacy claim ("files never leave the browser"); adds third-party/network surface | Pure client; no `/api/hash` |
-| Uploading files for hashing (even as a fallback) | Some browsers/old devices | Breaks the one thing users trust the tool for | Streaming in-browser only; clear error for unsupported browsers |
-| Exotic algorithm tail (Tiger, HAVAL, Snefru, GOST, Whirlpool, MD2/MD4, RIPEMD-128/256/320, CRC32b ...) | sha1-online.com lists ~40 | Bloats JS/UI, 10+ rows push the answer off-screen, nobody on the target audience needs them; user locked ~10 max | Keep the 10. Mention in FAQ that Packetory deliberately shows the common set |
-| "Algorithm picker" dropdown with one result | Matches emn178's per-algorithm pages | Contradicts "all at once"; adds a click | All rows visible; verify box matches any row; page-level SEO via one strong page rather than 10 thin pages |
-| Password hashing / "bcrypt generator" / hash cracking / rainbow-table lookups / "reverse this hash" | High-traffic adjacent searches (md5 decrypt) | Reverse lookup requires server DB (third-party, privacy), cracking tools are liability; bcrypt/Argon2 are slow KDFs with salts, different UX and risk | State plainly in FAQ that hashes are one-way; link to nothing. Defer any KDF tool to a separate future tool, if ever |
-| Hashing "URL contents" (fetch a URL and hash it) | emn178 offers it | Requires CORS or a proxy, i.e. server-side fetching = SSRF/abuse surface; explicitly against "no arbitrary server-side network probing" | Not offered. Users download then drop the file |
-| Multi-file batch hashing table in v1.2 | "Verify a whole folder" | N files x 10 algos is a large UI (table, per-file progress, overall queue, memory), error and cancel states; plus ambiguity with the single-file mental model | Single file at a time (a second drop replaces the first, with the in-flight hash cancelled). Revisit later as "batch mode with ONE selected algorithm + `SHA256SUMS` export/verify" if demand appears |
-| Per-keystroke recompute of a large file or huge pasted text on the main thread | "Live everywhere" | Freezes the tab | Threshold + debounce/worker for large text; file hashing runs once per file, never per keystroke |
-| Remember input in localStorage by default | emn178 "Remember Input" | Persists potentially secret text on disk with no user awareness; contradicts the privacy-first positioning | Do not persist. If ever added, opt-in and clearly labeled |
-| Stuffing the whole result UI with ads/modals/signup | Common on competitors | Violates brief (no modal ads/popups/interstitials ever) | n/a |
-| Constant-time comparison / "secure compare" badge | Sounds rigorous | Nothing secret is compared in a local verify box; adds fake assurance | Plain normalized string equality |
-| Treating a MATCH as proof of authenticity | Verify box UX temptation | A matching hash only proves the file equals what was published at that location; if the same page is compromised the hash is too | Neutral wording in UI/FAQ: "Matches the expected SHA-256", with a short FAQ note recommending signatures (GPG/minisign/cosign) where available |
+| Min-count per set (min digits / min symbols) | Bitwarden and 1Password have it | Adds 2–4 numeric inputs to a page whose brief is "very clean"; rare policy need; entropy math gets harder | Always ≥1 per set; revisit only if users ask |
+| "No duplicate characters" / "no sequential/consecutive" options | passwordsgenerator.net style; Bitwarden has max-consecutive | Each constraint reduces entropy and the meter would then be wrong unless recomputed; clutter | Omit; if desired later, compute exact entropy |
+| Auto-copy on generate | "Saves a click" | Silently overwrites the clipboard on every Regenerate/page load; surprising, and a clipboard-privacy smell | Explicit one-click copy with confirmation |
+| zxcvbn / "check my password" input | Natural adjacent feature | Heavy bundle; encourages typing real passwords into a web page (privacy risk); contradicts "options only" privacy stance | Entropy from settings only |
+| Haveibeenpwned breach check | Popular trust feature | Third-party request (violates no-third-party-requests rule); relevant only for user-chosen passwords | None |
+| Saving/history of generated passwords (localStorage) | Convenience | Persisting secrets in the browser; out-of-scope per project (no PII) | Nothing stored; recommend a password manager in FAQ |
+| Password in the URL / shareable link of the password | "Share it" | Credentials in history, referrers, logs | URL carries options only (already decided) |
+| Pronounceable / "easy to say" mode | LastPass historical option | Weaker, harder to model entropy honestly | Passphrase mode covers memorability |
+| Wordlist chooser (short list / Diceware / languages) | Power users | Extra bundles (lazy-load cost), entropy bookkeeping; English-only v1 | Ship EFF long list only |
+| Username/email-alias generator, QR code, print, email | Bitwarden/others bundle these | Scope creep; none serve "get a password and leave" | Out of scope |
+| Show/hide (mask) toggle on output | Password-manager habit | A generator's job is to show the secret; masking adds a click | Always visible |
+| Per-item "strength bar" in batch | Looks informative | Every item has identical entropy; repeated bars are noise | One meter for the settings |
 
-## Algorithm List Sanity Check
-
-The proposed set (MD5, SHA-1, SHA-224, SHA-256, SHA-384, SHA-512, SHA3-256, SHA3-512, RIPEMD-160, CRC32) is a defensible "most common" set. Verdicts:
-
-| Candidate | Verdict | Reason |
-|-----------|---------|--------|
-| MD5, SHA-1, SHA-256, SHA-512 | Keep (must) | The overwhelming majority of searches and published checksums |
-| SHA-384 | Keep | Used for SRI (`integrity="sha384-..."`), TLS, JWT HS384 |
-| SHA-224 | Keep (lowest-value in set) | Cheap, completes the SHA-2 family users expect, shown by it-tools and emn178; first to cut if a slot is needed |
-| SHA3-256, SHA3-512 | Keep | Modern NIST standard; no Web Crypto support. Tie to a clear FAQ: **SHA3-256 is not Keccak-256** (Ethereum/Solidity use legacy Keccak with different padding). This is the biggest source of confusion and a good SEO/FAQ item. Do not add Keccak-256 as an 11th row unless the user wants the Ethereum audience |
-| RIPEMD-160 | Keep | Bitcoin/crypto addresses, GPG legacy, appears on it-tools and sha1-online |
-| CRC32 | Keep | The only non-cryptographic one; ubiquitous for ZIP/PNG/Ethernet-adjacent checks (a network audience fit). Format as 8-hex, zero-padded, unsigned; test that value does not go negative (JS bitwise ops yield signed ints) |
-| SHA3-224 / SHA3-384 | Skip | Rare; adds rows without demand |
-| SHA-512/256, SHA-512/224 | Skip | Rare; and not in Web Crypto. Niche (some Go/OpenBSD ecosystems) |
-| BLAKE2b / BLAKE3 | Skip in the 10; best "swap-in" candidate if the user wants to trade out RIPEMD-160 or SHA-224 | Growing developer popularity (b2sum, b3sum, package managers). Note BLAKE3 is not in most small JS libs; WASM libs have it. If the user later wants a "more algorithms" expander, BLAKE2b/BLAKE3 + xxHash are the first adds. Keeping to the user's "~10 max" lock, do not add |
-| xxHash (XXH32/XXH64/XXH3) | Skip | Non-crypto, mostly developers hashing for caches/dedup; low search demand relative to CRC32 |
-| NTLM | Skip, deliberately | It is MD4 over UTF-16LE password text: it exists to attack/audit Windows passwords. Aligned with the anti-password-hashing stance; also needs MD4 and UTF-16LE handling |
-| Adler-32 | Skip | Very rare outside zlib internals |
-| MD4 / MD2 / Whirlpool | Skip | Historical |
-| SHAKE128/256 | Skip | Variable-length output needs extra UI (output length) |
-
-Row order recommendation: group by family with SHA-256 first or visually emphasized as the "headline" result (most-requested modern digest and the natural target for the global `Ctrl/Cmd+C` shortcut): SHA-256, SHA-1, MD5, then SHA-224, SHA-384, SHA-512, SHA3-256, SHA3-512, RIPEMD-160, CRC32. Alternatively keep a classical family ordering; either is fine, but pick the primary row deliberately and document it.
-
-## Edge Cases and Gotchas That Drive Requirements
-
-| Gotcha | Behavior to specify |
-|--------|--------------------|
-| `echo foo \| sha256sum` includes `\n`; `echo -n` / `printf` does not | Hint text + FAQ; optional "append newline" toggle (P2). Textarea default hashes exactly the typed text |
-| `textarea.value` normalizes CRLF to LF | Byte count reflects the normalized value; FAQ says use file mode for exact bytes of a CRLF file |
-| Unicode: emoji / combining characters / NFC vs NFD | Hash UTF-8 bytes of the JS string as-is (via `TextEncoder`); do not normalize. Lone surrogates become U+FFFD under `TextEncoder`: mention in byte count tests |
-| Empty input | Valid; yields the well-known empty digests (SHA-256 `e3b0c442...b855`). Do not error; if the input is cleared, show empty-string hashes with an "empty input" note, not blank rows |
-| Zero-byte file | Valid, same as empty; test explicitly |
-| Case of pasted expected hash | Normalize case-insensitively |
-| Same digest length across algorithms (40, 64, 128) | Verify matches against all rows (see above) |
-| CRC32 presentation | 8 hex digits, zero-padded, big-endian display as `crc32`/`cksum -o3`-style tools do (zip/PNG convention); document that it is NOT the POSIX `cksum` value |
-| Very large files | Progress, cancel, worker; surface a friendly message on read errors (file removed mid-read, permission, `NotReadableError`) and on cancelled/aborted runs |
-| File dropped while another is hashing, or text edited while a file is selected | Must cancel the in-flight run (abort + sequence token) before starting/mutating state. This is the project's recorded lesson from Phase 4 / Phase 5 (every path that supersedes an async job must cancel it, audited across ALL paths: new drop, picker select, text typing, Esc, Clear, unmount) |
-| Directory or multiple files dropped | v1.2: take the first file only if a single regular file; show a short hint for folders or multi-drop ("one file at a time") |
-| Unsupported `Blob.stream()` / Worker / Web Crypto (very old browsers) | Graceful fallback: `slice()` + `FileReader`/`arrayBuffer()` per chunk; avoid hard feature failure |
-| Drag-over page-wide vs only inside drop zone | Prevent browsers from navigating to the dropped file when the user misses the zone (page-level `dragover`/`drop` guard) |
-| Hex output in copy-all for CRC32 and others when "Base64" selected | Define behavior: CRC32 Base64 is meaningless/odd; keep CRC32 always hex (or Base64 of 4 bytes, document). Simplest: CRC32 row ignores Base64 |
-
-## Keyboard / Interaction Fit With Existing Conventions
-
-| Existing convention | Fit for Hash tool |
-|---------------------|-------------------|
-| `/` focuses primary input | Focus the textarea (and select-all so the sample is replaced on type) |
-| `Enter` executes | **Conflict**: the primary input is a multi-line textarea where `Enter` must insert a newline. Live hashing has nothing to "execute". Do not bind global `Enter` for this tool (hook handlers are optional and unbound = no-op). Consider `Ctrl/Cmd+Enter` = no-op or "copy SHA-256" only if wanted; default: leave unbound |
-| `Esc` reset | Clear text → restore sample, cancel running hash, drop file, clear verify box |
-| `Ctrl/Cmd+C` copies primary result | Existing hook only fires when focus is NOT in an editable field (so selection-copy in the textarea/verify box keeps working). Bind to the primary (SHA-256) hash with the same visible confirmation. Pick the primary row deliberately; the README for the page should state it |
-| Enter guard for native interactive targets | Not needed if Enter is unbound; keep for any buttons |
-| One-click copy with visible confirmation and announcement | Per row, copy-all, share link, and any "copy as sha256sum line" |
-
-## Feature Dependencies
+### Feature Dependencies
 
 ```
-Streaming hash core (lib/hash incremental API: new/update/digest for all 10)
-    ├──requires──> Library choice with update()/digest() for MD5, SHA-1/2, SHA-3, RIPEMD-160 (+ CRC32 small hand-written/dep)
-    ├──enables──> Text hashing (same API, one update call)
-    └──enables──> File hashing (chunked update loop)
-                       ├──requires──> Progress + cancel + sequence-token (race-safe) state machine
-                       └──strongly benefits from──> Web Worker (keeps UI live; SHA-3 JS is slow)
+Password mode
+    └──requires──> randInt (rejection sampling) ──requires──> crypto.getRandomValues
+    └──requires──> char-set builder (dedupe + look-alike filter + custom symbols)
+                       └──feeds──> pool size ──feeds──> entropy ──feeds──> meter + crack-time
 
-Output formatting (hex lower/UPPER/Base64)
-    └──enhances──> Per-row copy, Copy-all, Verify-match normalization
+Passphrase mode
+    └──requires──> lazy-loaded EFF wordlist (dynamic import) + reserved-height placeholder
+    └──requires──> randInt ; entropy = W*log2(listSize) (+log2(10) if number)
 
-Copy-all export formats (labeled / sha256sum / JSON)
-    ├──requires──> Output formatting + filename knowledge (file name or "-" for text)
-    └──reuses──> UUID export toggle pattern (NOT its CSV format)
-
-Paste-to-verify box
-    ├──requires──> All hashes computed simultaneously (so no algorithm picker)
-    └──requires──> Normalization (trim / case / separators / prefix / sha256sum line)
-
-Input encoding selector (Hex/Base64 in)  ──enhances──> Text hashing (also needed by HMAC key encoding)
-HMAC mode  ──requires──> Library HMAC (Web Crypto lacks MD5/SHA-3/RIPEMD) + key input; ──conflicts──> URL state (key never in URL)
-
-Share-link button ──requires──> existing History API/URL-state helper pattern (read ?text= on load); ──conflicts──> live URL sync (privacy)
-
-Registry entry ──requires──> nothing new (existing pattern); category type check
-Per-tool SEO/FAQ ──reuses──> existing faq-data.ts + FAQPage JSON-LD pattern
-Keyboard shortcuts ──reuses──> useKeyboardShortcut (slash / escape / copy; leave enter unbound)
-Copy confirmation ──reuses──> useCopyToClipboard
-Analytics privacy ──reuses──> lib/analytics/redact.ts allow-list (add NO hash params)
+Batch (1–20) ──requires──> single-generate function  ──enhances──> Copy all
+URL state ──requires──> strict parser/clamper (shared with the UI clamps)  ──conflicts──> writing the output
+Keyboard shortcuts ──requires──> existing useKeyboardShortcut (+ Enter focus guard)
+Registry entry ──requires──> ICONS map entry in ToolCard.tsx
 ```
 
 ### Dependency Notes
 
-- **Streaming core requires a library with incremental API:** Web Crypto `subtle.digest` is one-shot, so it cannot do large files; it also lacks MD5/SHA-224/SHA-3/RIPEMD-160/CRC32. This forces the library decision (STACK researcher): a zero-dep library with chunked `update()` for all 10. Candidates per hash-wasm's published numbers: WASM is several times faster, especially for SHA-3 (benchmarks are from the maintainers and for older noble versions, so re-measure); pure-JS (noble-style) has smaller/simpler bundling but SHA-3 on multi-GB files is slow, making a worker non-optional. Check CRC32 availability separately; it's ~20 lines to hand-roll against the standard test vector (`123456789` -> `cbf43926`).
-- **Web Worker is not strictly required for correctness but is for UX on large files**; text hashing can stay on the main thread under the threshold.
-- **Verify box requires all-at-once hashing:** this is why verify is cheap here and a strong differentiator; competitors that compute one algorithm at a time must infer or ask.
-- **Share link conflicts with live URL sync:** pick one. Recommendation above: explicit button.
-- **HMAC key conflicts with URL state:** key excluded from every URL and analytics path unconditionally.
-- **Enter conflicts with textarea:** do not bind.
+- **Entropy depends on the exact final pool:** compute after union + dedupe + look-alike filter; otherwise duplicates in a custom symbol set or the look-alike filter silently overstate strength.
+- **Last-set guard and the URL parser must share one `normalizeOptions()`** so a hand-edited URL, Esc-reset, and UI toggles can never reach an "all disabled" or out-of-range state.
+- **Passphrase from URL:** opening `?mode=passphrase` must not flash an empty state — keep the output block height pinned and generate once the wordlist import resolves.
+- **No dependence on new npm packages:** `crypto.getRandomValues`, plain TypeScript, and a bundled word array are sufficient (matches "no new heavy dependencies").
 
-## MVP Definition
+### MVP Definition
 
-### Launch With (v1.2)
+#### Launch With (v1.3)
 
-- [ ] `lib/hash/` framework-agnostic core: incremental hasher for all 10 algorithms, hex/Base64/UPPER formatting, verify-normalization, sum-format export; Vitest against published vectors incl. chunk-boundary file tests — foundation, and where the correctness risk lives
-- [ ] Text input (UTF-8), live all-at-once hashing, sample on load, byte count, trailing-newline hint — core value
-- [ ] File input (picker + drag-drop), streamed hashing, progress, cancel, race-safe superseding — user-locked scope
-- [ ] Per-row copy + copy-all with visible confirmation; hex case toggle (plus Base64 output toggle, near-free) — brief non-negotiable
-- [ ] Paste-to-verify with matching-row highlight — highest-value differentiator, low cost given all-at-once design
-- [ ] `sha256sum`-style copy-all format (plus labeled default) — cheap, high developer value
-- [ ] Reading `?text=` on load plus an explicit "Copy link" (no live URL writes) — satisfies bookmarkable intent without leaking secrets (decision needed)
-- [ ] Registry entry, per-tool SEO (title/meta/OG, worked example, FAQ + JSON-LD), 320px, light/dark, `/` focus, `Esc` reset, `Ctrl/Cmd+C`
-- [ ] Playwright e2e: default hashes on load, typing updates, file drop of a known fixture yields known digests, verify-match highlight, copy confirmation, Esc cancel mid-hash, no network requests during hashing
+- [ ] Password mode: length 4–128 (default 20), four toggles with last-set guard, ≥1-per-set guarantee, editable symbol set, avoid look-alikes — the core
+- [ ] Passphrase mode: 3–20 words (default 6), separator, capitalize, append number, lazy EFF list — brief-required
+- [ ] Batch 1–20 + per-item copy + Copy all + Regenerate
+- [ ] Entropy meter (4 tiers, bits shown) + crack-time line with stated assumption
+- [ ] Options-only URL state with strict normalization
+- [ ] Keyboard shortcuts (`/`, Enter, Esc, Ctrl/Cmd+C)
+- [ ] Registry/icon/SEO/worked example/FAQ/JSON-LD, 320px/light/dark/CLS-free
 
-### Add After Validation (v1.2.x / v1.3)
+#### Add After Validation (v1.3.x)
 
-- [ ] HMAC mode (key field, 8 algorithms) — trigger: user feedback / webhook-debugging searches
-- [ ] Input encoding selector (Hex/Base64 in) — trigger: users asking to hash binary blobs
-- [ ] "Append trailing newline" toggle — trigger: repeated "doesn't match CLI" feedback despite hint
-- [ ] SRI copy format (`sha384-<base64>`) — trigger: developer demand; trivial after Base64 output exists
-- [ ] Character-level diff highlighting in verify box — trigger: users with near-miss mismatches
-- [ ] Related-tool links (existing tech-debt item): UUID, Base64/URL encoders (roadmap) ↔ Hash
+- [ ] Colorized character classes in output — if the plain output feels hard to read
+- [ ] Exact entropy with the ≥1-per-set rule (inclusion-exclusion) — only if reviewers object to the ~0.2-bit approximation
+- [ ] Slow-hash crack-time toggle
 
-### Future Consideration (v2+)
+#### Future Consideration (v2+)
 
-- [ ] Batch/multi-file mode with one chosen algorithm and `SHA256SUMS` verify — needs a different UI model
-- [ ] Extra algorithms behind a "more" expander (BLAKE2b/BLAKE3, xxHash, SHA-512/256) — only if the user lifts the ~10 lock
-- [ ] Public API exposure of `lib/hash` via the future `@packetory/core` package (the framework-agnostic lib design already supports this)
+- [ ] Min-count per set; additional wordlists; PIN mode — only on demand
+
+### Strength tiers (recommended)
+
+KeePassXC's bands are the only fully-documented bit thresholds in the survey (source-verified); adopt them with friendlier labels:
+
+| Bits | Label | Reference points |
+|------|-------|------------------|
+| < 40 | Weak | 4–6 char passwords; 3 EFF words (38.8 bits) |
+| 40–74 | Fair | 8-char all-sets (~52 bits); 5 EFF words (64.6 bits) |
+| 75–99 | Strong | 12-char all-sets (~77 bits); 6 EFF words (77.5 bits); 7 words (90.5 bits) |
+| ≥ 100 | Very strong | 16+ char all-sets; 8+ EFF words (103 bits); default 20-char = ~128 bits |
+
+Show the bits number always; the label is secondary. The default password (20 chars, all sets) must land in "Very strong" and the default passphrase (6 words) in "Strong" — both honest.
+
+### Crack-time assumptions
+
+zxcvbn's four published scenarios: online throttled 100/hour, online unthrottled 10/s, offline slow hash (bcrypt/scrypt/PBKDF2 class) 10^4/s, **offline fast hash (MD5/SHA-1/SHA-256 class) 10^10/s**. Use the last one as the single stated worst-case (HIGH for the scenario definitions via the zxcvbn docs; the 10^10 figure is a ballpark and stated as such). Note for the FAQ: assumes the attacker knows the generator settings (Kerckhoffs), and that crack time only matters if the site's hash storage is leaked — a password manager and uniqueness matter more than going from 100 to 128 bits.
+
+---
+
+## Part 2 — Collapsible "About this tool" sections (Worked Example + FAQ, all tools)
+
+### Current structure (verified in repo)
+
+Each tool `page.tsx` hand-renders `<section data-testid="…-worked-example">` and `<section>` + `<div data-testid="…-faq-item">` below the tool, with FAQPage JSON-LD built from the same `faq-data.ts`. E2E specs (`tests/e2e/{hash,subnet,uuid,…}-seo.spec.ts`) query these test IDs. Config page has neither section nor JSON-LD and uses a wider `max-w-6xl` container.
+
+### Table stakes
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Tool first, info below in a muted area | Brief: tool-first pages; every utility site does this | LOW | A muted heading ("About this tool"), top border, smaller type, `text-muted-foreground`; no new page-level width. |
+| Closed by default, content in server HTML | Required to keep SEO and JSON-LD parity | LOW | Use **native `<details>/<summary>`** inside the server component: zero JS, keyboard (Enter/Space), implicit disclosure semantics, content stays in the HTML. |
+| Descriptive summary labels with caret affordance | NN/g-reported: the caret is the clearest expandable cue; vague labels force clicks | LOW | "Worked example" and "Frequently asked questions"; rotate a chevron via `group-open:`; visible focus ring consistent with other controls; summary ≥ 44px tall. |
+| One shared server component for all tool pages | Architecture intent: no hand-edited duplicates ×7 | MEDIUM | e.g. `ToolAbout({ workedExample, faqItems })` rendering both `<details>` and the JSON-LD script (keep the `<`→`<` escape). Preserve (or deliberately migrate) existing `data-testid`s. |
+| JSON-LD stays identical to visible FAQ text | Existing content-match contract | LOW | Same `faqItems` array drives both. |
+
+### Differentiators
+
+| Feature | Value | Complexity | Notes |
+|---------|-------|------------|-------|
+| Find-in-page reveals closed content | Users Ctrl+F for a term in the FAQ | LOW (free with native `details`) | Chrome 97+ auto-expands closed `<details>` on find and fragment navigation; Firefox shipped later (reported fixed for 146, MEDIUM); Safari not confirmed. Acceptable degradation: content still in DOM/HTML. |
+| `#faq` / `#worked-example` deep links open the section | Related-tool links and search sitelinks can target it | LOW-MEDIUM | Native fragment navigation handles Chrome; a ~10-line client effect (hash → set `open`) covers others. Optional. |
+| No nested accordion per question | Fewer clicks | LOW | Inside the FAQ `<details>` render all Q&As expanded. Per-question accordions double the click cost for 4–6 short items. |
+
+### Anti-features
+
+| Feature | Why Avoid | Instead |
+|---------|-----------|---------|
+| Radix/shadcn Accordion client component for this | Needs hydration JS on every page for static text; content only mounts after hydration unless carefully configured | Native `<details>` in server components |
+| `display:none`/JS-injected FAQ content (e.g. fetched on click) | Not in initial HTML → not reliably indexed | Content always in the server HTML |
+| Auto-opening on desktop / "Expand all" chrome | Defeats "tool-first" | Closed by default; user decides |
+| Exclusive-accordion (`name=` attribute) | Prevents comparing worked example with FAQ | Independent `<details>` |
+
+### Google's stance (what it means here)
+
+- **FAQ rich results are gone.** Google stated they stopped appearing May 7 2026 (already limited to gov/health sites since Aug 2023); FAQ report, Rich Results Test support and Search Console API support are being removed through Aug 2026 (HIGH — Search Engine Journal plus Google's own doc deprecation notice). Valid FAQPage schema remains harmless and removal does not affect visibility. **Consequence: do not invest further in FAQ JSON-LD for Google; keep the existing shared mechanism (cheap, already built) and keep the Config parity item low-effort.**
+- **Collapsed content is indexed.** Google reps (Illyes 2016, Mueller 2020; MEDIUM — secondary reporting) say content hidden for UX in the HTML gets normal weight under mobile-first indexing; the one caveat is it won't be used for search snippets. Some SEO tests dispute ranking parity (contested, MEDIUM-LOW). Mitigation: keep the visible summary text keyword-descriptive and keep the primary tool description (h1 + intro line) outside the collapsible.
+- **Hard rule:** content must be in the initial HTML, not loaded after a click.
+
+### Dependency / risk notes for the migration
+
+- Existing Playwright/Vitest assertions that expect `…-faq-item` or worked-example elements to be *visible* will fail while the `<details>` is closed. Update them to `toBeAttached()`/`toHaveText()` or open the `<details>` first. JSON-LD ↔ visible text equality tests should read text content (works while closed).
+- Subnet and Config pages use wider containers; the About area should keep a readable `max-w-3xl` inside wider pages.
+
+---
+
+## Part 3 — Config Syntax Highlighter parity
+
+| Feature | Why Needed | Complexity | Notes |
+|---------|------------|------------|-------|
+| Worked example (static, server-rendered) | Parity with the five other tools; SEO text | LOW | Sample 5–8-line IOS interface/ACL snippet shown as plain text with a short description of how colors map; avoid dependence on the client highlighter for server HTML (or reuse `lib/config/highlight` server-side if it is framework-free — check `lib/config/highlight.ts` has no browser APIs). |
+| FAQ (4–6 items) + FAQPage JSON-LD via shared component | Parity | LOW | Candidate questions: which platforms are supported (IOS, IOS-XE, IOS-XR) and what is not (NX-OS, Junos — state only what is true after checking the highlighter); rich-text vs plain-text copy and where rich text pastes cleanly (email clients, Word, Confluence); does it change my config (copy-plain returns original bytes); does it mask secrets (it does not; type-7 is reversible) — **privacy/locality wording must reuse the approved statement ("runs in your browser") per the project rule that legal/privacy text needs human approval.** |
+| Distinct icon | Currently reuses `Network` (same as Subnet) | LOW | Lucide `FileCode` (or `Terminal`/`ScrollText`) — all exist in the installed version. Update `registry.ts` **and** the `ICONS` map in `ToolCard.tsx` (otherwise silently falls back to the UUID Fingerprint). Check nav/MobileNav if they map icons separately. |
+| Page container alignment | Config page is `max-w-6xl` with its own header copy | LOW | About area constrained to `max-w-3xl`; keep the tool's wide two-pane layout untouched. |
+
+---
+
+## Part 4 — Subnet Calculator compaction (1366×768, no scroll)
+
+### Budget reality
+
+A 1366×768 laptop leaves roughly 1366×600–650 CSS px of viewport after browser chrome/OS taskbar. The shared header (~56–64px) plus `py-12` page padding plus a 32px `h1` and `mt-8` already consumes ~170px before the tool. The current output is a stacked list of full-width bordered field cards (`gap-8`, `py-3`/`py-4` per card), so every field costs a full row.
+
+### Table stakes
+
+| Feature | Why | Complexity | Notes |
+|---------|-----|------------|-------|
+| Output grid: 2–3 columns at `lg`, 1 column below `sm` | Biggest lever; field values are short (IPv4) | MEDIUM | Use CSS grid with `auto-fit`/fixed 2–3 cols; keep copy buttons per field (44px hit target requirement already in code) — can drop to icon-only with visible confirmation. |
+| Wider container for this tool only (e.g. `max-w-5xl`) | Columns need width; other tools unaffected | LOW | Page-level change in `subnet/page.tsx`; About area stays `max-w-3xl`. |
+| Tighter vertical rhythm on tool-first pages | Cheap pixels | LOW | Reduce `py-12`→`py-6/8` on this page, `gap-8`→`gap-4`, card padding `py-3`→`py-2`; inline helper text; keep h1. |
+| Verify IPv4 default AND an IPv6 `/64` result | IPv6 has longer fields (39-char expanded address) and a subdivision row | MEDIUM | IPv6 must wrap gracefully (`break-all`), may use 1–2 columns, and still fit; at 320px layout must stay unchanged-functional. |
+| Automated check | Prevents regression | LOW-MEDIUM | Playwright at 1366×768: assert the bottom of the output region ≤ `window.innerHeight` for IPv4 default and IPv6 sample (About summary may sit below the fold). |
+
+### Anti-features
+
+| Feature | Why Avoid | Instead |
+|---------|-----------|---------|
+| Hiding fields behind an "Advanced"/"More" disclosure | Loses at-a-glance completeness (core value); every field is a table-stakes subnet output | Densify the layout; keep all fields visible |
+| Shrinking font below the 14px floor used elsewhere | Readability/a11y; breaks design tokens | Reduce spacing, not type |
+| Truncating addresses with ellipsis | Engineers need the full value to copy/verify | Wrap or widen columns |
+| Pagination/tabs between IPv4 blocks | Extra clicks | Single dense view |
+
+---
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| All 10 hashes at once, live, sample on load | HIGH | MEDIUM | P1 |
-| Per-row copy / copy-all / case toggle | HIGH | LOW | P1 |
-| Streaming file hashing + progress + cancel | HIGH | HIGH | P1 |
-| Race-safe superseding (new file/typing/Esc) | HIGH (trust) | MEDIUM | P1 |
-| Paste-to-verify with row highlight | HIGH | LOW-MEDIUM | P1 |
-| Test-vector + chunk-boundary correctness suite | HIGH | MEDIUM | P1 |
-| SEO/FAQ (newline, SHA3 vs Keccak, privacy) | MEDIUM-HIGH | LOW | P1 |
-| `sha256sum`-format copy-all | MEDIUM-HIGH | LOW-MEDIUM | P1 |
-| Base64 output | MEDIUM | LOW | P1 (near-free) |
-| Explicit share-link (no live URL writes) | MEDIUM | LOW | P1 |
-| Web Worker for file hashing | HIGH (UX) | MEDIUM-HIGH | P1 if library is pure JS; P2 if WASM is fast enough |
-| HMAC mode | MEDIUM | MEDIUM | P2 |
-| Hex/Base64 input encoding | MEDIUM | LOW-MEDIUM | P2 |
-| Append-newline toggle | MEDIUM | LOW | P2 |
-| SRI copy format | LOW-MEDIUM | LOW | P2 |
-| Verify char-diff | LOW | MEDIUM | P3 |
-| Multi-file batch | MEDIUM | HIGH | P3 |
-| Extra algorithms | LOW | LOW-MEDIUM | P3 |
+| Password mode core (length, sets, ≥1/set, unbiased RNG) | HIGH | MEDIUM | P1 |
+| Last-set guard + normalizeOptions + URL parse | HIGH | LOW-MEDIUM | P1 |
+| Passphrase mode (EFF list, lazy) | HIGH | MEDIUM | P1 |
+| Entropy meter + crack-time (stated assumption) | HIGH | LOW | P1 |
+| Batch + copy-all | MEDIUM | LOW | P1 |
+| Shared collapsible `ToolAbout` for all tools | HIGH | MEDIUM | P1 |
+| Subnet compaction | HIGH | MEDIUM | P1 |
+| Config worked example/FAQ/icon | MEDIUM | LOW | P1 |
+| Keyboard shortcuts | MEDIUM | LOW | P1 |
+| Colorized output | LOW-MEDIUM | LOW | P2 |
+| Hyphenated-word filtering for passphrase | LOW | LOW | P2 |
+| Exact entropy with per-set guarantee | LOW | LOW-MEDIUM | P3 |
+| Slow-hash crack-time toggle | LOW | LOW | P3 |
+| Min-count per set / extra wordlists | LOW | MEDIUM | P3 (defer) |
 
-**Priority key:** P1 must-have for v1.2; P2 add when possible; P3 future.
+**Priority key:** P1 = must have for the milestone; P2 = add if cheap; P3 = defer.
 
 ## Competitor Feature Analysis
 
-| Feature | sha1-online.com | emn178 online-tools | it-tools (recalled) | CyberChef | Packetory approach |
-|---------|-----------------|---------------------|---------------------|-----------|--------------------|
-| Algorithms at once | ~40, listed | One per page | ~8 at once | Many via "Generate all hashes" | 10 curated, all at once |
-| Live as you type | No (submit) | Auto Update toggle | Yes | Yes (auto-bake) | Always on, no toggle |
-| Default result on load | No | No | Sample text | Empty/recipe | Sample text, pre-selected |
-| File hashing | Unverified | Separate File page per algo | No | Yes (drag-drop input) | Same page, streamed, progress, cancel |
-| Verify against expected | No | No | No | Via compare ops (manual) | Paste-to-verify, auto-highlight any match |
-| Output encodings | Hex | Hex lower/UPPER, Base64 | Hex/Base64/Base64url/Bin | Many | Hex lower/UPPER, Base64 |
-| Input encodings | UTF-8 | UTF-8, UTF-16, Hex, Base64, legacy pages | UTF-8 | Many | UTF-8 v1.2; Hex/Base64 later |
-| HMAC | No | Yes | No | Yes | Later (P2) |
-| Share/bookmark | No | Share Link button (explicit) | Local persistence | URL hash of recipe+input | Explicit "Copy link" only, capped |
-| Copy per hash | No | Yes | Yes | Yes | Yes, with confirmation |
-| Ads/clutter | Heavy | Ads | None | None | None |
-| sha*sum export | No | No | No | No | Yes |
+| Feature | Bitwarden | KeePassXC | LastPass | 1Password | Our Approach |
+|---------|-----------|-----------|----------|-----------|--------------|
+| Default length | 14 (clients) / 16 (SDK) | configurable | not stated | ~19–20 | **20** |
+| Sets | upper/lower/digits (special off by default) | many groups + custom | 4 toggles | digits/symbols | 4 toggles, **all on**, editable symbols |
+| ≥1 per enabled set | always | opt-in checkbox | assumed | assumed | **always** |
+| Look-alike removal | `I O l 0 1` | `l B G I O 0 1 6 8 \|` | none noted | none noted | **`0 O o 1 l I \|`** |
+| All sets off | error | invalid | n/a | n/a | **unreachable** |
+| Passphrase default | 6 words, `-` | 7 words, space | n/a | memorable w/ separators | **6 words, `-`**, EFF long |
+| Strength | zxcvbn | bits bands (<40/75/100) | zxcvbn labels | n/a | **bits bands**, settings-driven |
+| Crack time | no | no | no | no | **yes, assumption stated** |
+| Batch | no | no | no | no | **1–20 + copy all** |
+| Options-only shareable URL | no | n/a | no | no | **yes** |
 
 ## Sources
 
-- sha1-online.com (live fetch 2026-10-14): algorithm list; interactive controls did not render in fetch (MEDIUM)
-- emn178.github.io/online-tools/sha256.html (live fetch 2026-10-14): input/output encodings, HMAC, Auto Update, Remember Input, Share Link, separate File Checksum tool (HIGH)
-- it-tools.tech/hash-text: fetch returned title only; feature description from prior knowledge (MEDIUM/LOW)
-- CyberChef: from domain knowledge, not fetched (MEDIUM)
-- Web search results on checksum verifiers (sgalinski SHA-512 Verifier, abacktools File Integrity Checker, octoclip File Integrity, elysiatools File Hash Verifier, 0x56erify): paste-expected-hash flow, length-based algorithm inference, separator stripping, `sha256:` prefix, MATCH/MISMATCH; no char-diff found (MEDIUM)
-- hash-wasm package listing / README benchmarks via web search (socket.dev, npmjs.com/package/hash-wasm): per-algorithm gzipped sizes (MD5 ~4 kB, SHA-3 ~4 kB, CRC32 ~3 kB) and maintainer benchmarks vs noble-hashes 1.3.2; directional only (MEDIUM)
-- GNU coreutils `*sum` output format (`hash`, two spaces, filename; `-` for stdin; leading `\` for escaped names): domain knowledge (HIGH)
-- HTML spec behavior of `textarea.value` newline normalization to LF; Web Crypto `subtle.digest` one-shot and algorithm support limited to SHA-1/256/384/512: domain knowledge (HIGH)
-- Project context: `.planning/PROJECT.md`, `project-brief.md`, `lib/analytics/redact.ts` (allow-list safe by default), `lib/hooks/useKeyboardShortcut.ts` (Ctrl/Cmd+C ignored in editable fields; handlers optional), `lib/uuid/export.ts` (CSV accepted only because alphabet is hex+hyphen), `tools/registry.ts` (category union)
+- Bitwarden SDK password generator source `sdk-api-docs.bitwarden.com/src/bitwarden_generators/password.rs.html` — ambiguous set, min counts, no-set error, defaults, shuffle (HIGH)
+- Bitwarden clients repo `libs/tools/generator/core/src/data/default-password-generation-options.ts`, `default-passphrase-generation-options.ts`, `default-password-boundaries.ts` — defaults and 5–128 bounds (HIGH)
+- `bitwarden.com/help/generator/` — option descriptions, special set `!@#$%^&*` (HIGH)
+- KeePassXC source `src/core/PasswordGenerator.cpp`, `PassphraseGenerator.cpp`, `PasswordHealth.cpp`, `gui/PasswordGeneratorWidget.cpp` — groups, look-alike list, pick-from-every-group, 7-word/space/EFF defaults, 40/75/100 bands (HIGH)
+- `lastpass.com/features/password-generator` — toggles, copy confirmation, zxcvbn labels (MEDIUM)
+- 1Password Community threads and blog (memorable separators, ~20 default) — official docs unreachable (LOW-MEDIUM)
+- EFF "New Wordlists for Random Passphrases" (eff.org/deeplinks/2016/07/new-wordlists-random-passphrases) — 7776/1296 lists, 12.9 and 10.3 bits/word, 6-word recommendation (HIGH); `eff_large_wordlist.txt` downloaded and measured: 7776 words, 62 KB words-only, ~24.5 KB gzip, 4 hyphenated words (HIGH)
+- EFF list license CC BY 3.0 (US) per third-party packages bundling it (MEDIUM; confirm on eff.org)
+- zxcvbn crack-time scenarios (docs.rs `zxcvbn::time_estimates`, Perl port docs) (MEDIUM-HIGH)
+- NIST SP 800-63B-4 (pages.nist.gov/800-63-4/sp800-63b/passwords): no composition rules imposed on user-chosen passwords; length-first guidance (MEDIUM — applies to verifiers, used here only as FAQ background)
+- Google: Search Engine Journal "Google drops FAQ rich results" and the FAQ doc deprecation notice (May 7 2026 stop, doc removed June 15 2026) (HIGH); Search Engine Journal on Mueller/hidden tab content, Search Engine Roundtable snippet and ranking-test coverage (MEDIUM, secondary)
+- MDN `<details>` reference (semantics, `name`, `::details-content`) and Chrome 97 auto-expand details announcement, Mozilla bugs 1724299 / 1970909 (MEDIUM)
+- NN/g-derived accordion guidance via secondary summaries (caret clarity, hidden content gets less attention) (MEDIUM-LOW)
+- Repo inspection: `tools/registry.ts`, `components/ToolCard.tsx` (ICONS fallback), `app/tools/*/page.tsx`, `app/tools/config/page.tsx`, `lib/hooks/*`, `lib/analytics/redact.ts`, `tests/e2e/*-seo.spec.ts` (HIGH)
 
 ---
-*Feature research for: online hash generator (Packetory v1.2 `/tools/hash`)*
-*Researched: 2026-10-14*
+*Feature research for: password/passphrase generator and tool-page polish (v1.3)*
+*Researched: 2026-11-11*

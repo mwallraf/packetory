@@ -143,34 +143,47 @@ function CopyableField({
   return (
     <div
       data-testid={`subnet-field-${fieldKey}`}
-      className="flex flex-col gap-1 rounded-md border border-border bg-secondary px-4 py-3"
+      className="flex items-center gap-2 rounded-md border border-border bg-secondary px-3 py-2"
     >
-      <span className="text-[14px] leading-[1.4] font-semibold text-foreground">
-        {label}
-      </span>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-[14px] leading-[1.4] font-semibold text-foreground">
+          {label}
+        </span>
         <span
           data-testid={`subnet-field-${fieldKey}-value`}
           className="font-mono text-[16px] leading-[1.5] font-normal break-all text-foreground"
         >
           {value}
         </span>
-        <button
-          type="button"
-          onClick={() => copy(value)}
-          aria-label={copied ? "Copied!" : `Copy ${label.toLowerCase()}`}
-          data-testid={`subnet-copy-${fieldKey}`}
-          // 44x44 minimum hit area via padding around a smaller icon;
-          // accent-tinted per UI-SPEC's reserved list (every copy action).
-          className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-2.5 text-primary outline-none transition-colors hover:bg-muted hover:text-primary focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        >
-          {copied ? (
-            <Check aria-hidden="true" className="size-4" />
-          ) : (
-            <Copy aria-hidden="true" className="size-4" />
-          )}
-        </button>
+        {error && (
+          <span className="text-[14px] leading-[1.4] font-normal text-muted-foreground">
+            Couldn&apos;t copy — select the text and copy manually.
+          </span>
+        )}
+        {note && (
+          <span
+            data-testid={`subnet-field-${fieldKey}-note`}
+            className="text-[14px] leading-[1.4] font-normal text-muted-foreground"
+          >
+            {note}
+          </span>
+        )}
       </div>
+      <button
+        type="button"
+        onClick={() => copy(value)}
+        aria-label={copied ? "Copied!" : `Copy ${label.toLowerCase()}`}
+        data-testid={`subnet-copy-${fieldKey}`}
+        // 44x44 minimum hit area via padding around a smaller icon;
+        // accent-tinted per UI-SPEC's reserved list (every copy action).
+        className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-2.5 text-primary outline-none transition-colors hover:bg-muted hover:text-primary focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      >
+        {copied ? (
+          <Check aria-hidden="true" className="size-4" />
+        ) : (
+          <Copy aria-hidden="true" className="size-4" />
+        )}
+      </button>
       {/* Not color-alone: icon swap above is the primary confirmation
           signal; this announces the same change to screen readers
           (QUAL-04/QUAL-05), mirroring UuidTool's exact pattern. */}
@@ -181,19 +194,6 @@ function CopyableField({
       >
         {copied ? "Copied!" : ""}
       </span>
-      {error && (
-        <span className="text-[14px] leading-[1.4] font-normal text-muted-foreground">
-          Couldn&apos;t copy — select the text and copy manually.
-        </span>
-      )}
-      {note && (
-        <span
-          data-testid={`subnet-field-${fieldKey}-note`}
-          className="text-[14px] leading-[1.4] font-normal text-muted-foreground"
-        >
-          {note}
-        </span>
-      )}
     </div>
   );
 }
@@ -328,94 +328,96 @@ export function SubnetTool() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-1.5">
-        <div className="flex flex-wrap items-center gap-3">
-          <Label
-            htmlFor="subnet-cidr-input"
-            className="text-[14px] leading-[1.4] font-semibold"
-          >
-            CIDR
-          </Label>
-          <Badge
-            variant="outline"
-            data-testid="subnet-family-badge"
-            className="uppercase"
-          >
-            {displayParsed.family === "ipv4" ? "IPv4" : "IPv6"}
-          </Badge>
-        </div>
-        <Input
-          id="subnet-cidr-input"
-          ref={inputRef}
-          data-testid="subnet-cidr-input"
-          type="text"
-          inputMode="text"
-          autoComplete="off"
-          spellCheck={false}
-          value={state.rawCidr}
-          onChange={(event) => handleCidrChange(event.target.value)}
-          aria-invalid={inputHasError || !!validationMessage}
-          aria-describedby={validationMessage ? "subnet-validation-note" : undefined}
-        />
-        {validationMessage && (
-          <span
-            id="subnet-validation-note"
-            data-testid="subnet-validation-note"
-            className="text-[14px] leading-[1.4] font-normal text-muted-foreground"
-          >
-            {validationMessage}
-          </span>
-        )}
-      </div>
-
-      <div
-        data-testid="subnet-hero"
-        className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-secondary px-4 py-4"
-      >
-        <span
-          data-testid="subnet-hero-value"
-          className="font-mono text-[20px] leading-[1.2] font-semibold break-all text-foreground"
-        >
-          {heroValue}
-        </span>
-        <button
-          type="button"
-          onClick={() => copyHero(heroValue)}
-          aria-label={heroCopied ? "Copied!" : "Copy CIDR"}
-          data-testid="subnet-copy-hero"
-          className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-2.5 text-primary outline-none transition-colors hover:bg-muted hover:text-primary focus-visible:ring-[3px] focus-visible:ring-ring/50"
-        >
-          {heroCopied ? (
-            <>
-              <Check aria-hidden="true" className="size-4" />
-              <span className="text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
-                Copied!
-              </span>
-            </>
-          ) : (
-            <Copy aria-hidden="true" className="size-5" />
+    <div data-testid="subnet-tool" className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <div className="flex flex-col gap-1.5 lg:min-w-0 lg:flex-1">
+          <div className="flex flex-wrap items-center gap-3">
+            <Label
+              htmlFor="subnet-cidr-input"
+              className="text-[14px] leading-[1.4] font-semibold"
+            >
+              CIDR
+            </Label>
+            <Badge
+              variant="outline"
+              data-testid="subnet-family-badge"
+              className="uppercase"
+            >
+              {displayParsed.family === "ipv4" ? "IPv4" : "IPv6"}
+            </Badge>
+          </div>
+          <Input
+            id="subnet-cidr-input"
+            ref={inputRef}
+            data-testid="subnet-cidr-input"
+            type="text"
+            inputMode="text"
+            autoComplete="off"
+            spellCheck={false}
+            value={state.rawCidr}
+            onChange={(event) => handleCidrChange(event.target.value)}
+            aria-invalid={inputHasError || !!validationMessage}
+            aria-describedby={validationMessage ? "subnet-validation-note" : undefined}
+          />
+          {validationMessage && (
+            <span
+              id="subnet-validation-note"
+              data-testid="subnet-validation-note"
+              className="text-[14px] leading-[1.4] font-normal text-muted-foreground"
+            >
+              {validationMessage}
+            </span>
           )}
-        </button>
-        <span
-          aria-live="polite"
-          className="sr-only"
-          data-testid="subnet-copy-hero-status"
+        </div>
+
+        <div
+          data-testid="subnet-hero"
+          className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-secondary px-4 py-2 lg:min-w-0 lg:flex-1"
         >
-          {heroCopied ? "Copied!" : ""}
-        </span>
-        {heroError && (
-          <span className="w-full text-[14px] leading-[1.4] font-normal text-muted-foreground">
-            Couldn&apos;t copy — select the text and copy manually.
+          <span
+            data-testid="subnet-hero-value"
+            className="font-mono text-[20px] leading-[1.2] font-semibold break-all text-foreground"
+          >
+            {heroValue}
           </span>
-        )}
+          <button
+            type="button"
+            onClick={() => copyHero(heroValue)}
+            aria-label={heroCopied ? "Copied!" : "Copy CIDR"}
+            data-testid="subnet-copy-hero"
+            className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full px-2.5 text-primary outline-none transition-colors hover:bg-muted hover:text-primary focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            {heroCopied ? (
+              <>
+                <Check aria-hidden="true" className="size-4" />
+                <span className="text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
+                  Copied!
+                </span>
+              </>
+            ) : (
+              <Copy aria-hidden="true" className="size-5" />
+            )}
+          </button>
+          <span
+            aria-live="polite"
+            className="sr-only"
+            data-testid="subnet-copy-hero-status"
+          >
+            {heroCopied ? "Copied!" : ""}
+          </span>
+          {heroError && (
+            <span className="w-full text-[14px] leading-[1.4] font-normal text-muted-foreground">
+              Couldn&apos;t copy — select the text and copy manually.
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col gap-4">
         {isIpv6 ? (
           <div
             data-testid="subnet-ipv6-grid"
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
           >
             {IPV6_FIELDS.map((field) => (
               <CopyableField
@@ -439,7 +441,7 @@ export function SubnetTool() {
         ) : (
           <div
             data-testid="subnet-ipv4-grid"
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2"
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
           >
             {IPV4_FIELDS.map((field) => (
               <CopyableField

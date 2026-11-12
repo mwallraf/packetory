@@ -67,7 +67,7 @@ export function SiteHeader() {
                 data-testid="nav-link"
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "rounded-md border-b-2 px-2.5 py-1.5 text-[14px] leading-[1.4] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                  "rounded-md border-b-2 px-2 py-1.5 text-[14px] leading-[1.4] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
                   isActive
                     ? "border-primary text-primary"
                     : "border-transparent text-foreground hover:text-primary"
