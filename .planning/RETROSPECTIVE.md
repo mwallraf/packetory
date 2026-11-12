@@ -118,6 +118,45 @@
 
 ---
 
+## Milestone: v1.3 — Password Generator & Tool Page Polish
+
+**Shipped:** 2026-11-12
+**Phases:** 5 | **Plans:** 26 | **Tasks:** 47
+
+### What Was Built
+- One shared, closed-by-default "About this tool" server component and a single FAQPage JSON-LD builder on every tool page, a `<summary>`-safe Enter guard, and Config parity (worked example, FAQ, own icon) (Phase 10)
+- Subnet result compacted from 975px to 504px so the default /24 fits 1366×650, with a per-width skeleton height ladder (Phase 11)
+- `lib/password`: unbiased CSPRNG sampling, whole-password resampling for set coverage, exact BigInt entropy, crack-time buckets, the SHA-256-pinned EFF long list behind a lazy chunk, and a whitelisting URL codec (Phase 12)
+- `/tools/password`: fresh password on load with no SSR leak, all options, batch, copy, keyboard shortcuts and options-only URL state, guarded by real-browser privacy specs (Phase 13)
+- Passphrase mode, a settings-only strength panel with crack-time scenarios, registry/nav/sitemap launch and Lighthouse 90+ (Phase 14) — seven live tools
+
+### What Worked
+- Library-first again: Phase 12 shipped `lib/password` with its boundary guards before any UI, so Phases 13-14 built on a trusted core and no generation bug surfaced in UAT (17/17 passed across 13-14).
+- Privacy as tests, not review: the prod raw-HTML leak detector (with positive/negative controls), attribute/live-region scans and in-memory mutant guards turned "the password never leaks" into executable claims.
+- Running Phases 11-14 back to back with UAT batched at the end kept interaction minimal; 40 human checks passed in one sitting.
+
+### What Was Inefficient
+- Batching UAT after all phases meant later phases edited files covered by earlier reports, so Phases 10, 12 and 13 had stale verification at close and needed three verifier re-runs.
+- Phase 11's before/after Lighthouse capture depended on a pushed preview of an old commit and was never done; the table stayed PENDING and the user passed it as-is.
+- The API-coverage gate fired on `gh api` mentions in a plan and blocked UAT start until an opt-out matrix was written.
+- Placeholder Tailwind class text in comments (`min-[Npx]`) triggered a build warning that was noted in three phases but never fixed.
+
+### Patterns Established
+- Password-class outputs live only in client state: `ssr:false` island, text-free skeleton, options-only URL, analytics allow-list `[]`, and a component (StrengthPanel) that takes options, never the value.
+- Lazy optional data (the EFF list) gets a sequence-token loader, a Retry, and no silent fallback, plus a production-build spec proving it is not in initial JS.
+- Keep Tailwind-shaped example text out of source comments; Tailwind scans it as classes.
+
+### Key Lessons
+1. When UAT is deferred to the end of a milestone, expect stale verification reports for earlier phases and budget a regeneration pass before close.
+2. A measurement that needs a preview of an old commit should be captured while that commit is HEAD, not at milestone UAT.
+3. Run `test:e2e:prod` with the dev server stopped; the two share `.next`, so it is easy to skip it by accident.
+
+### Cost Observations
+- Model mix this close-out session: orchestrator on opus; verifiers on sonnet; integration checker on haiku.
+- Notable: three verifier re-runs (Phases 10, 12, 13) were the main close-out cost, all caused by deferred UAT.
+
+---
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
@@ -127,6 +166,7 @@
 | v1.0 | — | 5 | First milestone — established the shared-shell/registry pattern, Server-shell+Client-island split, and framework-agnostic `lib/` convention now expected of every future tool. |
 | v1.1 | 1 (Phase 7) + prior (Phase 6) | 2 | Smallest milestone yet (2 phases, 3 plans) — first milestone with a deliberately descoped requirement set (DOM-02/DOM-04), and first to surface a "mark-complete tooling conflates descoped-with-complete" gap. |
 | v1.2 | multiple | 2 (+1 removed) | First milestone with an outside contribution merged mid-flight and a whole phase removed for scope misunderstanding; first override closeout; CI e2e job dropped to save Actions minutes. |
+| v1.3 | multiple | 5 | First milestone run autonomously with all UAT batched at the end; first milestone audit with a cross-phase integration check (all wired); stale reports regenerated so every phase closed verified. |
 
 ### Cumulative Quality
 
@@ -134,6 +174,7 @@
 |-----------|-------|----------|---------------------|
 | v1.0 | ~600+ unit + e2e (per-phase counts: 97 UUID, 169 Subnet, 72 DNS, 329+ MAC — approximate, not centrally tallied) | Not centrally measured | `ip-address`, `uuid`, DoH via native `fetch` (no new dependency) |
 | v1.2 | Unit suite green; 106 dev e2e + 7 prod e2e passing locally at ship | Not centrally measured | `@noble/hashes@2.4.0` (exact-pinned, worker-only) |
+| v1.3 | 1449 unit tests (79 files); 246 dev e2e + 22 prod e2e passing locally at close | Not centrally measured | None — password generation uses Web Crypto; EFF list is a bundled data file |
 | v1.1 | 268 unit tests (28 files) passing unchanged before/after; +2 new e2e for landing-page click nav | Not centrally measured | None — Phase 7 was docs-only, zero new code or dependencies |
 
 ### Top Lessons (Verified Across Milestones)
@@ -141,3 +182,4 @@
 1. Audit every path into a guarded async/state-transition condition before shipping a fix — established in v1.0 (DNS-04 → MAC vendor lookup), not yet cross-validated by a second milestone.
 2. Generic "mark complete" tooling doesn't understand domain-specific status nuance (e.g. descoped vs. delivered) — established in v1.1 (DOM-02/DOM-04 checkbox auto-check), not yet cross-validated by a second milestone.
 3. Skipping the milestone audit is a named trade-off, not a default — v1.1 skipped it by choice; v1.2 closed with stale verification by choice. Both were recorded explicitly.
+4. Late edits make earlier verification stale — seen in v1.2 (merge + CSS fix) and v1.3 (deferred UAT, three reports regenerated). Re-verify before close rather than overriding.
