@@ -206,8 +206,12 @@ export function PasswordTool() {
     statusTimer.current = setTimeout(() => setStatus(phrase), 0);
   }, []);
 
+  // Unconditional unmount cleanup (WR-01): a click-started load has no mount
+  // effect of its own, so the token is invalidated here for every entry path,
+  // and the live-region timer is cleared so a late settle cannot re-arm it.
   useEffect(() => {
     return () => {
+      seqRef.current += 1;
       if (statusTimer.current) clearTimeout(statusTimer.current);
     };
   }, []);
