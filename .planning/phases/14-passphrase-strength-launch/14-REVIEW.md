@@ -2,144 +2,98 @@
 phase: 14-passphrase-strength-launch
 reviewed: 2026-11-12T00:00:00Z
 depth: standard
-files_reviewed: 44
+iteration: 2
+files_reviewed: 12
 files_reviewed_list:
-  - app/sitemap.test.ts
-  - app/tools/pages-about.test.ts
+  - app/tools/password/PasswordTool.tsx
+  - app/tools/password/PasswordTool.passphrase.test.tsx
   - app/tools/password/ColoredPassword.tsx
-  - app/tools/password/ModeToggle.tsx
-  - app/tools/password/PassphraseOptionsPanel.tsx
-  - app/tools/password/PasswordExample.tsx
-  - app/tools/password/PasswordOptionsPanel.tsx
   - app/tools/password/PasswordOutput.tsx
   - app/tools/password/PasswordRow.tsx
-  - app/tools/password/PasswordTool.keyboard.test.tsx
-  - app/tools/password/PasswordTool.output.test.tsx
-  - app/tools/password/PasswordTool.passphrase-options.test.tsx
-  - app/tools/password/PasswordTool.passphrase.test.tsx
-  - app/tools/password/PasswordTool.strength.test.tsx
-  - app/tools/password/PasswordTool.tsx
-  - app/tools/password/PasswordTool.url.test.tsx
   - app/tools/password/PasswordToolLoader.tsx
-  - app/tools/password/StrengthPanel.test.tsx
-  - app/tools/password/StrengthPanel.tsx
-  - app/tools/password/eff-links.ts
-  - app/tools/password/faq-data.test.ts
-  - app/tools/password/faq-data.ts
-  - app/tools/password/option-controls.tsx
-  - app/tools/password/page-guards.test.ts
-  - app/tools/password/page.tsx
-  - app/tools/password/reload.ts
-  - app/tools/password/toggle-classes.ts
-  - components/SiteHeader.tsx
-  - components/ToolCard.test.tsx
-  - components/ToolCard.tsx
-  - lib/password/boundaries.test.ts
-  - tests/e2e-prod/password-ssr.spec.ts
-  - tests/e2e-prod/password-wordlist.spec.ts
-  - tests/e2e/helpers/passphrase.ts
-  - tests/e2e/home.spec.ts
-  - tests/e2e/navigation.spec.ts
-  - tests/e2e/password-keyboard.spec.ts
+  - app/tools/password/PassphraseOptionsPanel.tsx
+  - app/tools/password/PasswordTool.output.test.tsx
   - tests/e2e/password-layout.spec.ts
-  - tests/e2e/password-passphrase.spec.ts
-  - tests/e2e/password-privacy.spec.ts
   - tests/e2e/password-responsive.spec.ts
-  - tests/e2e/password-seo.spec.ts
-  - tests/e2e/password-strength.spec.ts
-  - tests/e2e/password-url.spec.ts
-  - tools/registry.test.ts
-  - tools/registry.ts
+  - tests/e2e/password-privacy.spec.ts
+  - tests/e2e/navigation.spec.ts
 findings:
   critical: 0
-  warning: 4
-  info: 4
-  total: 8
+  warning: 0
+  info: 6
+  total: 6
+  necessity: 1
 status: issues_found
 ---
 
-# Phase 14: Code Review Report
+# Phase 14: Code Review Report (iteration 2)
 
 **Reviewed:** 2026-11-12
 **Depth:** standard
-**Files Reviewed:** 44 (lib/password/wordlist/eff-large.ts body skipped as instructed; lib/password sources, lib/hooks and the other plan summaries were read as context)
-**Status:** issues_found
+**Files Reviewed:** 12 (the files touched by fix commits 03361db, 75eb7af, a3c7cf6, 25a4842, f550f97, f34e2d6 and 34572ea, plus the unchanged context files they depend on)
+**Status:** issues_found (info only; no blockers, no warnings)
 
 ## Summary
 
-The word-list load state machine in `PasswordTool.tsx` holds up under tracing. I checked these paths and found no correctness defect:
+WR-01 to WR-04 are resolved, and I found no regression in the state machine, the unmount token, the separator grouping, the skeleton ladder or the options grid.
 
-- A stale continuation never applies, because every `commit()` bumps `seqRef` and `requestLoad` re-reads the token.
-- A valid list is cached even when its continuation is stale.
-- The StrictMode double mount starts exactly one load, since the timer is cleared in the discarded first run.
-- Password to Passphrase to Password and the stale-rejection paths behave correctly.
-- Retry takes the reload path for a `ChunkLoadError` and a fresh load otherwise.
+- **WR-01 resolved.** The unconditional unmount effect (`PasswordTool.tsx:225-230`) bumps `seqRef` and clears `statusTimer` for every entry path. `requestLoad` re-reads `++seqRef.current` at call time. Under StrictMode's simulated unmount the extra bump happens before any load exists (the bookmark load is still behind a cleared 0 ms timer), so it is harmless. A late settle after a real unmount fails the `token !== seqRef.current` check and applies nothing. It still stores the valid list in `wordsRef`, which is a harmless cache on a dead island.
+- **WR-02 resolved.** The test now observes `crypto.getRandomValues` and zero-delay `setTimeout` calls instead of `console.error`. Both the click-started and bookmark paths are covered, and the fixer confirmed the click-started case fails against the pre-fix source.
+- **WR-03 resolved, state machine traced.**
+  - After a `ChunkLoadError`, `commit()` keeps `wordlist-error`. It does not bump a load, announce, or call the loader, but it does still advance `seqRef`, the generation and the URL.
+  - Password mode from the error state generates normally. Going back to Passphrase re-enters the error branch.
+  - A stale rejection is not recorded (token mismatch), so a stale `ChunkLoadError` cannot poison `lastLoadErrorRef`.
+  - A non-chunk failure still restarts the load. Retry reloads only for a chunk error.
+  - `lastLoadErrorRef` is never cleared on success, but it is only consulted while `wordsRef` is null, so a stale value is unreachable.
+  - No new defect.
+- **WR-04 resolved** as a set of pins plus a seven-width gate. See IN-05 and IN-06 for residual fragility only.
+- **UI-1 traced.**
+  - `pieces()` splits at every separator, so `textContent` is the raw value (`wbr` adds no text, and the spans are adjacent).
+  - React keys are unique (index keys versus `g${i}` fragment keys).
+  - The break is only allowed at a `wbr`, never after a separator, and Space is untouched.
+  - See IN-05 for the one behavioral trade-off.
+- **UI-2 traced.** DOM and tab order are unchanged, the `aria-describedby` linkage is intact, and `SwitchRow` is a clean extraction. The geometry e2e assertions are sound (`password-capitalize` is the Switch element, and the label is located by exact text).
 
-The strength panel is a pure function of the options, with no generated value passed in. Entropy, label, floor-formatting and crack-time hedging are consistent with `lib/password`. `LENGTH_MIN` (4) is never below the number of sets (at most 4), so `log2Big(0n)` is unreachable.
-
-Privacy is sound. `writeUrl` only ever takes `ToolOptions`, no generated value reaches an attribute, key, live region, server HTML or flight payload, and the page and loader keep `ssr:false`. Registry, sitemap, nav, `ToolCard` icon mapping and metadata are registry-derived and consistent. There are no blockers. The findings below are one robustness gap in unmount and error handling, one misleading Retry path, and test-soundness and coverage gaps (two assertions that cannot fail, a layout gate measured at only two widths).
-
-## Warnings
-
-### WR-01: Unmount invalidation of an in-flight load is only installed for passphrase-seeded sessions
-
-**File:** `app/tools/password/PasswordTool.tsx:263-271`
-**Issue:** The only cleanup that bumps `seqRef` on unmount lives inside the mount effect. That effect returns `undefined` when `seed.options.mode !== "passphrase"`. In the common case (a plain `/tools/password` visit, then the user clicks Passphrase, then navigates away before the chunk settles) there is no cleanup, so the token is never invalidated. The late settle then runs `applyGenerated` and `announce` on an unmounted island. `announce` creates a new `setTimeout` into `statusTimer` after the unmount-cleanup effect (lines 209-213) has already run, so that timer is never cleared. React 18+ no longer warns about this, so it is silent, but the code comment ("The cleanup also bumps the sequence token so an unmounted island ignores a late settle") is only true for one of the two entry paths. It also leaves a state machine that behaves differently for a bookmark than for a click.
-**Fix:** Bump the token in an unconditional unmount effect and use it from the status-timer cleanup:
-```tsx
-useEffect(() => {
-  return () => {
-    seqRef.current += 1;
-    if (statusTimer.current) clearTimeout(statusTimer.current);
-  };
-}, []);
-```
-Keep the mount-load effect's own cleanup (it also has to clear its 0 ms timer for StrictMode).
-
-### WR-02: Test "unmounting before the load settles causes no state update" cannot fail
-
-**File:** `app/tools/password/PasswordTool.passphrase.test.tsx:196-204`
-**Issue:** The test asserts `console.error` was not called after unmounting. React 18 and 19 removed the "state update on an unmounted component" warning, so that assertion holds whether or not the continuation applies a result. The test also mounts in Password mode and unmounts after a click-initiated load, so it is exactly the path WR-01 shows is not guarded: the late settle really does call `setGen` and `announce`, and the test still passes. A regression (or the current gap) can never turn it red.
-**Fix:** Assert an observable instead. For example, spy on `window.history.replaceState` and the status region after the settle, or export a test seam, and check that the late settle caused no `applyGenerated`/`announce` (status stays `""`, `loadWordlist` result is not rendered). Also add the mount-in-passphrase-bookmark unmount case.
-
-### WR-03: Any option change or Esc in the word-list error state restarts a load that cannot succeed after a ChunkLoadError
-
-**File:** `app/tools/password/PasswordTool.tsx:349-358`, `app/tools/password/PasswordTool.tsx:318-330`
-**Issue:** `retryLoad` correctly reloads the page for a `ChunkLoadError` because, per its own comment, the Turbopack production runtime caches a rejected chunk import. `commit()` has no such branch: toggling Password then Passphrase, moving the word slider, pressing Esc, and so on, all call `requestLoad(normalized, gen.status !== "loading")` against the same cached rejection. The user sees "Loading word list" announced, a pulse block, and then the same error panel again, with no recovery until they press Retry. `lastLoadErrorRef` already knows the failure kind but `commit` never consults it. The e2e check (c) only exercises the Retry button, so this path is unverified.
-**Fix:** When `normalized.mode === "passphrase"`, the list is absent and the last load error is a `ChunkLoadError`, apply the `wordlist-error` state directly (still no value, no fallback) instead of starting a doomed load. Extract `isChunkLoadError(lastLoadErrorRef.current)` and use it in both `retryLoad` and `commit`.
-
-### WR-04: Layout-shift gate pins a font-dependent pixel height but is measured at only 320 px and 1280 px
-
-**File:** `tests/e2e/password-layout.spec.ts:73-102`, `app/tools/password/PasswordToolLoader.tsx:33`
-**Issue:** The skeleton is hard-pinned to `h-[1374px] sm:h-[960px]`, measured once on one Chromium and one font stack, and the gate then asserts the settled island is within 1 px of it, at exactly two widths (320 and 1280). The island's height is wrap-dependent (strength-panel heading and the 14 px guess-rate label wrap, options grid switches at `sm`), so at 412 px (the Lighthouse mobile default), 360 to 639 px, 640 to 1279 px, or any machine with a different fallback font, the real island height can differ from the pinned value by hundreds of pixels. The bookmark case allows `< 0.1`, which is the entire "good" CLS budget (Lighthouse CLS is rated good at or below 0.1), so a passphrase bookmark can consume all of it and still pass. The project's stated target is Lighthouse 90+ with no avoidable CLS.
-**Fix:** Run the settled-height and CLS assertions at a width matrix (for example 320, 412, 640, 768, 1024, 1280). Tighten the bookmark assertion to a budget well under 0.1, or document why a bookmark may spend it. Consider `min-h` pins instead of exact `h-` pins so a shorter-than-pinned island cannot collapse the layout.
+The privacy posture is unchanged: nothing generated reaches the URL, an attribute, a key or the live region.
 
 ## Info
 
-### IN-01: Redundant assertion in the passphrase privacy sweep
+### IN-01: Redundant assertion in the passphrase privacy sweep (carried forward)
 
-**File:** `tests/e2e/password-privacy.spec.ts:441-448` (the added `sweep`)
-**Issue:** `page.getByTestId("password-options").ariaSnapshot()` is checked for the passphrase values, but the values live in `password-output-zone`, never inside the options panel, so that assertion cannot fail. The other checks in the same `sweep` (button names, `getByLabel`/`getByRole`, live region) do carry the weight, so this is noise rather than a gap.
-**Fix:** Snapshot `password-tool` (or the whole `main`) instead of `password-options`, or drop the assertion.
+**File:** `tests/e2e/password-privacy.spec.ts:439-442`
+**Issue:** `getByTestId("password-options").ariaSnapshot()` is checked for the passphrase values, but the values live in `password-output-zone`, never inside the options panel, so that assertion cannot fail. The other checks in the sweep do carry the weight.
+**Fix:** Snapshot `password-tool` (or `main`) instead, or drop it.
 
-### IN-02: Debug `console.log` left in a committed e2e spec
+### IN-02: Debug `console.log` in a committed e2e spec (carried forward)
 
-**File:** `tests/e2e/navigation.spec.ts:140-143`
-**Issue:** The nav-fit test logs `[nav-fit ...] link widths=... slack=...` on every run. It is test-only diagnostic output, but it is a debug artifact and noise in CI logs.
-**Fix:** Move the numbers into the assertion message (`expect(..., \`slack ${slack}\`)`) or `test.info().annotations`, as `password-wordlist.spec.ts` already does.
+**File:** `tests/e2e/navigation.spec.ts:147`
+**Issue:** The nav-fit test logs link widths and slack on every run (CI log noise).
+**Fix:** Move the numbers into the assertion message or `test.info().annotations`.
 
-### IN-03: A cached invalid list is never discarded, and the error copy then misleads
+### IN-03: A cached invalid list is never discarded (carried forward)
 
-**File:** `app/tools/password/PasswordTool.tsx:292`, `app/tools/password/PasswordOutput.tsx:56-62`
-**Issue:** `wordsRef.current` is assigned the loaded list before any validation. If the list is not exactly 7,776 entries, `generatePassphraseBatch` throws `WordlistIntegrityError`, which is mapped to the `unexpected` panel ("Press Enter to try again, or change an option"). Because the invalid list stays cached, every Enter or option change hits the same error until a full page reload. The test "a list that is not 7,776 words fails closed" confirms the panel but not that it is recoverable. This state is unreachable with the vendored, build-time-fixed list (necessity: impossible-state guard is already covered by the integrity check), so it is informational only.
-**Fix:** If this is worth handling, clear `wordsRef.current` when `generate` returns `error === "unexpected"` in passphrase mode, so the next action re-fetches.
+**File:** `app/tools/password/PasswordTool.tsx:309`
+**Issue:** `wordsRef.current = list` is assigned before validation, so a wrong-sized list keeps producing the `unexpected` panel until a full reload. It is unreachable with the vendored, build-time-fixed list, and `generatePassphraseBatch` already enforces the integrity check.
+**Fix:** If handled at all, clear `wordsRef` when `generate` returns `error === "unexpected"` in passphrase mode.
 **Category:** necessity
 
-### IN-04: Esc while the list is loading or failed gives screen-reader users no reset feedback
+### IN-04: Esc during loading or error gives screen-reader users no reset feedback (carried forward)
 
-**File:** `app/tools/password/PasswordTool.tsx:503-510`, `app/tools/password/PasswordTool.keyboard.test.tsx` ("Esc while the list is still loading ...")
-**Issue:** `resetAll()` announces only when `commit` returned a ready result. While loading, the options are reset visibly (and drafts/scenario change) but nothing is announced until "Word list loaded. New passphrase generated", which does not mention the reset. This is a deliberate, tested choice (the test asserts the absence of the reset phrase), so it is a judgment call rather than a defect.
-**Fix:** Optionally append the reset context to the post-load announcement when the load was started by a reset.
+**File:** `app/tools/password/PasswordTool.tsx:531-537`
+**Issue:** `resetAll()` announces only when `commit` returns a ready result. That is deliberate and tested (and WR-03 now makes the error-state case silent on purpose), so this is a judgment call.
+**Fix:** Optionally fold the reset context into the post-load announcement.
+
+### IN-05: The no-wrap separator group removes the `overflow-wrap:anywhere` safety net for passphrase output
+
+**File:** `app/tools/password/ColoredPassword.tsx:83`, `app/tools/password/PasswordRow.tsx:66`
+**Issue:** The rows use `[overflow-wrap:anywhere]` as a last-resort break for long unbroken text. The new `whitespace-nowrap` groups (separator + word + optional appended digit) cannot wrap at all, so `overflow-wrap` no longer applies inside them. Today a group is at most about 11 characters (the EFF word maximum is 9), which fits at 320 px, and the 20-word e2e gate covers that. If the list, font size or the appended-number format ever grows, a group wider than the row will overflow horizontally instead of breaking mid-word. This is a latent maintainability trade-off, not a current bug.
+**Fix:** Acceptable as is. Optionally add a unit or e2e assertion on the longest word plus separator and digit at 320 px (or at 200% font size) so a future change is caught.
+
+### IN-06: Skeleton ladder is tuned to overlay-scrollbar, font-exact measurements
+
+**File:** `app/tools/password/PasswordToolLoader.tsx:42`
+**Issue:** The nine pins have thresholds at 1 px precision (332, 378, 387, 398, 413, 453, 708). They were measured in headless Chromium, which hides scrollbars. Desktop browsers with classic 15 px scrollbars lay out 15 px narrower than the `min-[Npx]` media-query width. For desktop windows within about 15 px above a threshold, the real island can sit in the neighboring band, giving a shift of roughly 20 to 40 px (for example a viewport of 708 to 722 px). The fixer already notes the font-metric dependency. Mobile and Lighthouse emulation use overlay scrollbars, so the 90+ target is not at risk, and the effect is bounded and small.
+**Fix:** Optional. Run the layout gate once with a non-hidden-scrollbar context, or add a comment that the ladder assumes overlay scrollbars. Re-measure if the font stack changes.
 
 ---
 
