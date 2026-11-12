@@ -201,14 +201,40 @@ describe("sequence token (PHR-01, PHR-03; D-04)", () => {
     }
   });
 
-  it("unmounting before the load settles causes no state update", async () => {
-    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+  // React 18+ no longer warns about updates on an unmounted component, so a
+  // console.error assertion cannot fail (WR-02). The observable is the
+  // continuation's work instead: applying a late result draws randomness
+  // (crypto.getRandomValues) and announces through a timer. Neither may happen.
+  async function expectLateSettleAppliesNothing(
+    view: { unmount: () => void },
+  ) {
+    const draw = vi.spyOn(globalThis.crypto, "getRandomValues");
+    const timers = vi.spyOn(globalThis, "setTimeout");
+    view.unmount();
+    draw.mockClear();
+    timers.mockClear();
+    await settle(pending[0], fixtureList());
+    const announcementTimers = timers.mock.calls.filter(
+      ([, delay]) => delay === 0,
+    );
+    expect(draw).not.toHaveBeenCalled();
+    expect(announcementTimers).toHaveLength(0);
+    draw.mockRestore();
+    timers.mockRestore();
+  }
+
+  it("unmounting before a click-started load settles applies and announces nothing", async () => {
     const view = mount();
     await choose("passphrase");
-    view.unmount();
-    await settle(pending[0], fixtureList());
-    expect(errors).not.toHaveBeenCalled();
-    errors.mockRestore();
+    expect(pending).toHaveLength(1);
+    await expectLateSettleAppliesNothing(view);
+  });
+
+  it("unmounting a passphrase bookmark before its load settles applies and announces nothing", async () => {
+    const view = mount("/tools/password?mode=passphrase");
+    await flush();
+    expect(pending).toHaveLength(1);
+    await expectLateSettleAppliesNothing(view);
   });
 
   it("a stale rejection after a mode change shows no error panel", async () => {
