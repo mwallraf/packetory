@@ -301,3 +301,77 @@ test.describe("Passphrase separators never end a wrapped line (UI-1)", () => {
     });
   }
 });
+
+test.describe("Passphrase options grid (UI-2)", () => {
+  type Box = { x: number; y: number; width: number; height: number };
+
+  async function boxes(page: import("@playwright/test").Page) {
+    const box = async (id: string): Promise<Box> => {
+      const b = await page.getByTestId(id).boundingBox();
+      if (!b) throw new Error(`${id} has no bounding box`);
+      return b;
+    };
+    const label = async (text: string): Promise<Box> => {
+      const b = await page.getByText(text, { exact: true }).boundingBox();
+      if (!b) throw new Error(`${text} has no bounding box`);
+      return b;
+    };
+    return {
+      options: await box("password-options"),
+      separator: await box("password-separator"),
+      cap: await box("password-capitalize"),
+      num: await box("password-append-number"),
+      capHint: await box("password-capitalize-hint"),
+      numHint: await box("password-append-number-hint"),
+      capLabel: await label("Capitalize words"),
+      numLabel: await label("Append a number"),
+    };
+  }
+
+  for (const width of [640, 1280]) {
+    test(`at ${width}px the separator has its own row and the switches sit side by side`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/tools/password?mode=passphrase");
+      await expect(page.getByTestId("password-options")).toBeVisible();
+      const b = await boxes(page);
+      // Separator row: its toggle group starts at the panel's left edge and the
+      // switch row starts below it (no right column beside the separator).
+      expect(b.separator.x).toBeCloseTo(b.options.x, 0);
+      expect(b.cap.y, "switches sit below the separator").toBeGreaterThan(
+        b.separator.y + b.separator.height - 1,
+      );
+      // Capitalize and Append share a row, in two columns.
+      expect(Math.abs(b.cap.y - b.num.y)).toBeLessThanOrEqual(1);
+      expect(b.num.x).toBeGreaterThan(b.cap.x + 100);
+      // Each hint sits directly under its own label, aligned with its text.
+      for (const [label, hint] of [
+        [b.capLabel, b.capHint],
+        [b.numLabel, b.numHint],
+      ] as const) {
+        expect(Math.abs(hint.x - label.x)).toBeLessThanOrEqual(1);
+        const gap = hint.y - (label.y + label.height);
+        expect(gap, "hint directly under its label").toBeGreaterThanOrEqual(0);
+        expect(gap, "hint directly under its label").toBeLessThanOrEqual(8);
+      }
+    });
+  }
+
+  test("at 320px the switches stack in reading order and nothing overflows", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto("/tools/password?mode=passphrase");
+    await expect(page.getByTestId("password-options")).toBeVisible();
+    const b = await boxes(page);
+    expect(b.num.y).toBeGreaterThan(b.cap.y + b.cap.height);
+    expect(Math.abs(b.num.x - b.cap.x)).toBeLessThanOrEqual(1);
+    const noScroll = await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    );
+    expect(noScroll).toBe(true);
+  });
+});

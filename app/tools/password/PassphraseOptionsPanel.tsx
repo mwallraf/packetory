@@ -50,6 +50,54 @@ const LINK =
   "text-foreground underline underline-offset-4 outline-none hover:no-underline focus-visible:ring-[3px] focus-visible:ring-ring/50 rounded-sm";
 
 /**
+ * One switch cell: the switch and its label share a 44px row, and the hint
+ * sits directly under the label text (not under the switch), so it reads as
+ * belonging to its own control. Each cell is a grid item, so at sm and up
+ * Capitalize and Append sit side by side.
+ */
+function SwitchRow({
+  id,
+  label,
+  checked,
+  onCheckedChange,
+  hint,
+}: {
+  id: string;
+  label: string;
+  checked: boolean;
+  onCheckedChange: (checked: boolean) => void;
+  hint: string;
+}) {
+  return (
+    <div className="flex items-start gap-4">
+      <div className="flex h-11 items-center">
+        <Switch
+          id={id}
+          data-testid={id}
+          checked={checked}
+          aria-describedby={`${id}-hint`}
+          onCheckedChange={onCheckedChange}
+        />
+      </div>
+      <div className="flex min-w-0 flex-col">
+        <div className="flex h-11 items-center">
+          <Label htmlFor={id} className={LABEL_CLASS}>
+            {label}
+          </Label>
+        </div>
+        <p
+          id={`${id}-hint`}
+          data-testid={`${id}-hint`}
+          className={`${HINT_CLASS} -mt-2`}
+        >
+          {hint}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Presentational options section for Passphrase mode (PHR-02, D-02). It holds
  * no state: the island owns the options and the drafts and passes the
  * handlers. Only one of the two option panels is mounted at a time.
@@ -108,7 +156,7 @@ export function PassphraseOptionsPanel({
           onSliderChange={onWordsSliderChange}
         />
 
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 sm:col-span-2">
           <span
             id="password-separator-label"
             className="text-[14px] leading-[1.4] font-semibold text-foreground"
@@ -142,50 +190,20 @@ export function PassphraseOptionsPanel({
           </ToggleGroup>
         </div>
 
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-2">
-            <div className="flex min-h-11 items-center gap-4">
-              <Switch
-                id="password-capitalize"
-                data-testid="password-capitalize"
-                checked={options.capitalize}
-                aria-describedby="password-capitalize-hint"
-                onCheckedChange={onCapitalizeChange}
-              />
-              <Label htmlFor="password-capitalize" className={LABEL_CLASS}>
-                Capitalize words
-              </Label>
-            </div>
-            <p
-              id="password-capitalize-hint"
-              data-testid="password-capitalize-hint"
-              className={HINT_CLASS}
-            >
-              Capital first letter on every word. Adds 0 bits.
-            </p>
-          </div>
-          <div className="flex flex-col gap-2">
-            <div className="flex min-h-11 items-center gap-4">
-              <Switch
-                id="password-append-number"
-                data-testid="password-append-number"
-                checked={options.appendNumber}
-                aria-describedby="password-append-number-hint"
-                onCheckedChange={onAppendNumberChange}
-              />
-              <Label htmlFor="password-append-number" className={LABEL_CLASS}>
-                Append a number
-              </Label>
-            </div>
-            <p
-              id="password-append-number-hint"
-              data-testid="password-append-number-hint"
-              className={HINT_CLASS}
-            >
-              {`A random digit after the last word. Adds about ${APPEND_NUMBER_BITS.toFixed(1)} bits.`}
-            </p>
-          </div>
-        </div>
+        <SwitchRow
+          id="password-capitalize"
+          label="Capitalize words"
+          checked={options.capitalize}
+          onCheckedChange={onCapitalizeChange}
+          hint="Capital first letter on every word. Adds 0 bits."
+        />
+        <SwitchRow
+          id="password-append-number"
+          label="Append a number"
+          checked={options.appendNumber}
+          onCheckedChange={onAppendNumberChange}
+          hint={`A random digit after the last word. Adds about ${APPEND_NUMBER_BITS.toFixed(1)} bits.`}
+        />
 
         <BatchCountRow
           draft={batchDraft}
