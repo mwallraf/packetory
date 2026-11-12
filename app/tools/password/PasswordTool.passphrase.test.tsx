@@ -338,6 +338,79 @@ describe("word-list error and Retry (PHR-03, D-04)", () => {
     expect(loader).toHaveBeenCalledTimes(1);
   });
 
+  describe("after a ChunkLoadError no action starts a doomed load (WR-03)", () => {
+    async function chunkFailedMount() {
+      mount("/tools/password?mode=passphrase");
+      await flush();
+      await fail(pending[0], chunkError());
+      expect(screen.getByTestId("password-wordlist-error")).toBeTruthy();
+    }
+
+    function expectErrorPanelKept(before: string) {
+      expect(loader).toHaveBeenCalledTimes(1);
+      expect(reloadPage).not.toHaveBeenCalled();
+      expect(screen.getByTestId("password-wordlist-error")).toBeTruthy();
+      expect(screen.queryByTestId("password-wordlist-loading")).toBeNull();
+      expect(screen.queryByTestId("password-output")).toBeNull();
+      expect(status()).toBe(before);
+      expect(zoneChildren()).toBe(1);
+    }
+
+    it("a word-count change keeps the error panel and never calls the loader", async () => {
+      await chunkFailedMount();
+      const before = status();
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("password-words-slider"), {
+          target: { value: "8" },
+        });
+      });
+      await flush();
+      expectErrorPanelKept(before);
+      expect(search()).toBe("?mode=passphrase&words=8");
+    });
+
+    it("Esc keeps the error panel and never calls the loader", async () => {
+      await chunkFailedMount();
+      const before = status();
+      await act(async () => {
+        fireEvent.keyDown(window, { key: "Escape" });
+      });
+      await flush();
+      expectErrorPanelKept(before);
+    });
+
+    it("Password then Passphrase again lands on the error panel, not a fake load", async () => {
+      await chunkFailedMount();
+      await choose("password");
+      expect(screen.getByTestId("password-output")).toBeTruthy();
+      await choose("passphrase");
+      await flush();
+      expectErrorPanelKept(status());
+    });
+
+    it("Retry still reloads the page afterwards", async () => {
+      await chunkFailedMount();
+      await choose("password");
+      await choose("passphrase");
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("password-wordlist-retry"));
+      });
+      expect(reloadPage).toHaveBeenCalledTimes(1);
+      expect(loader).toHaveBeenCalledTimes(1);
+    });
+
+    it("a plain failure still restarts the load on an option change", async () => {
+      await failedMount();
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("password-words-slider"), {
+          target: { value: "8" },
+        });
+      });
+      expect(loader).toHaveBeenCalledTimes(2);
+      expect(screen.getByTestId("password-wordlist-loading")).toBeTruthy();
+    });
+  });
+
   it("Enter while the error panel shows neither loads nor announces", async () => {
     await failedMount();
     const before = status();

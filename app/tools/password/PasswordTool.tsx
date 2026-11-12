@@ -149,6 +149,19 @@ function writeUrl(opts: ToolOptions) {
 }
 
 /**
+ * True for a failed dynamic chunk import. The Turbopack production runtime
+ * caches a rejected chunk import, so another load attempt in the same page
+ * session would hit the same rejection (WR-03); only a reload recovers.
+ */
+function isChunkLoadError(e: unknown): boolean {
+  return (
+    typeof e === "object" &&
+    e !== null &&
+    (e as { name?: unknown }).name === "ChunkLoadError"
+  );
+}
+
+/**
  * Single lazy initializer for the island's first state (D-02). `window` is
  * deliberately NOT guarded: this component must never run on the server, so a
  * server execution has to fail loudly instead of silently generating a
@@ -320,12 +333,7 @@ export function PasswordTool() {
   // the URL, so the reload lands on the D-05 bookmark path). Any other failure
   // starts a fresh load. No fallback list and no previous value is ever shown.
   function retryLoad() {
-    const last = lastLoadErrorRef.current;
-    if (
-      typeof last === "object" &&
-      last !== null &&
-      (last as { name?: unknown }).name === "ChunkLoadError"
-    ) {
+    if (isChunkLoadError(lastLoadErrorRef.current)) {
       reloadPage();
       return;
     }
@@ -356,6 +364,21 @@ export function PasswordTool() {
     setOptions(normalized);
     const words = wordsRef.current;
     if (normalized.mode === "passphrase" && words === null) {
+      if (isChunkLoadError(lastLoadErrorRef.current)) {
+        // The list failed with a ChunkLoadError, which a second load cannot
+        // clear (WR-03). Keep the error panel instead of starting a doomed
+        // load and announcing "Loading word list"; Retry reloads the page. No
+        // value and no fallback list, exactly like the original failure.
+        const failed: Generated = {
+          results: [],
+          error: null,
+          status: "wordlist-error",
+          generation: generationRef.current + 1,
+        };
+        applyGenerated(failed);
+        writeUrl(normalized);
+        return failed;
+      }
       const loading = generate(normalized, generationRef.current + 1, null);
       applyGenerated(loading);
       requestLoad(normalized, gen.status !== "loading");
