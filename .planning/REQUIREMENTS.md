@@ -41,3 +41,15 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| DIFF-01 | Phase 15 | Pending |
+| DIFF-02 | Phase 15 | Pending |
+| DIFF-03 | Phase 16 | Pending |
+| DIFF-04 | Phase 16 | Pending |
+| WORK-01 | Phase 16 | Pending |
+| WORK-02 | Phase 16 | Pending |
+| WORK-03 | Phase 16 | Pending |
+| WORK-04 | Phase 16 | Pending |
+| VIEW-01 | Phase 16 | Pending |
+| VIEW-02 | Phase 16 | Pending |
+| VIEW-03 | Phase 16 | Pending |
+| VIEW-04 | Phase 16 | Pending |
