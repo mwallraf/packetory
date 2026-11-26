@@ -75,7 +75,9 @@ Full phase details archived at `.planning/milestones/v1.3-ROADMAP.md`.
 2. Results distinguish additions, removals, and related replacements with original and modified line numbers. A small edit, such as one digit in an IP address, is marked within its changed line.
 3. Repeated lines and unequal replacement groups produce stable, ordered results with no dropped or duplicated source text.
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+- [ ] 15-01-PLAN.md — Implement and verify the browser text comparison engine.
 
 ### Phase 16: Text Diff Workspace & Release
 
@@ -101,5 +103,5 @@ Full phase details archived at `.planning/milestones/v1.3-ROADMAP.md`.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 15. Text Comparison Engine | 0/TBD | Not started | — |
+| 15. Text Comparison Engine | 0/1 | Ready to execute | — |
 | 16. Text Diff Workspace & Release | 0/TBD | Not started | — |
