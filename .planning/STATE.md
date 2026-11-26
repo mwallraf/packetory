@@ -1,20 +1,16 @@
 ---
 gsd_state_version: "1.0"
-milestone: v1.3
-status: Awaiting next milestone
-stopped_at: v1.3 milestone archived and tagged
-last_updated: "2026-11-26T17:18:58.748Z"
-last_activity: 2026-11-12
-last_activity_desc: "Milestone v1.3 shipped as PR #17"
-state_head: a2094ff3ffe96bd4f0f740faaf296641e6058724
-milestone_name: Password Generator & Tool Page Polish
-current_phase: 14
+milestone: v1.4
+milestone_name: Text Diff
+status: planning
+last_updated: "2026-11-26T17:32:29.321Z"
+last_activity: 2026-11-26
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 26
-  completed_plans: 26
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -28,10 +24,11 @@ See: .planning/PROJECT.md (updated 2026-11-12)
 
 ## Current Position
 
-Phase: Milestone v1.3 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-11-12 -- Milestone v1.3 shipped as PR #17
+Status: Defining requirements
+Last activity: 2026-11-26 — Milestone v1.4 started
+
 
 ## Performance Metrics
 
