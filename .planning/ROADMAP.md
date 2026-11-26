@@ -95,7 +95,15 @@ Full phase details archived at `.planning/milestones/v1.3-ROADMAP.md`.
 4. Clear all empties both fields, clears results and status, and focuses Original. An in-flight comparison cannot restore a cleared result. Users can keep interacting during comparison, and inputs beyond verified processing or rendering limits show a recoverable message and remain editable.
 5. Production browser verification shows that pasted snippets and comparison results stay out of network requests, URLs, telemetry, logs, and app-managed storage.
 
-**Plans**: TBD
+**Plans**: 3 plans
+**Wave 1**
+- [ ] 16-01-PLAN.md — Connect the paste-first workspace to the browser worker.
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 16-02-PLAN.md — Deliver responsive results and verify limits and privacy.
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 16-03-PLAN.md — Integrate discovery, navigation, and the shared About section.
 
 **UI hint**: yes
 
@@ -104,4 +112,4 @@ Full phase details archived at `.planning/milestones/v1.3-ROADMAP.md`.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 15. Text Comparison Engine | 1/1 | Complete    | 2026-11-26 |
-| 16. Text Diff Workspace & Release | 0/TBD | Not started | — |
+| 16. Text Diff Workspace & Release | 0/3 | Ready to execute | — |
