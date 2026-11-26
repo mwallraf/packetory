@@ -1,6 +1,9 @@
+import { exceedsInputLength } from "./limits";
 import type { TextDiffInput, TextDiffResult } from "./types";
 
 export type TextDiffOutcome = TextDiffResult | { status: "cancelled" };
+
+const WORKER_TIMEOUT_MS = 3_000;
 
 type WorkerPort = {
   postMessage(input: TextDiffInput): void;
@@ -20,30 +23,39 @@ export function createTextDiffClient(createWorker = createDefaultWorker) {
   return {
     compare(input: TextDiffInput): Promise<TextDiffOutcome> {
       cancelCurrent?.();
+      if (exceedsInputLength(input.original, input.modified)) {
+        return Promise.resolve({ status: "error", code: "input-limit" });
+      }
       return new Promise((resolve) => {
+        let worker: WorkerPort;
         try {
-          const worker = createWorker();
-          const finish = (outcome: TextDiffOutcome) => {
-            if (cancelCurrent !== cancel) return;
-            cancelCurrent = undefined;
-            worker.terminate();
-            resolve(outcome);
-          };
-          const cancel = () => finish({ status: "cancelled" });
-          cancelCurrent = cancel;
-          worker.onmessage = ({ data }) => finish(data);
-          worker.onerror = (event) => {
-            event.preventDefault();
-            finish({ status: "error", code: "worker-error" });
-          };
-          worker.onmessageerror = () => finish({ status: "error", code: "worker-error" });
-          try {
-            worker.postMessage(input);
-          } catch {
-            finish({ status: "error", code: "worker-error" });
-          }
+          worker = createWorker();
         } catch {
           resolve({ status: "error", code: "worker-error" });
+          return;
+        }
+
+        const finish = (outcome: TextDiffOutcome) => {
+          if (cancelCurrent !== cancel) return;
+          cancelCurrent = undefined;
+          clearTimeout(timeout);
+          worker.terminate();
+          resolve(outcome);
+        };
+        const cancel = () => finish({ status: "cancelled" });
+        const fail = () => finish({ status: "error", code: "worker-error" });
+        const timeout = setTimeout(fail, WORKER_TIMEOUT_MS);
+        cancelCurrent = cancel;
+        worker.onmessage = ({ data }) => finish(data);
+        worker.onerror = (event) => {
+          event.preventDefault();
+          fail();
+        };
+        worker.onmessageerror = fail;
+        try {
+          worker.postMessage(input);
+        } catch {
+          fail();
         }
       });
     },
