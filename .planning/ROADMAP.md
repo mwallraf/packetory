@@ -10,7 +10,7 @@
 
 ## Phases
 
-- [ ] **Phase 15: Text Comparison Engine** — Compare plain text in a browser worker and return aligned changes.
+- [x] **Phase 15: Text Comparison Engine** — Compare plain text in a browser worker and return aligned changes. (completed 2026-11-26)
 - [ ] **Phase 16: Text Diff Workspace & Release** — Deliver and verify the paste-and-compare workflow in Packetory.
 
 <details>
@@ -75,9 +75,9 @@ Full phase details archived at `.planning/milestones/v1.3-ROADMAP.md`.
 2. Results distinguish additions, removals, and related replacements with original and modified line numbers. A small edit, such as one digit in an IP address, is marked within its changed line.
 3. Repeated lines and unequal replacement groups produce stable, ordered results with no dropped or duplicated source text.
 
-**Plans**: 1 plan
+**Plans**: 1/1 plans complete
 
-- [ ] 15-01-PLAN.md — Implement and verify the browser text comparison engine.
+- [x] 15-01-PLAN.md — Implement and verify the browser text comparison engine.
 
 ### Phase 16: Text Diff Workspace & Release
 
@@ -103,5 +103,5 @@ Full phase details archived at `.planning/milestones/v1.3-ROADMAP.md`.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 15. Text Comparison Engine | 0/1 | Ready to execute | — |
+| 15. Text Comparison Engine | 1/1 | Complete    | 2026-11-26 |
 | 16. Text Diff Workspace & Release | 0/TBD | Not started | — |

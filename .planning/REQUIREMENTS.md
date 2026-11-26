@@ -8,8 +8,8 @@
 
 ### Comparison
 
-- [ ] **DIFF-01**: Users can compare plain text with indentation, trailing spaces, internal blank lines, and a final newline preserved. Windows and Unix line endings are equivalent.
-- [ ] **DIFF-02**: Users can distinguish added, removed, and modified lines, with exact edits highlighted within related lines.
+- [x] **DIFF-01**: Users can compare plain text with indentation, trailing spaces, internal blank lines, and a final newline preserved. Windows and Unix line endings are equivalent.
+- [x] **DIFF-02**: Users can distinguish added, removed, and modified lines, with exact edits highlighted within related lines.
 - [ ] **DIFF-03**: Users can keep interacting with the workspace during comparison. Inputs that exceed verified processing or rendering limits produce a recoverable message and leave the snippets available to edit.
 - [ ] **DIFF-04**: Users can compare snippets entirely in their browser. Comparison contents and results stay out of network requests, URLs, telemetry, logs, and app-managed storage.
 
@@ -41,8 +41,8 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DIFF-01 | Phase 15 | Pending |
-| DIFF-02 | Phase 15 | Pending |
+| DIFF-01 | Phase 15 | Complete |
+| DIFF-02 | Phase 15 | Complete |
 | DIFF-03 | Phase 16 | Pending |
 | DIFF-04 | Phase 16 | Pending |
 | WORK-01 | Phase 16 | Pending |
