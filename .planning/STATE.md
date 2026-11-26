@@ -3,18 +3,18 @@ gsd_state_version: "1.0"
 milestone: v1.3
 status: Awaiting next milestone
 stopped_at: v1.3 milestone archived and tagged
-last_updated: "2026-11-12T14:34:37.385Z"
+last_updated: "2026-11-26T17:18:58.748Z"
 last_activity: 2026-11-12
 last_activity_desc: "Milestone v1.3 shipped as PR #17"
-state_head: 84f6e2c666d25f9f189c5514a0d91b7acfd0ad4f
+state_head: a2094ff3ffe96bd4f0f740faaf296641e6058724
+milestone_name: Password Generator & Tool Page Polish
+current_phase: 14
 progress:
   total_phases: 5
   completed_phases: 5
   total_plans: 26
   completed_plans: 26
   percent: 100
-milestone_name: Password Generator & Tool Page Polish
-current_phase: 14
 ---
 
 # Project State
@@ -199,6 +199,7 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 261017-cnt | Merge origin/main (PRs #14/#15 config highlighter) into phase branch, keep hash + config tools | 2026-10-17 | 30baef9 | [261017-cnt-merge-origin-main-prs-14-15-config-highl](./quick/261017-cnt-merge-origin-main-prs-14-15-config-highl/) |
 | 261017-f4s | Fix PR #16 CI hash-layout failure (geometricPrecision on digests) and drop e2e job from CI | 2026-10-17 | ab869bc | [261017-f4s-fix-pr-16-ci-hash-layout-failure-and-dro](./quick/261017-f4s-fix-pr-16-ci-hash-layout-failure-and-dro/) |
+| 3 | Document the required OpenGSD workflow in root AGENTS.md | 2026-11-26 | a2094ff | — |
 
 ## Deferred Items
 
