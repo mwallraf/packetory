@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createTextDiffClient, type TextDiffOutcome } from "@/lib/text-diff/client";
-import type { TextDiffError, TextDiffInput, TextDiffRow } from "@/lib/text-diff/types";
+import type { TextDiffError, TextDiffInput, TextDiffOptions, TextDiffRow } from "@/lib/text-diff/types";
 import { TextDiffResults } from "./TextDiffResults";
 import { textDiffExample } from "./example";
 import { fitsExpandedResult } from "./result-model";
@@ -14,6 +14,11 @@ const emptyInput: TextDiffInput = { original: "", modified: "" };
 const AUTO_COMPARE_DELAY_MS = 350;
 const AUTO_COMPARE_CHARACTER_LIMIT = 10_000;
 const AUTO_COMPARE_LINE_LIMIT = 100;
+const comparisonOptions = [
+  { key: "ignoreBlankLines", label: "Ignore blank", description: "Skip empty lines and lines containing only whitespace." },
+  { key: "ignoreTrailingWhitespace", label: "Ignore trailing spaces", description: "Ignore whitespace at the end of each line. Leading indentation still matters." },
+  { key: "ignoreCase", label: "Ignore case", description: "Treat uppercase and lowercase differences as equal." },
+] as const;
 const errorText: Record<TextDiffError, string> = {
   "input-limit": "One snippet is too long. Shorten it and compare again.",
   "comparison-limit": "This comparison is too large to display. Try comparing a smaller section.",
@@ -34,20 +39,21 @@ function fitsAutoCompare(text: string): boolean {
     && text.split(/\r\n|\r|\n/).length <= AUTO_COMPARE_LINE_LIMIT;
 }
 
-function summarize(rows: TextDiffRow[]): string {
+function summarize(rows: TextDiffRow[], hasOptions: boolean): string {
   const counts = { added: 0, removed: 0, modified: 0 };
   for (const row of rows) {
     if (row.kind !== "equal") counts[row.kind]++;
   }
   return Object.entries(counts).filter(([, count]) => count > 0)
-    .map(([kind, count]) => `${count} ${kind}`).join(" · ") || "No differences found.";
+    .map(([kind, count]) => `${count} ${kind}`).join(" · ")
+    || (hasOptions ? "No differences with the current options." : "No differences found.");
 }
 
-function statusText(comparison: Comparison): string {
+function statusText(comparison: Comparison, hasOptions: boolean): string {
   if (comparison.status === "pending") return "Comparing…";
   if (comparison.status === "error") return errorText[comparison.code];
   if (comparison.status === "done") {
-    return comparison.stale ? "Out of date. Compare again to update the results." : summarize(comparison.rows);
+    return comparison.stale ? "Out of date. Compare again to update the results." : summarize(comparison.rows, hasOptions);
   }
   return "";
 }
@@ -108,17 +114,20 @@ export function TextDiffWorkspace() {
     client.cancel();
   }
 
-  function edit(side: keyof TextDiffInput, value: string) {
+  function updateInput(nextInput: TextDiffInput, autoCompare: boolean) {
     cancelComparison();
-    const nextInput = { ...input, [side]: value };
     setInput(nextInput);
     setComparison((current) => current.status === "done"
       ? { ...current, stale: true }
       : { status: "idle" });
-    if (side === "modified" && fitsAutoCompare(nextInput.original)
-      && fitsAutoCompare(value) && hasPair(nextInput)) {
+    if (autoCompare && fitsAutoCompare(nextInput.original)
+      && fitsAutoCompare(nextInput.modified) && hasPair(nextInput)) {
       autoCompareTimer.current = setTimeout(() => void compare(nextInput), AUTO_COMPARE_DELAY_MS);
     }
+  }
+
+  function changeOption(key: keyof TextDiffOptions, checked: boolean) {
+    updateInput({ ...input, options: { ...input.options, [key]: checked } }, true);
   }
 
   function clearAll() {
@@ -129,9 +138,10 @@ export function TextDiffWorkspace() {
   }
 
   function tryExample() {
-    setInput(textDiffExample);
+    const example = { ...textDiffExample, options: input.options };
+    setInput(example);
     original.current?.focus();
-    void compare(textDiffExample);
+    void compare(example);
   }
 
   function handleShortcut(event: KeyboardEvent<HTMLFormElement>) {
@@ -169,12 +179,12 @@ export function TextDiffWorkspace() {
               placeholder={`Paste ${side} text`}
               className="min-h-36 bg-background p-4 font-mono text-[10pt] leading-normal md:min-h-48 md:text-[10pt] dark:bg-background"
               value={input[side]}
-              onChange={(event) => edit(side, event.currentTarget.value)}
+              onChange={(event) => updateInput({ ...input, [side]: event.currentTarget.value }, side === "modified")}
             />
           </div>
         ))}
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <Button
           type="submit"
           aria-keyshortcuts="Control+Enter Meta+Enter"
@@ -186,6 +196,21 @@ export function TextDiffWorkspace() {
         <Button type="button" variant="outline" onClick={clearAll} className="h-11 px-4 font-semibold">
           Clear all
         </Button>
+        <fieldset className="flex min-w-0 flex-wrap gap-x-3">
+          <legend className="sr-only">Comparison options</legend>
+          {comparisonOptions.map(({ key, label, description }) => (
+            <label key={key} title={description} className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 text-xs">
+              <input
+                type="checkbox"
+                checked={Boolean(input.options?.[key])}
+                onChange={(event) => changeOption(key, event.currentTarget.checked)}
+                aria-description={description}
+                className="size-3.5 accent-cyan-700 dark:accent-primary"
+              />
+              {label}
+            </label>
+          ))}
+        </fieldset>
         {canTryExample && (
           <Button type="button" variant="ghost" onClick={tryExample} className="h-11 px-4 font-semibold">
             Try an example
@@ -198,7 +223,7 @@ export function TextDiffWorkspace() {
         aria-atomic="true"
         className={`text-sm leading-normal empty:sr-only ${comparison.status === "error" ? "rounded-lg border border-destructive px-4 py-2" : ""}`}
       >
-        {statusText(comparison)}
+        {statusText(comparison, Object.values(input.options ?? {}).some(Boolean))}
       </p>
       {comparison.status === "done" && comparison.rows.some((row) => row.kind !== "equal")
         && <TextDiffResults key={comparison.id} rows={comparison.rows} />}

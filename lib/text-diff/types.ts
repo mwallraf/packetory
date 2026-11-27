@@ -1,6 +1,13 @@
+export type TextDiffOptions = {
+  ignoreBlankLines?: boolean;
+  ignoreTrailingWhitespace?: boolean;
+  ignoreCase?: boolean;
+};
+
 export type TextDiffInput = {
   original: string;
   modified: string;
+  options?: TextDiffOptions;
 };
 
 export type TextDiffSpan = {

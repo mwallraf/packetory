@@ -1,6 +1,6 @@
 import { diffArrays, diffChars } from "diff";
 import { exceedsInputLength } from "./limits";
-import type { TextDiffInput, TextDiffLine, TextDiffResult, TextDiffRow } from "./types";
+import type { TextDiffInput, TextDiffLine, TextDiffOptions, TextDiffResult, TextDiffRow } from "./types";
 
 const MAX_INPUT_LINES = 5_000;
 const MAX_LINE_EDITS = 1_000;
@@ -22,24 +22,56 @@ function line(token: string, number: number, kind: "equal" | "removed" | "added"
   return { number, text, hasNewline, spans: text ? [{ kind, text }] : [] };
 }
 
-function replacement(original: TextDiffLine, modified: TextDiffLine, deadline: number): TextDiffRow {
+function comparisonText(text: string, options: TextDiffOptions): string {
+  return options.ignoreTrailingWhitespace ? text.replace(/[^\S\n]+$/u, "") : text;
+}
+
+function comparisonKey(text: string, options: TextDiffOptions): string {
+  const value = comparisonText(text, options);
+  return options.ignoreCase ? value.toLowerCase() : value;
+}
+
+function replacement(
+  original: TextDiffLine, modified: TextDiffLine, deadline: number, options: TextDiffOptions,
+): TextDiffRow {
   const remaining = deadline - Date.now();
-  const changes = remaining > 0 && original.text.length + modified.text.length <= MAX_INLINE_LENGTH
-    ? diffChars(original.text, modified.text, {
+  const left = comparisonText(original.text, options);
+  const right = comparisonText(modified.text, options);
+  const changes = remaining > 0 && left.length + right.length <= MAX_INLINE_LENGTH
+    ? diffChars(left, right, {
+      ignoreCase: options.ignoreCase,
       maxEditLength: MAX_INLINE_EDITS,
       timeout: Math.min(remaining, INLINE_TIMEOUT_MS),
     })
     : undefined;
   if (changes) {
+    const originalChars = Array.from(left);
+    const modifiedChars = Array.from(right);
+    let oldIndex = 0;
+    let newIndex = 0;
     original.spans = [];
     modified.spans = [];
     for (const change of changes) {
       if (!change.added) {
-        original.spans.push({ kind: change.removed ? "removed" : "equal", text: change.value });
+        original.spans.push({
+          kind: change.removed ? "removed" : "equal",
+          text: originalChars.slice(oldIndex, oldIndex + change.count).join(""),
+        });
+        oldIndex += change.count;
       }
       if (!change.removed) {
-        modified.spans.push({ kind: change.added ? "added" : "equal", text: change.value });
+        modified.spans.push({
+          kind: change.added ? "added" : "equal",
+          text: modifiedChars.slice(newIndex, newIndex + change.count).join(""),
+        });
+        newIndex += change.count;
       }
+    }
+    if (left.length < original.text.length) {
+      original.spans.push({ kind: "equal", text: original.text.slice(left.length) });
+    }
+    if (right.length < modified.text.length) {
+      modified.spans.push({ kind: "equal", text: modified.text.slice(right.length) });
     }
   }
   return { kind: "modified", original, modified };
@@ -68,7 +100,10 @@ function appendChangeRows(
   removed: TextDiffLine[],
   added: TextDiffLine[],
   inlineDeadline: number,
+  options: TextDiffOptions,
 ) {
+  const removedKeys = removed.map(({ text }) => comparisonKey(text, options));
+  const addedKeys = added.map(({ text }) => comparisonKey(text, options));
   let oldIndex = 0;
   let newIndex = 0;
   const removeLine = () => rows.push({ kind: "removed", original: removed[oldIndex++], modified: null });
@@ -77,8 +112,8 @@ function appendChangeRows(
   while (oldIndex < removed.length && newIndex < added.length) {
     const original = removed[oldIndex];
     const modified = added[newIndex];
-    if (related(original.text, modified.text)) {
-      rows.push(replacement(original, modified, inlineDeadline));
+    if (related(removedKeys[oldIndex], addedKeys[newIndex])) {
+      rows.push(replacement(original, modified, inlineDeadline, options));
       oldIndex++;
       newIndex++;
       continue;
@@ -88,12 +123,12 @@ function appendChangeRows(
     // only move forward, including when no related line is within the window.
     let found = false;
     for (let offset = 1; offset <= LOOKAHEAD; offset++) {
-      if (newIndex + offset < added.length && related(original.text, added[newIndex + offset].text)) {
+      if (newIndex + offset < added.length && related(removedKeys[oldIndex], addedKeys[newIndex + offset])) {
         for (let i = 0; i < offset; i++) addLine();
         found = true;
         break;
       }
-      if (oldIndex + offset < removed.length && related(removed[oldIndex + offset].text, modified.text)) {
+      if (oldIndex + offset < removed.length && related(removedKeys[oldIndex + offset], addedKeys[newIndex])) {
         for (let i = 0; i < offset; i++) removeLine();
         found = true;
         break;
@@ -108,7 +143,7 @@ function appendChangeRows(
   while (newIndex < added.length) addLine();
 }
 
-export function compareText({ original, modified }: TextDiffInput): TextDiffResult {
+export function compareText({ original, modified, options = {} }: TextDiffInput): TextDiffResult {
   if (exceedsInputLength(original, modified)) {
     return { status: "error", code: "input-limit" };
   }
@@ -117,37 +152,51 @@ export function compareText({ original, modified }: TextDiffInput): TextDiffResu
   if (originalLines.length > MAX_INPUT_LINES || modifiedLines.length > MAX_INPUT_LINES) {
     return { status: "error", code: "input-limit" };
   }
-  const changes = diffArrays(originalLines, modifiedLines, {
+  function prepare(tokens: string[]) {
+    return tokens.map((token, index) => {
+      const hasNewline = token.endsWith("\n");
+      const text = hasNewline ? token.slice(0, -1) : token;
+      return { token, number: index + 1, text, key: comparisonKey(text, options) + (hasNewline ? "\n" : "") };
+    }).filter(({ text }) => !options.ignoreBlankLines || text.trim() !== "");
+  }
+  const originals = prepare(originalLines);
+  const modifications = prepare(modifiedLines);
+  const changes = diffArrays(originals, modifications, {
+    comparator: (left, right) => left.key === right.key,
     maxEditLength: MAX_LINE_EDITS,
     timeout: LINE_TIMEOUT_MS,
   });
   if (!changes) return { status: "error", code: "comparison-limit" };
 
   const rows: TextDiffRow[] = [];
-  let originalNumber = 1;
-  let modifiedNumber = 1;
+  let originalIndex = 0;
+  let modifiedIndex = 0;
   let removed: TextDiffLine[] = [];
   let added: TextDiffLine[] = [];
   const inlineDeadline = Date.now() + INLINE_TOTAL_MS;
 
   function flushChanges() {
-    appendChangeRows(rows, removed, added, inlineDeadline);
+    appendChangeRows(rows, removed, added, inlineDeadline, options);
     removed = [];
     added = [];
   }
 
   for (const change of changes) {
     if (change.removed) {
-      for (const token of change.value) removed.push(line(token, originalNumber++, "removed"));
+      for (const { token, number } of change.value) removed.push(line(token, number, "removed"));
+      originalIndex += change.count;
     } else if (change.added) {
-      for (const token of change.value) added.push(line(token, modifiedNumber++, "added"));
+      for (const { token, number } of change.value) added.push(line(token, number, "added"));
+      modifiedIndex += change.count;
     } else {
       flushChanges();
-      for (const token of change.value) {
+      for (let i = 0; i < change.count; i++) {
+        const left = originals[originalIndex++];
+        const right = modifications[modifiedIndex++];
         rows.push({
           kind: "equal",
-          original: line(token, originalNumber++, "equal"),
-          modified: line(token, modifiedNumber++, "equal"),
+          original: line(left.token, left.number, "equal"),
+          modified: line(right.token, right.number, "equal"),
         });
       }
     }

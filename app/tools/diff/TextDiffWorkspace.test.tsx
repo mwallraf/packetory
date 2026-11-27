@@ -90,6 +90,29 @@ describe("Text Diff workspace", () => {
     });
   });
 
+  it("debounces option changes, keeps raw editor text, and resets options on Clear all", async () => {
+    vi.useFakeTimers();
+    try {
+      compare.mockImplementation(async (input) => compareText(input));
+      render(<TextDiffWorkspace />);
+      const ignoreCase = screen.getByRole<HTMLInputElement>("checkbox", { name: "Ignore case" });
+      expect(ignoreCase.checked).toBe(false);
+      paste("Permit DNS", "permit dns");
+      fireEvent.click(ignoreCase);
+      expect(compare).not.toHaveBeenCalled();
+      await act(async () => vi.advanceTimersByTimeAsync(350));
+      expect(compare).toHaveBeenCalledExactlyOnceWith({
+        original: "Permit DNS", modified: "permit dns", options: { ignoreCase: true },
+      });
+      expect(status().textContent).toBe("No differences with the current options.");
+      expect((original() as HTMLTextAreaElement).value).toBe("Permit DNS");
+      fireEvent.click(clearButton());
+      expect(ignoreCase.checked).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("marks a finished comparison stale and preserves the raw edited snippets", async () => {
     render(<TextDiffWorkspace />);
     paste("  192.0.2.1 ", "  192.0.2.2 ");

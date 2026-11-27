@@ -98,3 +98,41 @@ describe("compareText", () => {
       .toEqual({ status: "error", code: "comparison-limit" });
   });
 });
+
+describe("ignore rules", () => {
+  it("aligns by normalized text while retaining each side's original content and numbering", () => {
+    const result = compareText({
+      original: "  Permit DNS  \n \t\nport 53\n",
+      modified: "  permit dns\nport 54\n",
+      options: { ignoreBlankLines: true, ignoreTrailingWhitespace: true, ignoreCase: true },
+    });
+    expect(result.status).toBe("done");
+    if (result.status !== "done") return;
+    expect(result.rows).toMatchObject([
+      { kind: "equal", original: { number: 1, text: "  Permit DNS  " }, modified: { number: 1, text: "  permit dns" } },
+      { kind: "modified", original: { number: 3, text: "port 53" }, modified: { number: 2, text: "port 54" } },
+    ]);
+  });
+
+  it("highlights substantive edits without highlighting ignored case or trailing whitespace", () => {
+    const result = compareText({
+      original: "Permit DNS 53 \t", modified: "permit dns 54",
+      options: { ignoreTrailingWhitespace: true, ignoreCase: true },
+    });
+    expect(result).toMatchObject({ status: "done", rows: [{
+      kind: "modified",
+      original: { spans: [{ kind: "equal", text: "Permit DNS 5" }, { kind: "removed", text: "3" }, { kind: "equal", text: " \t" }] },
+      modified: { spans: [{ kind: "equal", text: "permit dns 5" }, { kind: "added", text: "4" }] },
+    }] });
+  });
+
+  it("still detects leading indentation and missing final newlines", () => {
+    const result = compareText({
+      original: "  dns \n", modified: "dns",
+      options: { ignoreBlankLines: true, ignoreTrailingWhitespace: true },
+    });
+    expect(result).toMatchObject({ status: "done", rows: [
+      { kind: "modified", original: { hasNewline: true }, modified: { hasNewline: false } },
+    ] });
+  });
+});
