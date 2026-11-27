@@ -211,6 +211,7 @@ None yet.
 | 11 | Compact MAC inspection results | 2026-11-27 | a3a1491 | — |
 | 12 | Compact password generator layout | 2026-11-27 | 2d48640 | — |
 | 13 | Add Cisco Config credential redaction | 2026-11-27 | fd36d95 | — |
+| 14 | Improve Packetory search discovery | 2026-11-27 | b08146a | [20261127-packetory-search](./quick/20261127-packetory-search/) |
 
 ## Deferred Items
 
