@@ -143,8 +143,8 @@ describe("ToolCard", () => {
   });
 
   it("assertToolIcon accepts every registry icon and rejects unknown and prototype keys (CFG-03)", () => {
-    for (const name of ["Fingerprint", "Network", "Globe", "Cpu", "Hash", "FileTerminal"]) {
-      expect(() => assertToolIcon(name)).not.toThrow();
+    for (const { icon } of tools) {
+      expect(() => assertToolIcon(icon)).not.toThrow();
     }
     expect(() => assertToolIcon("NotARealIcon")).toThrow(/Unknown tool icon/);
     expect(() => assertToolIcon("toString")).toThrow(/Unknown tool icon/);
@@ -174,7 +174,7 @@ describe("ToolCard", () => {
       classes.push(icons[0].getAttribute("class") ?? "");
       unmount();
     }
-    expect(classes).toHaveLength(7);
-    expect(new Set(classes).size).toBe(7);
+    expect(classes).toHaveLength(tools.length);
+    expect(new Set(classes).size).toBe(tools.length);
   });
 });

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   Cpu,
+  FileDiff,
   FileTerminal,
   Fingerprint,
   Globe,
@@ -32,6 +33,7 @@ export const ICONS: Record<string, LucideIcon> = {
   Globe,
   Cpu,
   Hash,
+  FileDiff,
   FileTerminal,
   KeyRound,
 };

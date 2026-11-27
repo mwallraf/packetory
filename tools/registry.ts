@@ -113,6 +113,19 @@ export const tools: ToolDefinition[] = [
     clientOnly: true,
     featured: false,
   },
+  {
+    slug: "diff",
+    name: "Text Diff",
+    shortName: "Diff",
+    description:
+      "Compare two snippets of text or configuration and see added, removed, and modified lines in your browser.",
+    category: "web",
+    keywords: ["diff", "compare", "text", "config", "changes"],
+    icon: "FileDiff",
+    status: "active",
+    clientOnly: true,
+    featured: false,
+  },
 ];
 
 /**
