@@ -5,8 +5,8 @@ import { TextDiffWorkspace } from "./TextDiffWorkspace";
 import { textDiffExample } from "./example";
 import { faqItems } from "./faq-data";
 
-const title = "Text Diff — Packetory";
-const description = "Paste two snippets to see what changed. The comparison runs in your browser.";
+const title = "Online Text Diff & Config Compare — Packetory";
+const description = "Compare two text snippets or network configs in your browser. See line-by-line changes and optionally ignore blank lines or trailing spaces.";
 const url = `${SITE_URL}/tools/diff`;
 
 export const metadata: Metadata = {
@@ -28,6 +28,12 @@ export default function TextDiffPage() {
         <ToolAbout slug="diff" faqItems={faqItems}>
           <p className="text-base leading-normal text-muted-foreground">
             The address changes from 192.0.2.1 to 192.0.2.2, and the modified configuration adds an interface description.
+          </p>
+          <p className="mt-2 text-base text-muted-foreground">
+            Add a blank line and trailing spaces to one side. Turn on Ignore
+            blank and Ignore trailing spaces to hide those changes while keeping
+            the address and description changes visible. Leading indentation
+            still counts.
           </p>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             {(["original", "modified"] as const).map((side) => (

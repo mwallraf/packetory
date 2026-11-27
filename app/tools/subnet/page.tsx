@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { SITE_URL } from "@/app/sitemap";
 import { ToolAbout } from "@/components/ToolAbout";
 import { SubnetToolLoader } from "./SubnetToolLoader";
@@ -13,7 +14,7 @@ import {
 
 const TITLE = "IP Subnet Calculator (IPv4 & IPv6) — Packetory";
 const DESCRIPTION =
-  "Break down any IPv4 or IPv6 CIDR into network, broadcast, host range, masks, and reverse DNS zone instantly, with a bookmarkable URL and one-click copy. No login, no tracking.";
+  "Calculate IPv4 host ranges, masks and broadcast addresses. Check IPv6 address ranges, reverse DNS zones and subdivision options from a CIDR prefix.";
 const CANONICAL_URL = `${SITE_URL}/tools/subnet`;
 
 export const metadata: Metadata = {
@@ -171,6 +172,11 @@ export default function SubnetPage() {
             </p>
           </div>
         </ToolAbout>
+        <p className="mt-4 text-sm">
+          <Link className="underline underline-offset-4" href="/guides/ipv6-48-to-64">
+            How to split an IPv6 /48 into /64 subnets
+          </Link>
+        </p>
       </main>
     </div>
   );
