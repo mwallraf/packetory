@@ -111,7 +111,8 @@ describe("Config faqItems (CFG-02)", () => {
       "Is my configuration uploaded anywhere?",
       "How do I paste highlighted config into Outlook, Word or Google Docs?",
       "Which vendors and syntaxes are supported?",
-      "What is the Monochrome option for?",
+      "What does the Color checkbox do?",
+      "What does Anonymize redact?",
     ]);
   });
 

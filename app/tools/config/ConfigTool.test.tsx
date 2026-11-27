@@ -66,11 +66,10 @@ describe("ConfigTool", () => {
       target: { value: "interface GigabitEthernet0/1\n description Core uplink" },
     });
 
-    fireEvent.click(screen.getByTestId("config-monochrome"));
-
-    expect(
-      screen.getByTestId("config-monochrome").getAttribute("aria-pressed")
-    ).toBe("true");
+    const color = screen.getByRole("checkbox", { name: "Color" });
+    expect(color).toHaveProperty("checked", true);
+    fireEvent.click(color);
+    expect(color).toHaveProperty("checked", false);
     const tokens = screen
       .getByTestId("config-preview")
       .querySelectorAll<HTMLElement>("[data-token]");

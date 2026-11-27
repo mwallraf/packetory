@@ -1,8 +1,8 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Clipboard, Copy, Eraser, Palette } from "lucide-react";
-import { Toggle } from "@/components/ui/toggle";
+import { Check, Clipboard, Copy, Eraser } from "lucide-react";
+import { redactConfig } from "@/lib/config/redact";
 import { copyPlainText, copyRichText } from "@/lib/config/clipboard";
 import {
   buildConfigHtml,
@@ -14,20 +14,25 @@ import { MONOCHROME_TOKEN_CLASSES, TOKEN_CLASSES } from "@/lib/config/token-clas
 type CopyState = "idle" | "copied" | "plain-fallback" | "error";
 
 const COPY_ERROR_MESSAGE =
-  "Couldn't copy — select the configuration and copy it manually.";
+  "Couldn't copy — select the preview and copy it manually.";
 
 export function ConfigTool() {
   const [config, setConfig] = useState("");
   const [profile, setProfile] = useState<ConfigProfile>("cisco");
-  const [monochrome, setMonochrome] = useState(false);
+  const [color, setColor] = useState(true);
+  const [anonymize, setAnonymize] = useState(true);
   const [richCopyState, setRichCopyState] = useState<CopyState>("idle");
   const [plainCopyState, setPlainCopyState] = useState<CopyState>("idle");
   const richResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const plainResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const { text: preview, count } = useMemo(
+    () => anonymize ? redactConfig(config) : { text: config, count: 0 },
+    [anonymize, config]
+  );
   const highlightedLines = useMemo(
-    () => highlightConfig(config, profile),
-    [config, profile]
+    () => highlightConfig(preview, profile),
+    [preview, profile]
   );
 
   useEffect(() => {
@@ -57,8 +62,8 @@ export function ConfigTool() {
   async function handleRichCopy() {
     try {
       const result = await copyRichText(
-        config,
-        buildConfigHtml(config, profile, { monochrome })
+        preview,
+        buildConfigHtml(preview, profile, { monochrome: !color })
       );
       setRichCopyState(result === "rich" ? "copied" : "plain-fallback");
     } catch {
@@ -69,7 +74,7 @@ export function ConfigTool() {
 
   async function handlePlainCopy() {
     try {
-      await copyPlainText(config);
+      await copyPlainText(preview);
       setPlainCopyState("copied");
     } catch {
       setPlainCopyState("error");
@@ -109,30 +114,40 @@ export function ConfigTool() {
           </select>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <span className="text-[14px] leading-[1.4] font-semibold text-foreground">
-            Colour mode
-          </span>
-          <Toggle
-            variant="outline"
-            size="lg"
-            pressed={monochrome}
-            onPressedChange={(pressed) => {
-              setMonochrome(pressed);
-              resetCopyStates();
-            }}
-            data-testid="config-monochrome"
-            className="h-11 px-3 data-[state=on]:bg-primary/10 data-[state=on]:text-primary"
+        <div className="flex min-h-11 flex-wrap items-center gap-x-4 gap-y-2">
+          <label className="inline-flex cursor-pointer items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={color}
+              onChange={(event) => {
+                setColor(event.currentTarget.checked);
+                resetCopyStates();
+              }}
+              className="size-4 accent-primary"
+            />
+            Color
+          </label>
+          <label
+            className="inline-flex cursor-pointer items-center gap-2 text-sm"
+            title="Masks known Cisco IOS and IOS XE credentials. IP addresses and hostnames stay visible."
           >
-            <Palette aria-hidden="true" />
-            Monochrome
-          </Toggle>
+            <input
+              type="checkbox"
+              checked={anonymize}
+              onChange={(event) => {
+                setAnonymize(event.currentTarget.checked);
+                resetCopyStates();
+              }}
+              className="size-4 accent-primary"
+            />
+            Anonymize
+          </label>
         </div>
       </div>
 
       <div className="grid min-w-0 grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="flex min-w-0 flex-col gap-1.5">
-          <div className="flex min-h-7 items-center justify-between gap-3">
+          <div className="flex h-8 items-center justify-between gap-3">
             <label
               htmlFor="config-input"
               className="text-[14px] leading-[1.4] font-semibold text-foreground"
@@ -167,42 +182,52 @@ export function ConfigTool() {
         </div>
 
         <div className="flex min-w-0 flex-col gap-1.5">
-          <span className="text-[14px] leading-[1.4] font-semibold text-foreground">
-            Preview
-          </span>
-          <div
-            data-testid="config-preview"
-            className="h-96 max-w-full overflow-auto rounded-lg border border-border bg-secondary"
-          >
-            {isEmpty ? (
-              <p className="p-4 font-mono text-[13px] leading-[1.5] text-muted-foreground">
-                Your highlighted preview will appear here.
-              </p>
-            ) : (
-              <pre className="min-w-full w-max p-4 font-mono text-[13px] leading-[1.5]">
-                {highlightedLines.map((line, lineIndex) => (
-                  <Fragment key={lineIndex}>
-                    {line.map((token, tokenIndex) => (
-                      <span
-                        key={`${lineIndex}-${tokenIndex}`}
-                        className={
-                          monochrome
-                            ? MONOCHROME_TOKEN_CLASSES[token.kind]
-                            : TOKEN_CLASSES[token.kind]
-                        }
-                        data-token={token.kind}
-                      >
-                        {token.text}
-                      </span>
-                    ))}
-                    {lineIndex < highlightedLines.length - 1 ? "\n" : null}
-                  </Fragment>
-                ))}
-              </pre>
-            )}
+          <div className="flex h-8 items-center">
+            <span className="text-sm font-semibold text-foreground">Preview</span>
+          </div>
+          <div className="relative h-96 lg:h-auto lg:flex-1">
+            <div
+              data-testid="config-preview"
+              className="absolute inset-0 overflow-auto rounded-lg border border-border bg-secondary"
+            >
+              {isEmpty ? (
+                <p className="px-4 py-3 font-mono text-[13px] leading-[1.5] text-muted-foreground">
+                  Your highlighted preview will appear here.
+                </p>
+              ) : (
+                <pre className="min-w-full w-max px-4 py-3 font-mono text-[13px] leading-[1.5]">
+                  {highlightedLines.map((line, lineIndex) => (
+                    <Fragment key={lineIndex}>
+                      {line.map((token, tokenIndex) => (
+                        <span
+                          key={`${lineIndex}-${tokenIndex}`}
+                          className={
+                            !color
+                              ? MONOCHROME_TOKEN_CLASSES[token.kind]
+                              : TOKEN_CLASSES[token.kind]
+                          }
+                          data-token={token.kind}
+                        >
+                          {token.text}
+                        </span>
+                      ))}
+                      {lineIndex < highlightedLines.length - 1 ? "\n" : null}
+                    </Fragment>
+                  ))}
+                </pre>
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      {!isEmpty && (
+        <p role="status" className="text-sm text-muted-foreground">
+          {anonymize
+            ? `${count ? `${count} ${count === 1 ? "value" : "values"} redacted.` : "No known secrets found."} Review the preview before sharing.`
+            : "Anonymize is off. Copy actions include the original values."}
+        </p>
+      )}
 
       <div className="flex flex-wrap items-start gap-3">
         <div className="flex flex-col gap-1">

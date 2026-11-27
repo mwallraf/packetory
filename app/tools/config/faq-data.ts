@@ -44,7 +44,7 @@ export const faqItems: FaqItem[] = [
     question:
       "How do I paste highlighted config into Outlook, Word or Google Docs?",
     answer:
-      "Click Copy for email, then paste. Email and document apps such as Outlook, Word and Google Docs should keep the colors and the monospace font. Use Copy plain text when you need the raw configuration, for example to paste it back into a terminal or into a ticket system that strips formatting. If your browser blocks rich copying, the button shows Copied as plain text and the plain configuration is copied instead.",
+      "Click Copy for email, then paste. Email and document apps such as Outlook, Word and Google Docs should keep the colors and the monospace font. Use Copy plain text when you need the preview without formatting. Both buttons copy the preview, including any redactions. If your browser blocks rich copying, the button shows Copied as plain text and the plain configuration is copied instead.",
   },
   {
     question: "Which vendors and syntaxes are supported?",
@@ -52,8 +52,13 @@ export const faqItems: FaqItem[] = [
       "The Cisco IOS / IOS-XE / IOS-XR profile colors commands, keywords, interface names, IPv4 and IPv6 addresses, numbers, description and remark text, and comment lines that start with ! or #. Configurations from other vendors are not specifically supported. Choose Plain text to show and copy any configuration in a monospace font with no syntax coloring.",
   },
   {
-    question: "What is the Monochrome option for?",
+    question: "What does the Color checkbox do?",
     answer:
-      "Monochrome removes the colors but keeps the monospace font, bold commands and keywords, and italic comments. Use it for printing, grayscale documents, or anywhere colored text is hard to read or not allowed. It applies to both the preview and Copy for email; Copy plain text never carries formatting.",
+      "Turning Color off removes the colors but keeps the monospace font, bold commands and keywords, and italic comments. Use it for printing, grayscale documents, or anywhere colored text is hard to read or not allowed. It applies to both the preview and Copy for email; Copy plain text never carries formatting.",
+  },
+  {
+    question: "What does Anonymize redact?",
+    answer:
+      "Anonymize masks known credentials in Cisco IOS and IOS XE configurations, including SNMP communities, BGP passwords, and key-chain values. IP addresses and hostnames remain visible. Review the preview for anything sensitive before sharing, especially in comments, banners, and unsupported commands.",
   },
 ];
