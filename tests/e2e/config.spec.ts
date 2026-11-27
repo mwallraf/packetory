@@ -92,12 +92,9 @@ test.describe("Config Syntax Highlighter", () => {
     await context.grantPermissions(["clipboard-read", "clipboard-write"]);
     await page.goto("/tools/config");
     await page.getByTestId("config-input").fill(IOS_CONFIG);
-    await page.getByTestId("config-monochrome").click();
-
-    await expect(page.getByTestId("config-monochrome")).toHaveAttribute(
-      "aria-pressed",
-      "true"
-    );
+    const color = page.getByRole("checkbox", { name: "Color" });
+    await expect(color).toBeChecked();
+    await color.uncheck();
     await page.getByTestId("config-copy-rich").click();
     await expect(page.getByTestId("config-copy-rich")).toContainText(
       "Copied!"
@@ -113,4 +110,64 @@ test.describe("Config Syntax Highlighter", () => {
     expect(clipboard.html).toContain("font-family:Consolas");
     expect(clipboard.html).not.toContain("color:");
   });
+});
+
+test("defaults to redacted preview and clipboard output in both formats", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/tools/config");
+  const source = "router bgp 64512\n neighbor EDGE password 7 synthetic-bgp-value";
+  const expected = source.replace("synthetic-bgp-value", "<redacted>");
+  const input = page.getByTestId("config-input");
+  const preview = page.getByTestId("config-preview");
+  const anonymize = page.getByRole("checkbox", { name: "Anonymize" });
+  await expect(anonymize).toBeChecked();
+  await input.fill(source);
+  await expect(input).toHaveValue(source);
+  await expect(preview).toContainText("<redacted>");
+  await expect(preview).not.toContainText("synthetic-bgp-value");
+  await expect(page.getByText("1 value redacted.", { exact: false })).toBeVisible();
+
+  await page.getByTestId("config-copy-plain").click();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(expected);
+  await page.getByTestId("config-copy-rich").click();
+  await expect(page.getByTestId("config-copy-rich")).toContainText("Copied!");
+  const rich = await page.evaluate(async () => {
+    const [item] = await navigator.clipboard.read();
+    return {
+      text: await (await item.getType("text/plain")).text(),
+      html: await (await item.getType("text/html")).text(),
+    };
+  });
+  expect(rich.text).toBe(expected);
+  expect(rich.html).not.toContain("synthetic-bgp-value");
+  expect(rich.html).toContain("&lt;redacted&gt;");
+
+  await anonymize.uncheck();
+  await expect(preview).toContainText("synthetic-bgp-value");
+  await expect(page.getByText("Anonymize is off.", { exact: false })).toBeVisible();
+  await page.getByTestId("config-copy-plain").click();
+  await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(source);
+});
+
+test("aligns both desktop panes and follows the editor height", async ({ page }) => {
+  await page.setViewportSize({ width: 1366, height: 768 });
+  await page.goto("/tools/config");
+  const input = page.getByTestId("config-input");
+  const preview = page.getByTestId("config-preview");
+  await expect(input).toBeVisible();
+
+  async function checkAlignment() {
+    const editorBox = (await input.boundingBox())!;
+    const previewBox = (await preview.boundingBox())!;
+    expect(previewBox.y).toBeCloseTo(editorBox.y);
+    expect(previewBox.height).toBeCloseTo(editorBox.height);
+  }
+
+  await checkAlignment();
+  await input.evaluate((editor) => { editor.style.height = "460px"; });
+  await checkAlignment();
+  await page.setViewportSize({ width: 320, height: 800 });
+  const editorBox = (await input.boundingBox())!;
+  expect((await preview.boundingBox())!.y).toBeGreaterThan(editorBox.y + editorBox.height);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(320);
 });
