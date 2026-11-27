@@ -3,8 +3,9 @@ import { computeIpv4 } from "@/lib/subnet/ipv4";
 import { computeIpv6 } from "@/lib/subnet/ipv6";
 import { isParseError, parseCidr, type ParsedCidr } from "@/lib/subnet/parse";
 
-export const LOOKUP_ENDPOINT = "https://stat.ripe.net/data/looking-glass/data.json";
-const CACHE_MS = 30_000;
+import { createCache, createTransport, record } from "./transport";
+
+export { LOOKUP_ENDPOINT } from "./transport";
 
 function networkOf({ address, family, prefixLength }: ParsedCidr) {
   const shift = BigInt((family === "ipv4" ? 32 : 128) - prefixLength);
@@ -51,17 +52,11 @@ type Peer = {
 type Collector = { id: string; location: string; peers: Peer[] };
 export type Match = { prefix: string; first: string; last: string; origins: string[]; collectors: Collector[] };
 type Snapshot = { observed: string | null; matches: Match[] };
-type CacheEntry = { snapshot: Snapshot; expires: number };
 export type LookupResult =
   | { kind: "success"; snapshot: Snapshot; cached: boolean }
   | { kind: "failure" }
   | { kind: "busy" }
   | { kind: "limited"; until: number };
-
-function record(value: unknown): Record<string, unknown> {
-  if (value === null || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid response object");
-  return value as Record<string, unknown>;
-}
 
 function rows(value: unknown, limit: number): unknown[] {
   if (!Array.isArray(value) || value.length > limit) throw new Error("Invalid response list");
@@ -84,10 +79,7 @@ function asn(value: unknown) {
   return raw && /^\d{1,10}$/.test(raw) && Number(raw) <= 4_294_967_295 ? String(Number(raw)) : null;
 }
 
-function normalize(payload: unknown, query: Query): Snapshot {
-  const envelope = record(payload);
-  if (envelope.status !== "ok") throw new Error("RIPEstat lookup failed");
-  const data = record(envelope.data);
+function normalize(data: Record<string, unknown>, query: Query): Snapshot {
   const matches = new Map<string, { first: string; last: string; origins: Set<string>; collectors: Map<string, Collector> }>();
   let observations = 0;
   for (const item of rows(data.rrcs, 128)) {
@@ -134,52 +126,22 @@ function normalize(payload: unknown, query: Query): Snapshot {
   };
 }
 
-function retryDelay(header: string | null, now: number) {
-  if (!header) return CACHE_MS;
-  if (/^\d+$/.test(header)) {
-    const delay = Number(header) * 1000;
-    return Number.isSafeInteger(delay) ? delay : CACHE_MS;
-  }
-  const deadline = Date.parse(header);
-  return Number.isFinite(deadline) && deadline >= now ? deadline - now : CACHE_MS;
-}
-
-export function createLookupClient() {
+export function createLookupClient(transport = createTransport()) {
   let pending = false;
-  let cooldownUntil = 0;
-  const cache = new Map<string, CacheEntry>();
+  const cache = createCache<Snapshot>();
 
   async function lookup(query: Query): Promise<LookupResult> {
-    const now = Date.now();
     if (pending) return { kind: "busy" };
     const key = query.resource;
     const entry = cache.get(key);
-    if (entry && entry.expires > now) return { kind: "success", snapshot: entry.snapshot, cached: true };
-    cache.delete(key);
-    if (now < cooldownUntil) return { kind: "limited", until: cooldownUntil };
+    if (entry) return { kind: "success", snapshot: entry.value, cached: true };
 
     pending = true;
     try {
-      const url = new URL(LOOKUP_ENDPOINT);
-      url.searchParams.set("resource", key);
-      const response = await fetch(url, {
-        credentials: "omit", redirect: "error", referrerPolicy: "no-referrer",
-        cache: "no-store", signal: AbortSignal.timeout(10_000),
-      });
-      if (response.status === 429) {
-        const received = Date.now();
-        cooldownUntil = received + retryDelay(response.headers.get("Retry-After"), received);
-        return { kind: "limited", until: cooldownUntil };
-      }
-      if (!response.ok) return { kind: "failure" };
-      const body = await response.text();
-      if (body.length > 5_000_000) return { kind: "failure" };
-      const snapshot = normalize(JSON.parse(body), query);
-      cache.set(key, { snapshot, expires: Date.now() + CACHE_MS });
-      if (cache.size > 16) {
-        const oldest = cache.keys().next();
-        if (!oldest.done) cache.delete(oldest.value);
-      }
+      const response = await transport.request("route", key);
+      if (response.kind !== "success") return response;
+      const snapshot = normalize(response.data, query);
+      cache.set(key, snapshot);
       return { kind: "success", snapshot, cached: false };
     } catch {
       return { kind: "failure" };

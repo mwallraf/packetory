@@ -1,3 +1,7 @@
+import { useEffect, useState } from "react";
+import type { Enrichment } from "@/lib/bgp/enrichment";
+import type { DataResult } from "@/lib/bgp/transport";
+import { AddressRegistration } from "./AddressRegistration";
 import { Button } from "@/components/ui/button";
 import type { Match } from "@/lib/bgp/lookup";
 
@@ -5,12 +9,30 @@ function time(value: string | null) {
   return value ? `${value.replace("T", " ").slice(0, 19)} UTC` : "Unavailable";
 }
 
-export function BgpResults({ matches, observed, cached, onCopy }: {
+export function BgpResults({ matches, observed, cached, onCopy, enrichment }: {
   matches: Match[];
   observed: string | null;
   cached: boolean;
+  enrichment: Enrichment;
   onCopy: (path: string[]) => Promise<void>;
 }) {
+  const [holders, setHolders] = useState<Record<string, DataResult<string | null>>>(() => ({}));
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const origins = new Set(matches.flatMap((match) => match.origins));
+    async function loadHolders() {
+      for (const asn of origins) {
+        if (controller.signal.aborted) return;
+        const result = await enrichment.holder(asn, controller.signal);
+        if (controller.signal.aborted) return;
+        setHolders((current) => ({ ...current, [asn]: result }));
+      }
+    }
+    void loadHolders();
+    return () => controller.abort();
+  }, [enrichment, matches]);
+
   return (
     <div className="space-y-6">
       {matches.map((match) => (
@@ -19,10 +41,27 @@ export function BgpResults({ matches, observed, cached, onCopy }: {
           <dl className="mt-4 grid gap-3 sm:grid-cols-[auto_1fr] [&_dd]:min-w-0 [&_dd]:font-mono [&_dd]:[overflow-wrap:anywhere]">
             <dt>Matched prefix</dt><dd>{match.prefix}</dd>
             <dt>Address range</dt><dd>{match.first} – {match.last}</dd>
-            <dt>Origin ASNs</dt><dd>{match.origins.map((origin) => `AS${origin}`).join(", ")}</dd>
+            <dt>Origin ASNs</dt>
+            <dd>
+              <ul className="space-y-2">
+                {match.origins.map((asn) => {
+                  const holder = holders[asn];
+                  const label = !holder ? "Looking up holder…"
+                    : holder.kind === "success" ? holder.value ?? "Holder unavailable"
+                    : "Couldn’t load holder";
+                  return (
+                    <li key={asn} className="flex flex-wrap items-baseline gap-x-2">
+                      <code>AS{asn}</code>
+                      <span className={`font-sans ${holder?.kind === "success" && holder.value ? "" : "text-sm text-muted-foreground"}`}>{label}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </dd>
             <dt>Observed by</dt><dd>{match.collectors.length} RIPE RIS collectors</dd>
             <dt>Data as of</dt><dd>{time(observed)}{cached && " (cached)"}</dd>
           </dl>
+          <AddressRegistration prefix={match.prefix} enrichment={enrichment} />
           <h3 className="mt-6 text-xl font-semibold">AS paths by collector</h3>
           {match.collectors.map((collector) => (
             <details key={collector.id} className="mt-3 border-t pt-3">

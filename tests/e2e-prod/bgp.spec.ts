@@ -3,6 +3,15 @@ import { expect, test } from "@playwright/test";
 const endpoint = "https://stat.ripe.net/data/looking-glass/data.json?**";
 const example = "140.78.0.0/16";
 
+test.beforeEach(async ({ page }) => {
+  await page.route("https://stat.ripe.net/data/as-overview/data.json?**", (route) =>
+    route.fulfill({ json: { status: "ok", data: {
+      resource: new URL(route.request().url()).searchParams.get("resource"),
+      holder: null,
+    } } })
+  );
+});
+
 function fixture(prefix = example, path = "15692 1853 1853 1205") {
   return { status: "ok", data: { latest_time: "2026-11-27T15:51:42", rrcs: [{
     rrc: "RRC00", location: "Amsterdam, NL", peers: [{

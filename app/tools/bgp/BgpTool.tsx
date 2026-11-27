@@ -5,10 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createLookupClient, parseLookup, type LookupResult } from "@/lib/bgp/lookup";
+import { createEnrichment } from "@/lib/bgp/enrichment";
+import { createTransport } from "@/lib/bgp/transport";
 import { BgpResults } from "./BgpResults";
 import { examplePrefix } from "./faq-data";
 
-const client = createLookupClient();
+const transport = createTransport();
+const client = createLookupClient(transport);
+const enrichment = createEnrichment(transport);
 const invalidMessage = "Enter a public IPv4 or IPv6 address or a CIDR prefix.";
 
 export function BgpTool() {
@@ -17,6 +21,7 @@ export function BgpTool() {
   const [value, setValue] = useState("");
   const [invalid, setInvalid] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [lookupId, setLookupId] = useState(0);
   const [result, setResult] = useState<LookupResult>();
   const [cooldown, setCooldown] = useState(0);
   const [copyStatus, setCopyStatus] = useState("");
@@ -39,6 +44,7 @@ export function BgpTool() {
     const query = parseLookup(value);
     setInvalid(!query);
     setResult(undefined);
+    setLookupId((id) => id + 1);
     setCopyStatus("");
     if (!query) {
       input.current?.focus();
@@ -100,7 +106,7 @@ export function BgpTool() {
         )}
       </div>
       {result?.kind === "success" && result.snapshot.matches.length > 0 && (
-        <BgpResults {...result.snapshot} cached={result.cached} onCopy={copy} />
+        <BgpResults key={lookupId} {...result.snapshot} cached={result.cached} onCopy={copy} enrichment={enrichment} />
       )}
       <p role="status" className={copyStatus ? "text-sm" : "sr-only"}>{copyStatus}</p>
     </div>
