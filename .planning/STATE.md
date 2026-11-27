@@ -3,10 +3,11 @@ gsd_state_version: "1.0"
 milestone: v1.5
 milestone_name: BGP Looking Glass
 status: planning
-last_updated: "2026-11-27T15:56:33.403Z"
+current_phase: 17
+last_updated: "2026-11-27T16:00:56.829Z"
 last_activity: 2026-11-27
 progress:
-  total_phases: 0
+  total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -20,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-11-27)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** v1.4 archived. Awaiting the next milestone.
+**Current focus:** v1.5 BGP Looking Glass, starting with Phase 17.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 17 — BGP Route Lookup (not started)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-11-27 — Milestone v1.5 started
+Status: Ready to plan Phase 17
+Last activity: 2026-11-27 — v1.5 roadmap approved
 
 
 ## Performance Metrics
@@ -236,4 +237,4 @@ Resume file: None
 
 
 
-- Start the next milestone with $gsd-new-milestone
+- Plan Phase 17 with $gsd-plan-phase 17.

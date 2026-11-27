@@ -8,7 +8,12 @@
 - ✅ **v1.3 Password Generator & Tool Page Polish** — Phases 10-14 (shipped 2026-11-12)
 - ✅ **v1.4 Text Diff** — Phases 15–16 ([completed locally 2026-11-27](milestones/v1.4-ROADMAP.md))
 
+- **v1.5 BGP Looking Glass** — Phases 17–18 (approved)
+
 ## Phases
+
+- [ ] Phase 17: BGP Route Lookup
+- [ ] Phase 18: ASN and Address Registration
 
 <details>
 <summary>✅ v1.0 MVP (Phases 1-5) — SHIPPED 2026-07-25</summary>
@@ -55,3 +60,37 @@ Phase 10 (File Hashing & Release Hardening) was removed 2026-10-17 by user decis
 Full phase details archived at `.planning/milestones/v1.3-ROADMAP.md`.
 
 </details>
+
+## Phase Details
+
+### Phase 17: BGP Route Lookup
+
+**Goal:** Answer who is announcing a public prefix and which paths RIPE RIS observes.
+
+**Requirements:** BGP-01, BGP-02, BGP-03, BGP-06, BGP-07
+
+**Success Criteria** (what must be TRUE):
+1. A submitted IPv4 or IPv6 address can show a covering prefix. A CIDR lookup only shows exact matches.
+2. The summary shows the prefix, its address bounds, every observed origin ASN, the collector count, and the observation time.
+3. Users can copy AS paths with repeated ASNs intact and expand peer details to see the peer IP, next hop, and route timestamps.
+4. RIPEstat requests go directly from the browser. Lookups start on submit, requests run one at a time per tab, duplicate results can be reused, and rate limits trigger a cooldown.
+5. The page distinguishes invalid input, no route observed, and lookup failure. It identifies RIPE RIS as the observation source and RIPEstat as the recipient of the query.
+
+### Phase 18: ASN and Address Registration
+
+**Goal:** Let users identify the ASN holder and see how the address space is registered.
+
+**Depends on:** Phase 17
+
+**Requirements:** BGP-04, BGP-05
+
+**Success Criteria** (what must be TRUE):
+1. The route result is immediately usable when the route request completes. Registered holder names appear for each origin ASN when available.
+2. Opening address registration fetches the registry details on demand and presents the registered block separately from the announced prefix.
+
+## Progress
+
+| Phase | Requirements | Status |
+|---|---|---|
+| 17. BGP Route Lookup | BGP-01, BGP-02, BGP-03, BGP-06, BGP-07 | Not started |
+| 18. ASN and Address Registration | BGP-04, BGP-05 | Not started |

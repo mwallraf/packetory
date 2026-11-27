@@ -12,4 +12,12 @@
 
 ## Traceability
 
-Phase assignments are pending roadmap creation.
+| Requirement | Phase | Status |
+|---|---|---|
+| BGP-01 | Phase 17 | Pending |
+| BGP-02 | Phase 17 | Pending |
+| BGP-03 | Phase 17 | Pending |
+| BGP-04 | Phase 18 | Pending |
+| BGP-05 | Phase 18 | Pending |
+| BGP-06 | Phase 17 | Pending |
+| BGP-07 | Phase 17 | Pending |
