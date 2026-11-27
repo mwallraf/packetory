@@ -78,7 +78,7 @@ export function RangeRow({
   const labelId = `${id}-label`;
   const hintId = `${id}-hint`;
   return (
-    <div className="flex flex-col gap-2 sm:col-span-2">
+    <div className="grid gap-x-3 sm:grid-cols-[auto_minmax(0,1fr)]">
       <div className="flex flex-wrap items-center gap-2">
         <Label htmlFor={id} id={labelId} className={LABEL_CLASS}>
           {label}
@@ -89,7 +89,7 @@ export function RangeRow({
           data-testid={testId}
           type="text"
           inputMode="numeric"
-          className="h-11 w-20 text-base md:text-base"
+          className="h-11 w-16 text-base md:text-base"
           value={draft}
           aria-invalid={error}
           aria-describedby={error ? hintId : undefined}
@@ -126,7 +126,7 @@ export function RangeRow({
         </span>
       </div>
       {error && (
-        <span id={hintId} data-testid={hintTestId} className={HINT_CLASS}>
+        <span id={hintId} data-testid={hintTestId} className={`${HINT_CLASS} sm:col-span-2`}>
           {`Enter a number between ${min} and ${max}`}
         </span>
       )}
@@ -149,7 +149,7 @@ export function BatchCountRow({
   onBlur,
 }: BatchCountRowProps) {
   return (
-    <div className="flex flex-col gap-2 sm:col-span-2">
+    <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
         <Label htmlFor="password-batch-count" className={LABEL_CLASS}>
           Batch count

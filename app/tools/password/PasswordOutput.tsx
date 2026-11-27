@@ -102,12 +102,11 @@ function ErrorPanel({
 }
 
 /**
- * Pinned to the measured default 6-word passphrase hero so Loading and Error
- * never move the layout (D-16, D-17). Measured (14-08, Chromium, fonts loaded,
- * most frequent of 200 samples): 178px at 320px wide, 122px at 1280px wide.
+ * Reserve space for the default passphrase and actions while the word list
+ * loads. The actions sit alongside the value from 640px.
  */
-const WORDLIST_STATE_HEIGHT = "h-[178px] sm:h-[122px]";
-const WORDLIST_STATE_MIN_HEIGHT = "min-h-[178px] sm:min-h-[122px]";
+const WORDLIST_STATE_HEIGHT = "h-[154px] sm:h-[62px]";
+const WORDLIST_STATE_MIN_HEIGHT = "min-h-[154px] sm:min-h-[62px]";
 
 /** Text-free placeholder while the EFF list loads (D-04): no value, no controls. */
 function WordlistLoading() {
@@ -178,13 +177,13 @@ function Hero({
   return (
     <div
       data-testid="password-hero"
-      className="flex flex-col gap-4 rounded-md border border-border bg-secondary p-4"
+      className="grid min-w-0 items-center gap-2 rounded-md border border-border bg-secondary px-4 py-2 sm:grid-cols-[minmax(0,1fr)_auto]"
     >
       <div
         data-testid="password-output"
         translate="no"
         spellCheck={false}
-        className={`font-mono text-[20px] leading-[1.4] font-semibold ${
+        className={`min-w-0 font-mono text-[20px] leading-[1.4] font-semibold ${
           mode === "passphrase" ? "[overflow-wrap:anywhere]" : "break-all"
         } select-all text-foreground`}
       >
@@ -199,7 +198,7 @@ function Hero({
           data-testid="password-copy"
           aria-label={heroCopy.copied ? "Copied!" : `Copy ${nounFor(mode)}`}
           onClick={() => onCopyHero(value)}
-          className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-2 rounded-full bg-[#0e7490] px-4 text-white outline-none transition-colors hover:bg-[#155e75] focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
+          className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center gap-1.5 rounded-full bg-[#0e7490] px-3 text-white outline-none transition-colors hover:bg-[#155e75] focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
         >
           {heroCopy.copied ? (
             <>
@@ -210,7 +209,7 @@ function Hero({
             </>
           ) : (
             <>
-              <Copy aria-hidden="true" className="size-5" />
+              <Copy aria-hidden="true" className="size-4" />
               <span className="text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
                 Copy
               </span>
@@ -221,16 +220,16 @@ function Hero({
           type="button"
           data-testid="password-regenerate"
           onClick={onRegenerate}
-          className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-full border border-border px-4 text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          className="inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-full border border-border px-3 text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
-          <RefreshCw aria-hidden="true" className="size-5" />
+          <RefreshCw aria-hidden="true" className="size-4" />
           <span className="text-[14px] leading-[1.4] font-semibold whitespace-nowrap">
             Regenerate
           </span>
         </button>
       </div>
       {heroCopy.error && (
-        <p className="text-[14px] leading-[1.4] font-normal text-foreground">
+        <p className="text-[14px] leading-[1.4] font-normal text-foreground sm:col-span-2">
           {COPY_ERROR_TEXT}
         </p>
       )}
