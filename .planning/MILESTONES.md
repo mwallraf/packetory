@@ -1,5 +1,16 @@
 # Milestones
 
+## v1.4 Text Diff (Completed locally: 2026-11-27)
+
+**Phases completed:** 2 phases, 4 plans
+
+**Key accomplishments:**
+- Browser-only Text Diff with responsive results, automatic comparison for small snippets, and opt-in whitespace and case filters.
+- Matching content widths and a Related tools disclosure across all eight tool pages.
+- Both phases and all 12 requirements verified. Two previously acknowledged items remain deferred.
+
+---
+
 ## v1.3 Password Generator & Tool Page Polish (Shipped: 2026-11-12)
 
 **Phases completed:** 5 phases, 26 plans, 47 tasks

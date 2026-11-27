@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Packetory is a single, fast, no-friction website (packetory.dev) hosting a growing collection of small, free network and infrastructure utilities — currently seven: a UUID generator, IP subnet calculator, DNS lookup, MAC address inspector, hash generator, Cisco config syntax highlighter, and password/passphrase generator. Each tool lives on its own page but shares one consistent landing page and navigation, so switching tools is instant and obvious. It's built for network engineers, sysadmins, DevOps/SRE professionals, and developers who need a quick answer and want to leave the site open as a bookmark.
+Packetory is a single, fast, no-friction website (packetory.dev) hosting a growing collection of small, free network and infrastructure utilities — currently eight: a UUID generator, IP subnet calculator, DNS lookup, MAC address inspector, hash generator, Cisco config syntax highlighter, password/passphrase generator, and Text Diff. Each tool lives on its own page but shares one consistent landing page and navigation, so switching tools is instant and obvious. It's built for network engineers, sysadmins, DevOps/SRE professionals, and developers who need a quick answer and want to leave the site open as a bookmark.
 
 ## Core Value
 
@@ -17,22 +17,19 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 
 ## Current State
 
-**Shipped:** v1.3 Password Generator & Tool Page Polish (2026-11-12) — `/tools/password` shows a fresh 20-character password on load, with length/sets/symbol-set/look-alike options, batch 1–20, per-row copy and Copy all, Regenerate, keyboard shortcuts, an options-only bookmarkable URL, a Passphrase mode over the lazily loaded EFF long word list, and an entropy-based strength meter with crack-time scenarios. Every tool page is now tool-first: the Worked Example and FAQ live in one shared, closed-by-default "About this tool" area below the tool. Config gained its worked example, FAQ and own icon, and the Subnet result fits a 1366×650 laptop viewport without scrolling.
+**Completed locally:** v1.4 Text Diff (2026-11-27) adds browser-only text comparison with responsive results, bounded automatic comparison, and optional ignore rules. All tool pages share a content width and a Related tools disclosure.
+
+**Previously shipped:** v1.3 Password Generator & Tool Page Polish (2026-11-12) — `/tools/password` shows a fresh 20-character password on load, with length/sets/symbol-set/look-alike options, batch 1–20, per-row copy and Copy all, Regenerate, keyboard shortcuts, an options-only bookmarkable URL, a Passphrase mode over the lazily loaded EFF long word list, and an entropy-based strength meter with crack-time scenarios. Every tool page is now tool-first: the Worked Example and FAQ live in one shared, closed-by-default "About this tool" area below the tool. Config gained its worked example, FAQ and own icon, and the Subnet result fits a 1366×650 laptop viewport without scrolling.
 
 **Previously shipped:** v1.2 Hash Generator (2026-10-17, PR #16) — `/tools/hash`, text-only by design, plus the Config Syntax Highlighter contributed via PRs #14/#15; v1.1 Production Domain & Landing Page Polish (2026-07-25) — clickable landing cards, live at `https://packetory.dev`; v1.0 MVP (2026-07-25) — UUID Generator, IP Subnet Calculator, DNS Lookup, MAC Address Inspector. Full phase history archived under `.planning/milestones/`.
 
-## Current Milestone: v1.4 Text Diff
+## Next Milestone Goals
 
-**Goal:** Make it quick to paste two snippets and see exactly what changed.
-
-**Target features:**
-
-- Two text fields, Original and Modified, with Compare enabled only when both contain text.
-- Clear all empties both fields, removes the result, and returns focus to Original. Try an example demonstrates the flow from the empty screen.
-- Side-by-side results on desktop and a single-column result on mobile, with changes highlighted within lines.
-- Browser-only processing. Comparison contents stay out of requests, URLs, analytics, and app-managed storage. File import is deferred.
+Next milestone scope is open.
 
 ## Milestone History
+
+- v1.4 Text Diff completed on 2026-11-27. See the [archived roadmap](milestones/v1.4-ROADMAP.md) and [requirements](milestones/v1.4-REQUIREMENTS.md).
 
 <details>
 <summary>v1.3 Password Generator & Tool Page Polish — planning detail (shipped 2026-11-12)</summary>
@@ -84,6 +81,8 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 
 ### Validated
 
+- ✓ Browser-side Text Diff, shared tool page width, and Related tools links on all eight pages — v1.4
+
 - ✓ Shared site shell: landing page, consistent navigation, tool registry (`tools/registry.ts`) driving nav/cards/sitemap — Phase 1
 - ✓ CI: tests, type checking, linting, build validation required on PRs; Vercel preview deployments per PR, `main` auto-deploys to production — Phase 1 (live-verified: a deliberately failing commit was confirmed to block merge via `gh pr merge` rejection before being reverted; production deploy confirmed live at packetory.vercel.app)
 - ✓ Privacy-oriented cookie-free analytics with redaction of sensitive query params — Phase 1 (`lib/analytics/redact.ts` safe-by-default allow-list); exercised for real in Phase 3 — `cidr` was deliberately never added to the allow-list, live-verified via grep and UAT, so the subnet CIDR never reaches analytics
@@ -116,7 +115,6 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 
 - [ ] Global Ctrl/Cmd+C and Esc shortcuts should not fire while the user has selected text or has focus inside the About area (Phase 10 review WR-01/WR-02; made newly reachable by the About prose) — candidate for a quick task; still open at v1.3 close
 - [ ] Site footer contrast — muted-foreground #64748b on #f1f5f9 measures 4.34:1 (4.5:1 required), the only thing holding Accessibility at 96 on tool pages (deferred at v1.3 close)
-- [ ] Related-tool links (part of per-tool SEO) — not yet built on any tool page (UUID, Subnet, DNS, or MAC); candidate for v1.1
 - [ ] Accessibility: full keyboard nav, contrast, labels, logical focus order, screen-reader announcements — shell-level focus order and focus-ring visibility manually verified in Phase 1 UAT; Phase 2 added accessible names to the UUID tool's Version/Export-format toggle groups; not re-audited per-tool since; candidate for a dedicated a11y pass in v1.1
 - [ ] Public developer API (`@packetory/core` style package reusing the same `lib/` modules) — deferred to a post-v1 milestone per Business Context; no work started
 - [ ] Build-time OUI dataset compaction to replace `/api/mac-vendor`'s interim API-proxy architecture — tracked tech debt from Phase 5 (CLAUDE.md's stated long-term direction); no work started
@@ -218,4 +216,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-11-26 at the start of v1.4*
+*Last updated: 2026-11-27 after v1.4 completion*

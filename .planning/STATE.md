@@ -2,37 +2,35 @@
 gsd_state_version: "1.0"
 milestone: v1.4
 milestone_name: Text Diff
-current_phase: 16
-status: completed
-stopped_at: Phase 16 complete — all phases complete
-last_updated: "2026-11-27T07:44:20.253Z"
+status: Awaiting next milestone
+stopped_at: v1.4 completed and archived locally
+last_updated: "2026-11-27T07:48:04.406Z"
 last_activity: 2026-11-27
-last_activity_desc: Phase 16 complete
-state_head: b793e3d1b6c5e04f8fd7e1a8bcf2f3a595fbb9af
+last_activity_desc: Milestone v1.4 completed and archived
+state_head: cb56b810695ed42ce2e4e5023e04a9b3c412120d
 progress:
   total_phases: 2
   completed_phases: 2
   total_plans: 4
   completed_plans: 4
-  percent: 100
+current_phase: 16
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-11-26)
+See: .planning/PROJECT.md (updated 2026-11-27)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Phase 15 planning for v1.4 Text Diff
+**Current focus:** v1.4 archived. Awaiting the next milestone.
 
 ## Current Position
 
-Phase: 16
-Plan: Not started
-Status: All phases complete
-Last activity: 2026-11-27 — Phase 16 complete
-
+Phase: Milestone v1.4 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-11-27 — Milestone v1.4 completed and archived
 
 ## Performance Metrics
 
@@ -235,4 +233,5 @@ Resume file: None
 ## Operator Next Steps
 
 
-- Run `$gsd-plan-phase 15` for the Text Comparison Engine.
+
+- Start the next milestone with $gsd-new-milestone
