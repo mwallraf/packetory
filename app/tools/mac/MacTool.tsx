@@ -196,18 +196,20 @@ function FormatRow({
   return (
     <div
       data-testid={testId}
-      className="flex flex-col gap-1 rounded-md border border-border bg-secondary px-4 py-3"
+      className="flex min-w-0 flex-col rounded-md border border-border bg-secondary px-3"
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="w-[110px] shrink-0 text-[14px] leading-[1.4] font-semibold text-muted-foreground">
-          {label}
-        </span>
-        <span
-          data-testid={`${testId}-value`}
-          className="font-mono text-[16px] leading-[1.5] font-normal break-all text-foreground"
-        >
-          {value}
-        </span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-3">
+          <span className="w-24 shrink-0 text-sm font-semibold text-muted-foreground">
+            {label}
+          </span>
+          <span
+            data-testid={`${testId}-value`}
+            className="font-mono text-sm break-all text-foreground"
+          >
+            {value}
+          </span>
+        </div>
         <button
           type="button"
           onClick={() => copy(value)}
@@ -234,7 +236,7 @@ function FormatRow({
         {copied ? "Copied!" : ""}
       </span>
       {error && (
-        <span className="text-[14px] leading-[1.4] font-normal text-muted-foreground">
+        <span className="pb-2 text-sm text-muted-foreground">
           {COPY_ERROR_MESSAGE}
         </span>
       )}
@@ -338,7 +340,7 @@ function ClassificationBadge({
   testId: string;
 }) {
   return (
-    <div data-testid={testId} className="flex flex-col gap-1">
+    <div data-testid={testId} className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
       <Badge
         data-testid={`${testId}-pill`}
         variant="outline"
@@ -347,7 +349,7 @@ function ClassificationBadge({
         <Icon aria-hidden="true" className="size-3" />
         {label}
       </Badge>
-      <span className="text-[16px] leading-[1.5] font-normal text-muted-foreground">
+      <span className="text-sm text-muted-foreground">
         {explanation}
       </span>
     </div>
@@ -657,7 +659,7 @@ export function MacTool() {
   const vendorPending = state.vendorPending;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-1.5">
         <Label
           htmlFor="mac-input"
@@ -699,11 +701,11 @@ export function MacTool() {
       <div
         data-testid="mac-result-panel"
         className={cn(
-          "flex flex-col gap-6",
+          "flex flex-col gap-4",
           state.isIncomplete && "opacity-50"
         )}
       >
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between gap-4">
             <h2 className="text-[20px] leading-[1.2] font-semibold text-foreground">
               Normalized formats
@@ -715,7 +717,7 @@ export function MacTool() {
               vendorPending={vendorPending}
             />
           </div>
-          <div className="flex flex-col gap-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             <FormatRow
               label="Colon"
               value={formats.colon}
@@ -746,7 +748,7 @@ export function MacTool() {
             on the "Vendor" stub section below, which 05-03 extends. */}
         <div
           data-testid="mac-classification-section"
-          className="flex flex-col gap-4"
+          className="flex flex-col gap-2"
         >
           <h2 className="text-[20px] leading-[1.2] font-semibold text-foreground">
             Classification
@@ -756,7 +758,7 @@ export function MacTool() {
             value={classification.ouiHex}
             testId="mac-oui"
           />
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
             {classification.isUniversallyAdministered ? (
               <ClassificationBadge
                 icon={Unlock}
