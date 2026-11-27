@@ -104,7 +104,7 @@ function ContextFold({ rows }: { rows: TextDiffRow[] }) {
 
 export const TextDiffResults = memo(function TextDiffResults({ rows }: { rows: TextDiffRow[] }) {
   return (
-    <section aria-label="Comparison results" className="overflow-hidden rounded-lg border bg-background font-mono text-sm leading-normal">
+    <section aria-label="Comparison results" className="overflow-hidden rounded-lg border bg-background font-mono text-[10pt] leading-normal">
       <div className="hidden grid-cols-2 divide-x border-b bg-card font-sans font-semibold md:grid">
         <p className="px-2 py-2">Original</p>
         <p className="px-2 py-2">Modified</p>
