@@ -6,10 +6,10 @@ current_phase: 16
 current_phase_name: Text Diff Workspace & Release
 status: executing
 stopped_at: Phase 15 complete, ready to plan Phase 16
-last_updated: "2026-11-26T22:33:52.004Z"
+last_updated: "2026-11-27T07:08:04.002Z"
 last_activity: 2026-11-26
 last_activity_desc: Phase 15 complete, transitioned to Phase 16
-state_head: d7010cf3b10f40ff8ded6f8c20ce51370f968c85
+state_head: c35c2027e1c1053ec4c27c1e1fff0d58496a7f20
 progress:
   total_phases: 2
   completed_phases: 1
@@ -202,6 +202,10 @@ None yet.
 | 261017-cnt | Merge origin/main (PRs #14/#15 config highlighter) into phase branch, keep hash + config tools | 2026-10-17 | 30baef9 | [261017-cnt-merge-origin-main-prs-14-15-config-highl](./quick/261017-cnt-merge-origin-main-prs-14-15-config-highl/) |
 | 261017-f4s | Fix PR #16 CI hash-layout failure (geometricPrecision on digests) and drop e2e job from CI | 2026-10-17 | ab869bc | [261017-f4s-fix-pr-16-ci-hash-layout-failure-and-dro](./quick/261017-f4s-fix-pr-16-ci-hash-layout-failure-and-dro/) |
 | 3 | Document the required OpenGSD workflow in root AGENTS.md | 2026-11-26 | a2094ff | — |
+| 4 | Trial a two-point reduction in Text Diff editor text | 2026-11-27 | 6d97cf4 | — |
+| 5 | Match Text Diff result text to the 10 pt editors | 2026-11-27 | 0861ba5 | — |
+| 6 | Trial the wider Text Diff content container | 2026-11-27 | fa9bcec | — |
+| 7 | Align tool page content widths | 2026-11-27 | c35c202 | — |
 
 ## Deferred Items
 
