@@ -23,9 +23,15 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 
 **Previously shipped:** v1.2 Hash Generator (2026-10-17, PR #16) — `/tools/hash`, text-only by design, plus the Config Syntax Highlighter contributed via PRs #14/#15; v1.1 Production Domain & Landing Page Polish (2026-07-25) — clickable landing cards, live at `https://packetory.dev`; v1.0 MVP (2026-07-25) — UUID Generator, IP Subnet Calculator, DNS Lookup, MAC Address Inspector. Full phase history archived under `.planning/milestones/`.
 
-## Next Milestone Goals
+## Current Milestone: v1.5 BGP Looking Glass
 
-Next milestone scope is open.
+**Goal:** Let users look up a public IP or prefix and quickly see who announces it, which paths RIPE RIS observes, and how recent the observations are.
+
+**Target features:**
+- Show the matched prefix, address range, origin ASNs and registered holders, collector count, and data timestamp.
+- Group copyable AS paths by collector, with peer IP, next hop, and last changed and confirmed timestamps on expand.
+- Load address registration on demand and distinguish the registered block from the announced prefix.
+- Query RIPEstat directly from the browser on submit, reuse recent results, and back off when rate-limited.
 
 ## Milestone History
 
@@ -111,7 +117,9 @@ Next milestone scope is open.
 
 ### Active
 
-- [ ] Text Diff — paste two snippets, compare them locally, read the highlighted result, and clear the workspace for another comparison.
+- [ ] BGP route lookup and collector observations for public IPv4 and IPv6 addresses and prefixes.
+- [ ] ASN holder enrichment and on-demand address registration.
+- [ ] Browser-only RIPEstat requests with duplicate suppression, short-lived caching, and rate-limit handling.
 
 - [ ] Global Ctrl/Cmd+C and Esc shortcuts should not fire while the user has selected text or has focus inside the About area (Phase 10 review WR-01/WR-02; made newly reachable by the About prose) — candidate for a quick task; still open at v1.3 close
 - [ ] Site footer contrast — muted-foreground #64748b on #f1f5f9 measures 4.34:1 (4.5:1 required), the only thing holding Accessibility at 96 on tool pages (deferred at v1.3 close)
@@ -216,4 +224,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-11-27 after v1.4 completion*
+*Last updated: 2026-11-27 at v1.5 milestone start*
