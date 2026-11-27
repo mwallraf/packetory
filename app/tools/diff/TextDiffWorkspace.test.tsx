@@ -142,4 +142,22 @@ describe("Text Diff workspace", () => {
     await act(async () => fireEvent.click(compareButton()));
     expect(status().textContent).toBe("No differences found.");
   });
+
+  it("keeps both editors after an oversized result and accepts a smaller retry", async () => {
+    render(<TextDiffWorkspace />);
+    const common = "link up\n".repeat(250);
+    const first = common + "port 53";
+    const second = common + "port 54";
+    paste(first, second);
+    compare.mockResolvedValueOnce(compareText({ original: first, modified: second }));
+    await act(async () => fireEvent.click(compareButton()));
+    expect(status().textContent).toBe("This comparison is too large to display. Try comparing a smaller section.");
+    expect((original() as HTMLTextAreaElement).value).toBe(first);
+    expect((modified() as HTMLTextAreaElement).value).toBe(second);
+    expect(screen.queryByRole("region", { name: "Comparison results" })).toBeNull();
+    paste("port 53", "port 54");
+    compare.mockResolvedValueOnce(compareText({ original: "port 53", modified: "port 54" }));
+    await act(async () => fireEvent.click(compareButton()));
+    expect(status().textContent).toBe("1 modified");
+  });
 });

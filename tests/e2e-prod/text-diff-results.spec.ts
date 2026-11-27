@@ -28,8 +28,8 @@ test("responsive review keeps one aligned diff with keyboard-expandable context"
   await expect(fold).toBeFocused();
   await expect(results.getByText("baseline line 1", { exact: true })).toHaveCount(0);
 
-  const oldDigit = results.locator("del").getByText("1", { exact: true }).or(results.locator("del").filter({ hasText: /^1$/ }));
-  const newDigit = results.locator("ins").getByText("2", { exact: true }).or(results.locator("ins").filter({ hasText: /^2$/ }));
+  const oldDigit = results.locator("del").filter({ hasText: /^1$/ });
+  const newDigit = results.locator("ins").filter({ hasText: /^2$/ });
   await expect(oldDigit).toBeVisible();
   await expect(newDigit).toBeVisible();
   const oldBox = (await oldDigit.boundingBox())!;
@@ -76,11 +76,15 @@ declare global {
   }
 }
 
-const config = Array.from({ length: 178 }, (_, i) => `route 198.51.100.${i} via 192.0.2.1`).join("\n");
-const logs = "INFO link state is up\n".repeat(199);
+const config = Array.from({ length: 100 }, (_, i) => `route 198.51.100.${i} via 192.0.2.1 metric 10 tag 33`).join("\n");
+const logs = "INFO link state is up\n".repeat(119);
 const json = JSON.stringify({ message: "x".repeat(31_900), port: 53 });
 const fixtures = [
-  { name: "multi-line config", original: config, modified: config.replaceAll("via 192.0.2.1", "via 192.0.2.2") },
+  {
+    name: "multi-line config",
+    original: config,
+    modified: config.replaceAll("via 192.0.2.1 metric 10 tag 33", "via 192.0.2.2 metric 20 tag 44"),
+  },
   { name: "repetitive logs", original: logs + "WARN peer port 53", modified: logs + "WARN peer port 54" },
   { name: "single-line JSON", original: json, modified: json.replace('"port":53', '"port":54') },
 ];
@@ -100,7 +104,7 @@ for (const rate of [1, 4]) {
       observe.observe({ type: "longtask", buffered: true });
 
       const post = Worker.prototype.postMessage;
-      Worker.prototype.postMessage = function (...args: Parameters<typeof post>) {
+      Worker.prototype.postMessage = function (...args: [unknown, (Transferable[] | StructuredSerializeOptions)?]) {
         performance.mark("text-diff-start");
         this.addEventListener("message", () => performance.mark("text-diff-reply"), { once: true });
         Reflect.apply(post, this, args);
@@ -112,6 +116,16 @@ for (const rate of [1, 4]) {
         }
       });
       mutation.observe(document, { subtree: true, childList: true });
+      document.addEventListener("click", (event) => {
+        const button = (event.target as Element | null)?.closest('button[aria-expanded="false"]');
+        if (!button?.closest('section[aria-label="Comparison results"]')) return;
+        performance.mark("text-diff-expand");
+        const expanded = new MutationObserver(() => {
+          performance.mark("text-diff-expanded");
+          expanded.disconnect();
+        });
+        expanded.observe(button, { attributes: true, attributeFilter: ["aria-expanded"] });
+      }, { capture: true });
     });
 
     for (const fixture of fixtures) {
@@ -121,7 +135,6 @@ for (const rate of [1, 4]) {
       await expect(results).toBeVisible();
       const fold = results.getByRole("button", { name: /^Show \d+ unchanged lines$/ });
       if (await fold.count()) {
-        await page.evaluate(() => performance.mark("text-diff-expand"));
         await fold.click();
         await expect(results.getByRole("button", { name: /^Hide \d+ unchanged lines$/ })).toBeVisible();
       }
@@ -132,6 +145,8 @@ for (const rate of [1, 4]) {
         const start = mark("text-diff-start");
         const reply = mark("text-diff-reply");
         const commit = mark("text-diff-commit");
+        const expand = mark("text-diff-expand");
+        const expanded = mark("text-diff-expanded");
         if (start === undefined || reply === undefined || commit === undefined) {
           throw new Error("Missing worker round-trip or DOM-completion measure");
         }
@@ -139,6 +154,7 @@ for (const rate of [1, 4]) {
         return {
           workerRoundTripMs: Number((reply - start).toFixed(1)),
           replyToCommitMs: Number((commit - reply).toFixed(1)),
+          foldCommitMs: expand !== undefined && expanded !== undefined ? Number((expanded - expand).toFixed(1)) : null,
           observerSupported: PerformanceObserver.supportedEntryTypes.includes("longtask"),
           longestObservedTaskMs: Math.max(0, ...window.__textDiffBenchmark
             .filter((entry) => entry.start + entry.duration >= reply)
@@ -148,6 +164,7 @@ for (const rate of [1, 4]) {
       expect(metrics.observerSupported).toBe(true);
       expect(metrics.workerRoundTripMs).toBeGreaterThanOrEqual(0);
       expect(metrics.replyToCommitMs).toBeGreaterThanOrEqual(0);
+      if (fixture.name === "repetitive logs") expect(metrics.foldCommitMs).toBeGreaterThanOrEqual(0);
       console.log("Text Diff benchmark", JSON.stringify({
         fixture: fixture.name, rate, originalLength: fixture.original.length,
         modifiedLength: fixture.modified.length, ...metrics,

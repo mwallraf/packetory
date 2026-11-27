@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { compareText } from "@/lib/text-diff/engine";
-import type { TextDiffRow } from "@/lib/text-diff/types";
-import { groupResultRows } from "./result-model";
+import type { TextDiffLine, TextDiffRow } from "@/lib/text-diff/types";
+import { DISPLAY_LIMITS, fitsExpandedResult, groupResultRows } from "./result-model";
 
 function compareRows(original: string[], modified: string[]): TextDiffRow[] {
   const outcome = compareText({ original: original.join("\n"), modified: modified.join("\n") });
@@ -44,5 +44,40 @@ describe("groupResultRows", () => {
     const rows = compareRows(["start", "end"], ["start", "allow dns", "end"]);
     expect(groupResultRows(rows).map(({ index, kind }) => [index, kind]))
       .toEqual([[0, "row"], [1, "row"], [2, "row"]]);
+  });
+});
+
+describe("fitsExpandedResult", () => {
+  it("counts both sides and hidden context against the line boundary", () => {
+    const head = unchanged("head", DISPLAY_LIMITS.lines / 2 - 1);
+    const atLimit = compareRows([...head, "port 53"], [...head, "port 54"]);
+    expect(groupResultRows(atLimit).some((row) => row.kind === "fold")).toBe(true);
+    expect(fitsExpandedResult(atLimit)).toBe(true);
+
+    const over = compareRows([...head, "port 53"], [...head, "allow dns", "port 54"]);
+    expect(fitsExpandedResult(over)).toBe(false);
+  });
+
+  it("enforces the span boundary independently of text length and lines", () => {
+    const spanCount = DISPLAY_LIMITS.spans / 2;
+    const makeLine = (count: number): TextDiffLine => ({
+      number: 1,
+      hasNewline: false,
+      spans: Array.from({ length: count }, () => ({ kind: "equal", text: "a" })),
+      text: "a".repeat(count),
+    });
+    expect(fitsExpandedResult([{ kind: "modified", original: makeLine(spanCount), modified: makeLine(spanCount) }])).toBe(true);
+    expect(fitsExpandedResult([{ kind: "modified", original: makeLine(spanCount + 1), modified: makeLine(spanCount) }])).toBe(false);
+  });
+
+  it("enforces the code-unit boundary independently of spans and lines", () => {
+    const common = "x".repeat(DISPLAY_LIMITS.textLength / 2 - 1);
+    expect(fitsExpandedResult(compareRows([common + "1"], [common + "2"]))).toBe(true);
+    expect(fitsExpandedResult(compareRows([common + "1"], [common + "23"]))).toBe(false);
+  });
+
+  it("accepts identical results because they do not mount any rows", () => {
+    const same = unchanged("same", DISPLAY_LIMITS.lines);
+    expect(fitsExpandedResult(compareRows(same, same))).toBe(true);
   });
 });

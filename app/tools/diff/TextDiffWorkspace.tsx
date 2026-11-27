@@ -8,6 +8,7 @@ import { createTextDiffClient, type TextDiffOutcome } from "@/lib/text-diff/clie
 import type { TextDiffError, TextDiffInput, TextDiffRow } from "@/lib/text-diff/types";
 import { TextDiffResults } from "./TextDiffResults";
 import { textDiffExample } from "./example";
+import { fitsExpandedResult } from "./result-model";
 
 const emptyInput: TextDiffInput = { original: "", modified: "" };
 const errorText: Record<TextDiffError, string> = {
@@ -18,7 +19,7 @@ const errorText: Record<TextDiffError, string> = {
 
 type Comparison =
   | { status: "idle" | "pending" }
-  | { status: "done"; rows: TextDiffRow[]; stale: boolean }
+  | { status: "done"; rows: TextDiffRow[]; stale: boolean; id: number }
   | { status: "error"; code: TextDiffError };
 
 function hasPair(input: TextDiffInput): boolean {
@@ -76,7 +77,9 @@ export function TextDiffWorkspace() {
     pending.current = false;
     switch (outcome.status) {
       case "done":
-        setComparison({ ...outcome, stale: false });
+        setComparison(fitsExpandedResult(outcome.rows)
+          ? { ...outcome, stale: false, id }
+          : { status: "error", code: "comparison-limit" });
         break;
       case "error":
         setComparison(outcome);
@@ -122,7 +125,6 @@ export function TextDiffWorkspace() {
     void compare(input);
   }
 
-  const rows = comparison.status === "done" ? comparison.rows : null;
   const canTryExample = input.original === "" && input.modified === "" && comparison.status === "idle";
 
   return (
@@ -181,7 +183,8 @@ export function TextDiffWorkspace() {
       >
         {statusText(comparison)}
       </p>
-      {rows?.some((row) => row.kind !== "equal") && <TextDiffResults rows={rows} />}
+      {comparison.status === "done" && comparison.rows.some((row) => row.kind !== "equal")
+        && <TextDiffResults key={comparison.id} rows={comparison.rows} />}
     </form>
   );
 }
