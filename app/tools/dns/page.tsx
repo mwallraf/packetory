@@ -42,7 +42,7 @@ export const metadata: Metadata = {
 export default function DnsPage() {
   return (
     <div className="flex flex-1 flex-col bg-background">
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-12 sm:px-6 lg:px-8">
         <h1 className="text-[32px] leading-[1.2] font-semibold text-foreground">
           DNS Lookup
         </h1>
