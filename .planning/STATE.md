@@ -1,17 +1,20 @@
 ---
 gsd_state_version: "1.0"
 milestone: v1.5
-milestone_name: BGP Looking Glass
-status: planning
 current_phase: 17
-last_updated: "2026-11-27T16:00:56.829Z"
+current_phase_name: BGP Route Lookup
+status: planning
+stopped_at: Phase 17 UI-SPEC approved
+last_updated: "2026-11-27T16:05:07.228Z"
 last_activity: 2026-11-27
+last_activity_desc: v1.5 roadmap approved
+state_head: 52c39fcab22c340b4959e1a8348ec7ac17c75424
 progress:
   total_phases: 2
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
-  percent: 0
+milestone_name: BGP Looking Glass
 ---
 
 # Project State
@@ -229,9 +232,9 @@ None. The batched UAT for phases 11-14 was completed on 2026-11-12, and the stal
 
 ## Session Continuity
 
-Last session: 2026-11-12T00:13:56.895Z
-Stopped at: Phase 16 complete — all phases complete
-Resume file: None
+Last session: 2026-11-27T16:05:07.217Z
+Stopped at: Phase 17 UI-SPEC approved
+Resume file: .planning/phases/17-bgp-route-lookup/17-UI-SPEC.md
 
 ## Operator Next Steps
 
