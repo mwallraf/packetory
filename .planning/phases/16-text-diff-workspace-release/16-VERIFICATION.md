@@ -1,21 +1,17 @@
 ---
 phase: 16-text-diff-workspace-release
-verified: 2026-11-27T06:49:00Z
-status: human_needed
+verified: 2026-11-27T07:44:06.656Z
+status: passed
 score: 5/5 roadmap truths verified
-covered_files: [".planning/phases/16-text-diff-workspace-release/16-01-PLAN.md", ".planning/phases/16-text-diff-workspace-release/16-01-SUMMARY.md", ".planning/phases/16-text-diff-workspace-release/16-02-PLAN.md", ".planning/phases/16-text-diff-workspace-release/16-02-SUMMARY.md", ".planning/phases/16-text-diff-workspace-release/16-03-PLAN.md", ".planning/phases/16-text-diff-workspace-release/16-03-SUMMARY.md", "app/sitemap.test.ts", "app/tools/diff/TextDiffResults.tsx", "app/tools/diff/TextDiffWorkspace.test.tsx", "app/tools/diff/TextDiffWorkspace.tsx", "app/tools/diff/example.ts", "app/tools/diff/faq-data.ts", "app/tools/diff/page.tsx", "app/tools/diff/result-model.test.ts", "app/tools/diff/result-model.ts", "app/tools/pages-about.test.ts", "components/SiteHeader.tsx", "components/ToolCard.test.tsx", "components/ToolCard.tsx", "lib/text-diff/client.ts", "lib/text-diff/engine.ts", "lib/text-diff/text-diff.worker.ts", "tests/e2e-prod/text-diff-discovery.spec.ts", "tests/e2e-prod/text-diff-privacy.spec.ts", "tests/e2e-prod/text-diff-results.spec.ts", "tests/e2e-prod/text-diff.spec.ts", "tests/e2e/home.spec.ts", "tests/e2e/navigation.spec.ts", "tools/registry.test.ts", "tools/registry.ts"]
-covered_digest: "v4:sha256:00e4785b9e180c94fa0a6f57c56cc8245f1945af29980a66fd1052ccc660dfc3"
+covered_files: [".planning/phases/16-text-diff-workspace-release/16-01-PLAN.md",".planning/phases/16-text-diff-workspace-release/16-01-SUMMARY.md",".planning/phases/16-text-diff-workspace-release/16-02-PLAN.md",".planning/phases/16-text-diff-workspace-release/16-02-SUMMARY.md",".planning/phases/16-text-diff-workspace-release/16-03-PLAN.md",".planning/phases/16-text-diff-workspace-release/16-03-SUMMARY.md","app/sitemap.test.ts","app/tools/diff/TextDiffResults.tsx","app/tools/diff/TextDiffWorkspace.test.tsx","app/tools/diff/TextDiffWorkspace.tsx","app/tools/diff/example.ts","app/tools/diff/faq-data.ts","app/tools/diff/page.tsx","app/tools/diff/result-model.test.ts","app/tools/diff/result-model.ts","app/tools/dns/page.tsx","app/tools/hash/page.tsx","app/tools/mac/page.tsx","app/tools/pages-about.test.ts","app/tools/password/page.tsx","app/tools/subnet/page.tsx","app/tools/uuid/page.tsx","components/SiteHeader.tsx","components/ToolAbout.tsx","components/ToolCard.test.tsx","components/ToolCard.tsx","lib/text-diff/client.ts","lib/text-diff/engine.test.ts","lib/text-diff/engine.ts","lib/text-diff/text-diff.worker.ts","lib/text-diff/types.ts","tests/e2e-prod/about-prod.spec.ts","tests/e2e-prod/text-diff-discovery.spec.ts","tests/e2e-prod/text-diff-privacy.spec.ts","tests/e2e-prod/text-diff-results.spec.ts","tests/e2e-prod/text-diff.spec.ts","tests/e2e/home.spec.ts","tests/e2e/navigation.spec.ts","tools/registry.test.ts","tools/registry.ts","tools/related.ts"]
+covered_digest: "v4:sha256:0ad21882d78f798a7c9f6f4d233df8bfc4e8ce931a3fbeb062a086e8f7a65ac2"
 behavior_unverified: 0
 overrides_applied: 0
-human_verification:
-  - test: "Open Text Diff from the home page, select Try an example, and review the result on desktop and mobile in both themes."
-    expected: "Compare is easy to find, the changed IP digit and added line are easy to distinguish, and the mobile layout is readable and feels responsive."
-    why_human: "Browser assertions verify layout structure and performance metrics. Visual hierarchy, readability, and perceived responsiveness require human review."
 ---
 
 # Phase 16 Text Diff Workspace and Release Verification
 
-Users can paste two snippets, compare and review changes privately on desktop or mobile, and clear the workspace for the next comparison. All five roadmap criteria passed automated verification. Visual acceptance remains pending.
+Users can paste two snippets, compare and review changes privately on desktop or mobile, and clear the workspace for the next comparison. All five roadmap criteria passed automated verification. The user accepted the visual result and requested closure.
 
 | Roadmap criterion | Status | Evidence |
 |---|---|---|
@@ -47,3 +43,7 @@ The registry links to the static route, which renders the shared About section a
 ## Verification evidence
 
 Independently reran four named Vitest workspace tests for reset with a late reply, stale edits, shortcut gating and display-limit retry. All passed. The orchestrator’s final runs passed 1,483 Vitest tests, 14 Chromium home/navigation tests, 18 production Chromium tests and TypeScript checking. No blocking implementation gaps were found.
+
+## Final re-verification
+
+The final build retains the accepted workspace width and typography, runs a debounced comparison for small Modified edits, and provides options for blank lines, trailing whitespace, and case while preserving raw input. The shared About section supplies related-tool links. Independently reran five automatic-comparison and option-change workspace tests. All passed. The orchestrator’s final evidence includes 17 production Chromium checks, 42 focused diff tests, and 14 focused About tests. User acceptance closes the earlier visual review item.

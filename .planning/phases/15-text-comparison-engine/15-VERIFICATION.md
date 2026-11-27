@@ -1,6 +1,6 @@
 ---
 phase: 15-text-comparison-engine
-verified: 2026-11-26T22:24:19Z
+verified: 2026-11-27T07:45:00Z
 status: passed
 score: 3/3 must-haves verified
 covered_files:
@@ -19,7 +19,7 @@ covered_files:
   - package.json
   - playwright.prod.config.ts
   - tests/e2e-prod/text-diff-worker.spec.ts
-covered_digest: "v4:sha256:1943803678f1d361b0e8edee2a263af094fb5e5d1abbd376da8abe0a3d7b5fa9"
+covered_digest: "v4:sha256:07d07b2cec18067e3d2b5fbc7040357ff7ee6d03f00dad5e2ca48ea9aed88056"
 behavior_unverified: 0
 overrides_applied: 0
 ---
@@ -41,4 +41,4 @@ The smoke component uses the production client. The client instantiates a module
 | DIFF-01 | Satisfied by newline and source reconstruction checks. |
 | DIFF-02 | Satisfied by the related-line alignment fixtures and production worker inline edit. |
 
-The verifier reran 11 focused engine fixtures and one cancellation fixture. All passed. The production browser result came from the orchestrator's direct run on the final implementation. No human checks are required for the engine. The public workspace remains Phase 16.
+Re-verification after the optional comparison rules ran 14 focused engine cases. All passed. The cases covered default source fidelity and inline edits, along with opt-in suppression of blank-line, trailing-whitespace, and case differences. The orchestrator reran all 23 focused tests and the production Chromium worker smoke. Both runs passed.
