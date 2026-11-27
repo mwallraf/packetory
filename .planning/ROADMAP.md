@@ -76,6 +76,9 @@ Full phase details archived at `.planning/milestones/v1.3-ROADMAP.md`.
 4. RIPEstat requests go directly from the browser. Lookups start on submit, requests run one at a time per tab, duplicate results can be reused, and rate limits trigger a cooldown.
 5. The page distinguishes invalid input, no route observed, and lookup failure. It identifies RIPE RIS as the observation source and RIPEstat as the recipient of the query.
 
+**Plans:** 1 plan
+- [ ] 17-01-PLAN.md — BGP route lookup, request controls, and collector UI
+
 ### Phase 18: ASN and Address Registration
 
 **Goal:** Let users identify the ASN holder and see how the address space is registered.
@@ -92,5 +95,5 @@ Full phase details archived at `.planning/milestones/v1.3-ROADMAP.md`.
 
 | Phase | Requirements | Status |
 |---|---|---|
-| 17. BGP Route Lookup | BGP-01, BGP-02, BGP-03, BGP-06, BGP-07 | Not started |
+| 17. BGP Route Lookup | BGP-01, BGP-02, BGP-03, BGP-06, BGP-07 | Planned |
 | 18. ASN and Address Registration | BGP-04, BGP-05 | Not started |
