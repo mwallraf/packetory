@@ -7,9 +7,9 @@ test.describe("Landing page — tool registry grid", () => {
     await page.goto("/");
 
     const cards = page.getByTestId("tool-card");
-    await expect(cards).toHaveCount(8);
+    await expect(cards).toHaveCount(9);
 
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 9; i++) {
       const card = cards.nth(i);
       await expect(card.getByTestId("tool-card-name")).toBeVisible();
       await expect(card.getByTestId("tool-card-description")).toBeVisible();
@@ -29,6 +29,7 @@ test.describe("Landing page — tool registry grid", () => {
     expect(names).toEqual([
       "IP Subnet Calculator",
       "UUID Generator",
+      "BGP Looking Glass",
       "Config Syntax Highlighter",
       "DNS Lookup",
       "Hash Generator",
@@ -68,9 +69,9 @@ test.describe("Landing page — tool registry grid", () => {
     await page.goto("/");
 
     const cards = page.getByTestId("tool-card");
-    await expect(cards).toHaveCount(8);
+    await expect(cards).toHaveCount(9);
 
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 9; i++) {
       const card = cards.nth(i);
       await expect(card.getByText("Coming soon")).toHaveCount(0);
       // Each active card renders exactly one stretched-link anchor (LP-01).

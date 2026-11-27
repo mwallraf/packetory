@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { tools } from "@/tools/registry";
+import { faqItems as bgpFaq } from "./bgp/faq-data";
 import { faqItems as configFaq } from "./config/faq-data";
 import { faqItems as diffFaq } from "./diff/faq-data";
 import { faqItems as dnsFaq } from "./dns/faq-data";
@@ -24,6 +25,7 @@ const FAQ_BY_SLUG: Record<
   config: configFaq,
   password: passwordFaq,
   diff: diffFaq,
+  bgp: bgpFaq,
 };
 
 const ACTIVE_TOOLS = tools.filter((t) => t.status !== "planned");
