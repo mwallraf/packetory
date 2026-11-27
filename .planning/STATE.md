@@ -3,10 +3,10 @@ gsd_state_version: "1.0"
 milestone: v1.4
 status: Awaiting next milestone
 stopped_at: v1.4 completed and archived locally
-last_updated: "2026-11-27T07:55:58.502Z"
+last_updated: "2026-11-27T08:09:43.859Z"
 last_activity: 2026-11-27
 last_activity_desc: Milestone v1.4 completed and archived
-state_head: a3a149180fb78360a491e8ae3182622e77966c1a
+state_head: 2d486402d8357fcc9a14dd9fedda807444648013
 progress:
   total_phases: 2
   completed_phases: 2
@@ -209,6 +209,7 @@ None yet.
 | 9 | Add compact Text Diff ignore options | 2026-11-27 | 5a17357 | — |
 | 10 | Add related tools to all app pages | 2026-11-27 | b793e3d | — |
 | 11 | Compact MAC inspection results | 2026-11-27 | a3a1491 | — |
+| 12 | Compact password generator layout | 2026-11-27 | 2d48640 | — |
 
 ## Deferred Items
 
