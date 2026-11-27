@@ -1,6 +1,15 @@
+import type { Metadata } from "next";
+import { SITE_URL } from "./sitemap";
 import { getSortedTools } from "@/tools/registry";
 import { ToolCard } from "@/components/ToolCard";
 import { IpBadge } from "@/components/IpBadge";
+
+export const metadata: Metadata = {
+  title: "Free Online Network & Developer Tools — Packetory",
+  description:
+    "Free tools for IP subnetting, DNS and MAC vendor lookups, Cisco config highlighting, text comparison, and generating UUIDs, hashes, passwords and passphrases.",
+  alternates: { canonical: `${SITE_URL}/` },
+};
 
 export default function Home() {
   const tools = getSortedTools();

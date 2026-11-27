@@ -18,27 +18,15 @@ export const SITE_URL = "https://packetory.dev";
  */
 export default function sitemap(): MetadataRoute.Sitemap {
   const staticEntries: MetadataRoute.Sitemap = [
-    {
-      url: SITE_URL,
-      lastModified: new Date(),
-      changeFrequency: "weekly",
-      priority: 1,
-    },
-    {
-      url: `${SITE_URL}/privacy`,
-      lastModified: new Date(),
-      changeFrequency: "yearly",
-      priority: 0.3,
-    },
+    { url: `${SITE_URL}/` },
+    { url: `${SITE_URL}/privacy` },
+    { url: `${SITE_URL}/guides/ipv6-48-to-64` },
   ];
 
   const toolEntries: MetadataRoute.Sitemap = tools
     .filter((tool) => tool.status !== "planned")
     .map((tool) => ({
       url: `${SITE_URL}/tools/${tool.slug}`,
-      lastModified: new Date(),
-      changeFrequency: "monthly",
-      priority: tool.featured ? 0.9 : 0.7,
     }));
 
   return [...staticEntries, ...toolEntries];

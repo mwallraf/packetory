@@ -10,13 +10,14 @@ describe("app/sitemap", () => {
     vi.resetModules();
   });
 
-  it("includes the homepage URL and the /privacy URL", async () => {
+  it("includes the canonical homepage, privacy page and IPv6 guide", async () => {
     vi.resetModules();
     const { default: sitemap } = await import("./sitemap");
     const urls = sitemap().map((entry) => entry.url);
 
-    expect(urls).toContain(BASE_URL);
+    expect(urls).toContain(`${BASE_URL}/`);
     expect(urls).toContain(`${BASE_URL}/privacy`);
+    expect(urls).toContain(`${BASE_URL}/guides/ipv6-48-to-64`);
   });
 
   it("contains exactly the /tools/* entries for active registry tools", async () => {
@@ -77,7 +78,7 @@ describe("app/sitemap", () => {
     expect(urls).toContain(`${BASE_URL}/tools/synthetic-active`);
     expect(urls).not.toContain(`${BASE_URL}/tools/synthetic-planned`);
     // Homepage and /privacy must still be present unchanged.
-    expect(urls).toContain(BASE_URL);
+    expect(urls).toContain(`${BASE_URL}/`);
     expect(urls).toContain(`${BASE_URL}/privacy`);
   });
 

@@ -38,7 +38,7 @@ test("mobile drawer opens Text Diff and the tool includes canonical and About me
 
   await expect(page).toHaveURL(/\/tools\/diff$/);
   await expect(drawer).toBeHidden();
-  await expect(page).toHaveTitle("Text Diff — Packetory");
+  await expect(page).toHaveTitle("Online Text Diff & Config Compare — Packetory");
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", "https://packetory.dev/tools/diff");
   await expect(page.locator('meta[property="og:url"]')).toHaveAttribute("content", "https://packetory.dev/tools/diff");
   await expect(page.getByTestId("diff-worked-example")).not.toHaveAttribute("open", "");

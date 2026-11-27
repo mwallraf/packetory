@@ -5,9 +5,9 @@ import { MacToolLoader } from "./MacToolLoader";
 import { faqItems, sampleFormats, sampleMac } from "./faq-data";
 
 const TITLE =
-  "MAC Address Inspector (colon, dash, Cisco dot, no separator) — Packetory";
+  "MAC Address Vendor Lookup & Inspector — Packetory";
 const DESCRIPTION =
-  "Normalize a MAC address into every common format instantly — colon, dash, Cisco dot notation, and no separator — with one-click copy for each. No login, no tracking.";
+  "Look up a MAC address vendor by OUI, check whether an address is locally administered, and convert between colon, dash and Cisco dot formats.";
 const CANONICAL_URL = `${SITE_URL}/tools/mac`;
 
 export const metadata: Metadata = {
@@ -36,8 +36,9 @@ export default function MacPage() {
     <div className="flex flex-1 flex-col bg-background">
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-12 sm:px-6 lg:px-8">
         <h1 className="text-[32px] leading-[1.2] font-semibold text-foreground">
-          MAC Address Inspector
+          MAC Address Vendor Lookup & Inspector
         </h1>
+        <p className="mt-4 text-muted-foreground">{DESCRIPTION}</p>
         <div className="mt-8">
           <MacToolLoader />
         </div>
@@ -81,6 +82,11 @@ export default function MacPage() {
                 </dd>
               </div>
             </dl>
+            <p className="text-muted-foreground">
+              Try <code>02:00:00:00:00:01</code> to see a locally administered
+              unicast address. Since its prefix was assigned locally, a vendor
+              lookup cannot reliably identify the hardware manufacturer.
+            </p>
           </div>
         </ToolAbout>
       </main>

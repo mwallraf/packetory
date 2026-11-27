@@ -5,9 +5,9 @@ import { ConfigExample } from "./ConfigExample";
 import { ConfigToolLoader } from "./ConfigToolLoader";
 import { faqItems } from "./faq-data";
 
-const TITLE = "Network Config Syntax Highlighter — Packetory";
+const TITLE = "Cisco Config Syntax Highlighter — Packetory";
 const DESCRIPTION =
-  "Highlight Cisco network configuration locally in your browser and copy it to email or documents with formatting intact.";
+  "Highlight Cisco IOS configurations in your browser, redact recognized credentials, and copy formatted output into email or documentation.";
 const CANONICAL_URL = `${SITE_URL}/tools/config`;
 
 export const metadata: Metadata = {
@@ -32,10 +32,10 @@ export default function ConfigPage() {
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-12 sm:px-6 lg:px-8">
         <div className="max-w-3xl">
           <h1 className="text-[32px] leading-[1.2] font-semibold text-foreground">
-            Config Syntax Highlighter
+            Cisco Config Syntax Highlighter
           </h1>
           <p className="mt-4 text-[16px] leading-[1.5] text-muted-foreground">
-            Paste a network configuration, preview the highlighting, then copy
+            Paste a Cisco IOS configuration, preview the highlighting, then copy
             it into email or documentation with its colours and monospace
             formatting intact.
           </p>
@@ -46,6 +46,12 @@ export default function ConfigPage() {
 
         <ToolAbout slug="config" faqItems={faqItems}>
           <ConfigExample />
+          <p className="mt-4 text-muted-foreground">
+            Use Anonymize before sharing a configuration. For example, it replaces
+            the credential in <code>enable secret 0 example-only</code> with a
+            placeholder. Review the preview for sensitive values outside the
+            recognized credential formats before copying.
+          </p>
         </ToolAbout>
       </main>
     </div>
