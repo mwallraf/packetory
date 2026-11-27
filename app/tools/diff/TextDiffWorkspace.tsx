@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createTextDiffClient, type TextDiffOutcome } from "@/lib/text-diff/client";
 import type { TextDiffError, TextDiffInput, TextDiffRow } from "@/lib/text-diff/types";
 import { TextDiffResults } from "./TextDiffResults";
+import { textDiffExample } from "./example";
 
 const emptyInput: TextDiffInput = { original: "", modified: "" };
 const errorText: Record<TextDiffError, string> = {
@@ -107,6 +108,12 @@ export function TextDiffWorkspace() {
     original.current?.focus();
   }
 
+  function tryExample() {
+    setInput(textDiffExample);
+    original.current?.focus();
+    void compare(textDiffExample);
+  }
+
   function handleShortcut(event: KeyboardEvent<HTMLFormElement>) {
     if (event.key !== "Enter" || !(event.ctrlKey || event.metaKey)
       || event.altKey || event.shiftKey || event.repeat || event.nativeEvent.isComposing
@@ -116,6 +123,7 @@ export function TextDiffWorkspace() {
   }
 
   const rows = comparison.status === "done" ? comparison.rows : null;
+  const canTryExample = input.original === "" && input.modified === "" && comparison.status === "idle";
 
   return (
     <form
@@ -159,6 +167,11 @@ export function TextDiffWorkspace() {
         <Button type="button" variant="outline" onClick={clearAll} className="h-11 px-4 font-semibold">
           Clear all
         </Button>
+        {canTryExample && (
+          <Button type="button" variant="ghost" onClick={tryExample} className="h-11 px-4 font-semibold">
+            Try an example
+          </Button>
+        )}
       </div>
       <p
         role="status"
