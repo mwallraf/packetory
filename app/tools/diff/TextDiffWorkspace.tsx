@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { createTextDiffClient } from "@/lib/text-diff/client";
+import { createTextDiffClient, type TextDiffOutcome } from "@/lib/text-diff/client";
 import type { TextDiffError, TextDiffInput, TextDiffRow } from "@/lib/text-diff/types";
 import { TextDiffResults } from "./TextDiffResults";
 
@@ -15,6 +15,15 @@ const errorText: Record<TextDiffError, string> = {
   "worker-error": "Couldn’t compare this text. Try again.",
 };
 
+type Comparison =
+  | { status: "idle" | "pending" }
+  | { status: "done"; rows: TextDiffRow[]; stale: boolean }
+  | { status: "error"; code: TextDiffError };
+
+function hasPair(input: TextDiffInput): boolean {
+  return Boolean(input.original.trim() && input.modified.trim());
+}
+
 function summarize(rows: TextDiffRow[]): string {
   const counts = { added: 0, removed: 0, modified: 0 };
   for (const row of rows) {
@@ -24,49 +33,99 @@ function summarize(rows: TextDiffRow[]): string {
     .map(([kind, count]) => `${count} ${kind}`).join(" · ") || "No differences found.";
 }
 
+function statusText(comparison: Comparison): string {
+  if (comparison.status === "pending") return "Comparing…";
+  if (comparison.status === "error") return errorText[comparison.code];
+  if (comparison.status === "done") {
+    return comparison.stale ? "Out of date. Compare again to update the results." : summarize(comparison.rows);
+  }
+  return "";
+}
+
 export function TextDiffWorkspace() {
   const [client] = useState(createTextDiffClient);
   const [input, setInput] = useState(emptyInput);
-  const [rows, setRows] = useState<TextDiffRow[] | null>(null);
-  const [status, setStatus] = useState("");
-  const [isError, setIsError] = useState(false);
-  const [pending, setPending] = useState(false);
+  const [comparison, setComparison] = useState<Comparison>({ status: "idle" });
+  const requestId = useRef(0);
+  const pending = useRef(false);
   const original = useRef<HTMLTextAreaElement>(null);
   const id = useId();
-  const canCompare = !!(input.original.trim() && input.modified.trim()) && !pending;
+  const canCompare = hasPair(input) && comparison.status !== "pending";
 
-  useEffect(() => () => client.cancel(), [client]);
+  useEffect(() => () => {
+    requestId.current++;
+    client.cancel();
+  }, [client]);
 
-  async function compare(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!canCompare) return;
-    setRows(null);
-    setStatus("Comparing…");
-    setIsError(false);
-    setPending(true);
-    const outcome = await client.compare(input);
-    setPending(false);
-    if (outcome.status === "done") {
-      setRows(outcome.rows);
-      setStatus(summarize(outcome.rows));
-    } else if (outcome.status === "error") {
-      setIsError(true);
-      setStatus(errorText[outcome.code]);
+  async function compare(pair: TextDiffInput) {
+    if (!hasPair(pair) || pending.current) return;
+    const id = ++requestId.current;
+    pending.current = true;
+    setComparison({ status: "pending" });
+
+    let outcome: TextDiffOutcome;
+    try {
+      // The client cancels earlier work as part of starting a new job.
+      outcome = await client.compare(pair);
+    } catch {
+      outcome = { status: "error", code: "worker-error" };
+    }
+
+    if (id !== requestId.current) return;
+    pending.current = false;
+    switch (outcome.status) {
+      case "done":
+        setComparison({ ...outcome, stale: false });
+        break;
+      case "error":
+        setComparison(outcome);
+        break;
+      case "cancelled":
+        setComparison({ status: "idle" });
+        break;
     }
   }
 
-  function clearAll() {
+  function cancelComparison() {
+    requestId.current++;
+    pending.current = false;
     client.cancel();
+  }
+
+  function edit(side: keyof TextDiffInput, value: string) {
+    cancelComparison();
+    setInput((current) => ({ ...current, [side]: value }));
+    setComparison((current) => current.status === "done"
+      ? { ...current, stale: true }
+      : { status: "idle" });
+  }
+
+  function clearAll() {
+    cancelComparison();
     setInput(emptyInput);
-    setRows(null);
-    setStatus("");
-    setIsError(false);
-    setPending(false);
+    setComparison({ status: "idle" });
     original.current?.focus();
   }
 
+  function handleShortcut(event: KeyboardEvent<HTMLFormElement>) {
+    if (event.key !== "Enter" || !(event.ctrlKey || event.metaKey)
+      || event.altKey || event.shiftKey || event.repeat || event.nativeEvent.isComposing
+      || !canCompare || event.defaultPrevented) return;
+    event.preventDefault();
+    void compare(input);
+  }
+
+  const rows = comparison.status === "done" ? comparison.rows : null;
+
   return (
-    <form onSubmit={compare} className="space-y-6">
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void compare(input);
+      }}
+      onKeyDown={handleShortcut}
+      className="space-y-6"
+    >
       <div className="grid gap-4 md:grid-cols-2 md:gap-6">
         {(["original", "modified"] as const).map((side) => (
           <div className="grid min-w-0 gap-2" key={side}>
@@ -83,7 +142,7 @@ export function TextDiffWorkspace() {
               placeholder={`Paste ${side} text`}
               className="min-h-36 bg-background p-4 font-mono text-base leading-normal md:min-h-48 md:text-base dark:bg-background"
               value={input[side]}
-              onChange={(event) => setInput({ ...input, [side]: event.currentTarget.value })}
+              onChange={(event) => edit(side, event.currentTarget.value)}
             />
           </div>
         ))}
@@ -91,6 +150,7 @@ export function TextDiffWorkspace() {
       <div className="flex flex-wrap gap-2">
         <Button
           type="submit"
+          aria-keyshortcuts="Control+Enter Meta+Enter"
           disabled={!canCompare}
           className="h-11 bg-cyan-700 px-4 font-semibold text-white hover:bg-cyan-800 dark:bg-primary dark:text-slate-950 dark:hover:bg-cyan-300"
         >
@@ -104,9 +164,9 @@ export function TextDiffWorkspace() {
         role="status"
         aria-live="polite"
         aria-atomic="true"
-        className={`text-sm leading-normal empty:sr-only ${isError ? "rounded-lg border border-destructive px-4 py-2" : ""}`}
+        className={`text-sm leading-normal empty:sr-only ${comparison.status === "error" ? "rounded-lg border border-destructive px-4 py-2" : ""}`}
       >
-        {status}
+        {statusText(comparison)}
       </p>
       {rows?.some((row) => row.kind !== "equal") && <TextDiffResults rows={rows} />}
     </form>
