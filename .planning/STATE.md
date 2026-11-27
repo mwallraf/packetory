@@ -6,10 +6,10 @@ current_phase: 16
 current_phase_name: Text Diff Workspace & Release
 status: executing
 stopped_at: Phase 15 complete, ready to plan Phase 16
-last_updated: "2026-11-27T07:08:04.002Z"
+last_updated: "2026-11-27T07:20:19.813Z"
 last_activity: 2026-11-26
 last_activity_desc: Phase 15 complete, transitioned to Phase 16
-state_head: c35c2027e1c1053ec4c27c1e1fff0d58496a7f20
+state_head: e22715c692e6b11ef5bb49d2a6b29b20b8a75621
 progress:
   total_phases: 2
   completed_phases: 1
@@ -206,6 +206,7 @@ None yet.
 | 5 | Match Text Diff result text to the 10 pt editors | 2026-11-27 | 0861ba5 | — |
 | 6 | Trial the wider Text Diff content container | 2026-11-27 | fa9bcec | — |
 | 7 | Align tool page content widths | 2026-11-27 | c35c202 | — |
+| 8 | Automatically compare small Text Diff edits | 2026-11-27 | e22715c | — |
 
 ## Deferred Items
 
