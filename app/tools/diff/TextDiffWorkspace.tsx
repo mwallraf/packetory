@@ -11,6 +11,9 @@ import { textDiffExample } from "./example";
 import { fitsExpandedResult } from "./result-model";
 
 const emptyInput: TextDiffInput = { original: "", modified: "" };
+const AUTO_COMPARE_DELAY_MS = 350;
+const AUTO_COMPARE_CHARACTER_LIMIT = 10_000;
+const AUTO_COMPARE_LINE_LIMIT = 100;
 const errorText: Record<TextDiffError, string> = {
   "input-limit": "One snippet is too long. Shorten it and compare again.",
   "comparison-limit": "This comparison is too large to display. Try comparing a smaller section.",
@@ -24,6 +27,11 @@ type Comparison =
 
 function hasPair(input: TextDiffInput): boolean {
   return Boolean(input.original.trim() && input.modified.trim());
+}
+
+function fitsAutoCompare(text: string): boolean {
+  return text.length < AUTO_COMPARE_CHARACTER_LIMIT
+    && text.split(/\r\n|\r|\n/).length <= AUTO_COMPARE_LINE_LIMIT;
 }
 
 function summarize(rows: TextDiffRow[]): string {
@@ -49,17 +57,20 @@ export function TextDiffWorkspace() {
   const [input, setInput] = useState(emptyInput);
   const [comparison, setComparison] = useState<Comparison>({ status: "idle" });
   const requestId = useRef(0);
+  const autoCompareTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const pending = useRef(false);
   const original = useRef<HTMLTextAreaElement>(null);
   const id = useId();
   const canCompare = hasPair(input) && comparison.status !== "pending";
 
   useEffect(() => () => {
+    clearTimeout(autoCompareTimer.current);
     requestId.current++;
     client.cancel();
   }, [client]);
 
   async function compare(pair: TextDiffInput) {
+    clearTimeout(autoCompareTimer.current);
     if (!hasPair(pair) || pending.current) return;
     const id = ++requestId.current;
     pending.current = true;
@@ -91,6 +102,7 @@ export function TextDiffWorkspace() {
   }
 
   function cancelComparison() {
+    clearTimeout(autoCompareTimer.current);
     requestId.current++;
     pending.current = false;
     client.cancel();
@@ -98,10 +110,15 @@ export function TextDiffWorkspace() {
 
   function edit(side: keyof TextDiffInput, value: string) {
     cancelComparison();
-    setInput((current) => ({ ...current, [side]: value }));
+    const nextInput = { ...input, [side]: value };
+    setInput(nextInput);
     setComparison((current) => current.status === "done"
       ? { ...current, stale: true }
       : { status: "idle" });
+    if (side === "modified" && fitsAutoCompare(nextInput.original)
+      && fitsAutoCompare(value) && hasPair(nextInput)) {
+      autoCompareTimer.current = setTimeout(() => void compare(nextInput), AUTO_COMPARE_DELAY_MS);
+    }
   }
 
   function clearAll() {

@@ -10,11 +10,12 @@ test("public worker tracer displays the exact IP digit change", async ({ page })
   await expect(compare).toBeDisabled();
   await page.getByLabel("Original", { exact: true }).fill("192.0.2.1");
   await expect(compare).toBeDisabled();
-  await page.getByLabel("Modified", { exact: true }).fill("192.0.2.2");
-  await expect(compare).toBeEnabled();
   expect(workerUrls).toEqual([]);
 
-  const [worker] = await Promise.all([page.waitForEvent("worker"), compare.click()]);
+  const [worker] = await Promise.all([
+    page.waitForEvent("worker"),
+    page.getByLabel("Modified", { exact: true }).fill("192.0.2.2"),
+  ]);
   expect(worker.url()).toContain("/_next/static/");
   await expect(page.getByRole("status")).toHaveText("1 modified");
   const results = page.getByRole("region", { name: "Comparison results" });
@@ -30,7 +31,7 @@ test("learns from the editable example and clears all comparison state", async (
   await expect(original).toHaveValue(/192\.0\.2\.1/);
   await expect(modified).toHaveValue(/192\.0\.2\.2/);
   await expect(page.getByRole("status")).toHaveText("1 added · 1 modified");
-  await modified.fill("edited");
+  await original.fill("edited");
   await expect(page.getByRole("status")).toHaveText("Out of date. Compare again to update the results.");
   await page.getByRole("button", { name: "Clear all" }).click();
   await expect(original).toHaveValue("");

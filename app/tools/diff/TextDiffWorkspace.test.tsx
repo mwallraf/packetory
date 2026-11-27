@@ -36,6 +36,60 @@ describe("Text Diff workspace", () => {
   });
   afterEach(cleanup);
 
+  describe("automatic comparison", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    async function advance(ms: number) {
+      await act(async () => vi.advanceTimersByTimeAsync(ms));
+    }
+
+    it("compares the latest Modified edit after 350 ms and leaves Original edits manual", async () => {
+      compare.mockImplementation(async (input) => compareText(input));
+      render(<TextDiffWorkspace />);
+      paste("before", "after");
+      await advance(349);
+      expect(compare).not.toHaveBeenCalled();
+      fireEvent.change(modified(), { target: { value: "latest" } });
+      await advance(350);
+      expect(compare).toHaveBeenCalledExactlyOnceWith({ original: "before", modified: "latest" });
+      fireEvent.change(original(), { target: { value: "older" } });
+      await advance(350);
+      expect(compare).toHaveBeenCalledTimes(1);
+      expect(status().textContent).toContain("Out of date");
+    });
+
+    it.each([
+      ["a".repeat(10_000), "short"],
+      ["short", "x\n".repeat(100) + "x"],
+    ])("leaves larger inputs available for manual comparison", async (left, right) => {
+      compare.mockImplementation(async (input) => compareText(input));
+      render(<TextDiffWorkspace />);
+      paste(left, right);
+      await advance(350);
+      expect(compare).not.toHaveBeenCalled();
+      await act(async () => fireEvent.click(compareButton()));
+      expect(compare).toHaveBeenCalledExactlyOnceWith({ original: left, modified: right });
+    });
+
+    it("cancels the scheduled comparison on Clear all, a manual submit, or unmount", async () => {
+      compare.mockImplementation(async (input) => compareText(input));
+      const { unmount } = render(<TextDiffWorkspace />);
+      paste("before", "after");
+      fireEvent.click(clearButton());
+      await advance(350);
+      expect(compare).not.toHaveBeenCalled();
+      paste("before", "after");
+      await act(async () => fireEvent.click(compareButton()));
+      await advance(350);
+      expect(compare).toHaveBeenCalledTimes(1);
+      fireEvent.change(modified(), { target: { value: "again" } });
+      unmount();
+      await advance(350);
+      expect(compare).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("marks a finished comparison stale and preserves the raw edited snippets", async () => {
     render(<TextDiffWorkspace />);
     paste("  192.0.2.1 ", "  192.0.2.2 ");
