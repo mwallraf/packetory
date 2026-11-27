@@ -6,6 +6,7 @@
 - ✅ **v1.1 Production Domain & Landing Page Polish** — Phases 6-7 (shipped 2026-07-25)
 - ✅ **v1.2 Hash Generator** — Phases 8-9 (shipped 2026-10-17)
 - ✅ **v1.3 Password Generator & Tool Page Polish** — Phases 10-14 (shipped 2026-11-12)
+- ✅ **v1.4 Text Diff** — Phases 15–16 ([completed locally 2026-11-27](milestones/v1.4-ROADMAP.md))
 
 ## Phases
 

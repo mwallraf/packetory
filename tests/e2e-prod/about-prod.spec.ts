@@ -1,4 +1,4 @@
-import { test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { tools } from "../../tools/registry";
 import { expectServerAboutParity } from "../e2e/helpers/about-parity";
 
@@ -20,6 +20,15 @@ test.describe("About area in the production build without JavaScript (INFO-01, I
       request,
     }) => {
       await expectServerAboutParity(page, request, slug);
+      const related = page.getByTestId(`${slug}-related-tools`);
+      const links = related.getByRole("link");
+      await expect(related).not.toHaveAttribute("open", "");
+      await expect(links).toHaveCount(0);
+      await related.getByText("Related tools", { exact: true }).click();
+      await expect(links).toHaveCount(2);
+      expect(await links.evaluateAll((items) => items.some((item) =>
+        item.getAttribute("href")?.startsWith("https://") && item.getAttribute("rel") === "noreferrer"
+      ))).toBe(true);
     });
   }
 });

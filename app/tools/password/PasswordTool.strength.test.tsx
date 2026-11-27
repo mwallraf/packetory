@@ -71,11 +71,11 @@ afterEach(() => {
 });
 
 describe("Strength panel in the island (STR-01, D-06)", () => {
-  it("renders under the output zone with the default password figures", () => {
+  it("renders below the options with the default password figures", () => {
     mount();
-    const zone = screen.getByTestId("password-output-zone");
+    const options = screen.getByTestId("password-options");
     const strength = screen.getByTestId("password-strength");
-    expect(zone.nextElementSibling).toBe(strength);
+    expect(options.nextElementSibling).toBe(strength);
     expect(text("password-strength-label")).toBe("Very strong · 128 bits");
     expect(text("password-strength-pool")).toBe("85 chars · 128 bits");
   });

@@ -6,10 +6,11 @@ import {
   type FaqItem,
 } from "@/lib/seo/jsonld";
 import { cn } from "@/lib/utils";
+import { relatedTools } from "@/tools/related";
 
 /**
  * Shared "About this tool" area (Phase 10, INFO-01/02/03/05). A Server
- * Component with no client JavaScript: the two disclosures are native
+ * Component with no client JavaScript: its disclosures are native
  * `<details>` elements that start closed and toggle without any handler,
  * hook or state. It is rendered as the LAST child of `main`, never above or
  * over the tool.
@@ -48,6 +49,8 @@ export function ToolAbout({
   children: ReactNode;
   className?: string;
 }) {
+  const links = relatedTools[slug];
+
   return (
     <section
       data-testid="about-tool"
@@ -87,6 +90,28 @@ export function ToolAbout({
             ))}
           </div>
         </details>
+        {links && (
+          <details className="group" data-testid={`${slug}-related-tools`}>
+            <summary className={SUMMARY_CLASS}>
+              <ChevronRight aria-hidden="true" className={CHEVRON_CLASS} />
+              Related tools
+            </summary>
+            <ul className="space-y-3 pt-2 pb-4 pl-6">
+              {links.map(({ name, href, description }) => (
+                <li key={href}>
+                  <a
+                    href={href}
+                    rel={href.startsWith("https://") ? "noreferrer" : undefined}
+                    className="font-semibold text-foreground underline underline-offset-4 hover:decoration-primary"
+                  >
+                    {name}
+                  </a>
+                  <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
       </div>
     </section>
   );

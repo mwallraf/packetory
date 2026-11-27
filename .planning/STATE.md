@@ -1,43 +1,42 @@
 ---
 gsd_state_version: "1.0"
-milestone: v1.3
+milestone: v1.4
 status: Awaiting next milestone
-stopped_at: v1.3 milestone archived and tagged
-last_updated: "2026-11-12T14:34:37.385Z"
-last_activity: 2026-11-12
-last_activity_desc: "Milestone v1.3 shipped as PR #17"
-state_head: 84f6e2c666d25f9f189c5514a0d91b7acfd0ad4f
+stopped_at: v1.4 completed and archived locally
+last_updated: "2026-11-27T08:09:43.859Z"
+last_activity: 2026-11-27
+last_activity_desc: Milestone v1.4 completed and archived
+state_head: 2d486402d8357fcc9a14dd9fedda807444648013
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 26
-  completed_plans: 26
-  percent: 100
-milestone_name: Password Generator & Tool Page Polish
-current_phase: 14
+  total_phases: 2
+  completed_phases: 2
+  total_plans: 4
+  completed_plans: 4
+milestone_name: Text Diff
+current_phase: 16
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-11-12)
+See: .planning/PROJECT.md (updated 2026-11-27)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** Planning next milestone (v1.3 shipped 2026-11-12)
+**Current focus:** v1.4 archived. Awaiting the next milestone.
 
 ## Current Position
 
-Phase: Milestone v1.3 complete
+Phase: Milestone v1.4 complete
 Plan: —
 Status: Awaiting next milestone
-Last activity: 2026-11-12 -- Milestone v1.3 shipped as PR #17
+Last activity: 2026-11-27 — Milestone v1.4 completed and archived
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 64
+- Total plans completed: 68
 - Average duration: - min
 - Total execution time: 0 hours
 
@@ -59,6 +58,8 @@ Last activity: 2026-11-12 -- Milestone v1.3 shipped as PR #17
 | 12 | 5 | - | - |
 | 13 | 6 | - | - |
 | 14 | 8 | - | - |
+| 15 | 1 | - | - |
+| 16 | 3 | - | - |
 
 **Recent Trend:**
 
@@ -199,6 +200,16 @@ None yet.
 |---|-------------|------|--------|-----------|
 | 261017-cnt | Merge origin/main (PRs #14/#15 config highlighter) into phase branch, keep hash + config tools | 2026-10-17 | 30baef9 | [261017-cnt-merge-origin-main-prs-14-15-config-highl](./quick/261017-cnt-merge-origin-main-prs-14-15-config-highl/) |
 | 261017-f4s | Fix PR #16 CI hash-layout failure (geometricPrecision on digests) and drop e2e job from CI | 2026-10-17 | ab869bc | [261017-f4s-fix-pr-16-ci-hash-layout-failure-and-dro](./quick/261017-f4s-fix-pr-16-ci-hash-layout-failure-and-dro/) |
+| 3 | Document the required OpenGSD workflow in root AGENTS.md | 2026-11-26 | a2094ff | — |
+| 4 | Trial a two-point reduction in Text Diff editor text | 2026-11-27 | 6d97cf4 | — |
+| 5 | Match Text Diff result text to the 10 pt editors | 2026-11-27 | 0861ba5 | — |
+| 6 | Trial the wider Text Diff content container | 2026-11-27 | fa9bcec | — |
+| 7 | Align tool page content widths | 2026-11-27 | c35c202 | — |
+| 8 | Automatically compare small Text Diff edits | 2026-11-27 | e22715c | — |
+| 9 | Add compact Text Diff ignore options | 2026-11-27 | 5a17357 | — |
+| 10 | Add related tools to all app pages | 2026-11-27 | b793e3d | — |
+| 11 | Compact MAC inspection results | 2026-11-27 | a3a1491 | — |
+| 12 | Compact password generator layout | 2026-11-27 | 2d48640 | — |
 
 ## Deferred Items
 
@@ -218,10 +229,11 @@ None. The batched UAT for phases 11-14 was completed on 2026-11-12, and the stal
 ## Session Continuity
 
 Last session: 2026-11-12T00:13:56.895Z
-Stopped at: Phase 14 complete — all phases complete
+Stopped at: Phase 16 complete — all phases complete
 Resume file: None
 
 ## Operator Next Steps
 
 
-- Start the next milestone with /gsd-new-milestone
+
+- Start the next milestone with $gsd-new-milestone

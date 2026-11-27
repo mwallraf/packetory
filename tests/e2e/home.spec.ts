@@ -7,9 +7,9 @@ test.describe("Landing page — tool registry grid", () => {
     await page.goto("/");
 
     const cards = page.getByTestId("tool-card");
-    await expect(cards).toHaveCount(7);
+    await expect(cards).toHaveCount(8);
 
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 8; i++) {
       const card = cards.nth(i);
       await expect(card.getByTestId("tool-card-name")).toBeVisible();
       await expect(card.getByTestId("tool-card-description")).toBeVisible();
@@ -34,6 +34,7 @@ test.describe("Landing page — tool registry grid", () => {
       "Hash Generator",
       "MAC Address Inspector",
       "Password Generator",
+      "Text Diff",
     ]);
   });
 
@@ -50,10 +51,15 @@ test.describe("Landing page — tool registry grid", () => {
     await expect(card).toHaveCount(1);
     await expect(card.locator("svg.lucide-key-round")).toHaveCount(1);
     await expect(card.locator("a")).toHaveAttribute("href", "/tools/password");
-    // Password sorts last in the grid (featured first, then by name).
-    await expect(page.getByTestId("tool-card").last()).toContainText(
-      "Password Generator"
-    );
+  });
+
+  test("the Text Diff card uses its own icon and links to the workspace", async ({ page }) => {
+    await page.goto("/");
+    const card = page.getByTestId("tool-card").filter({
+      has: page.getByRole("link", { name: "Text Diff", exact: true }),
+    });
+    await expect(card.locator("svg.lucide-file-diff")).toHaveCount(1);
+    await expect(card.getByRole("link")).toHaveAttribute("href", "/tools/diff");
   });
 
   test("active cards have no 'Coming soon' badge and exactly one clickable anchor", async ({
@@ -62,9 +68,9 @@ test.describe("Landing page — tool registry grid", () => {
     await page.goto("/");
 
     const cards = page.getByTestId("tool-card");
-    await expect(cards).toHaveCount(7);
+    await expect(cards).toHaveCount(8);
 
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 8; i++) {
       const card = cards.nth(i);
       await expect(card.getByText("Coming soon")).toHaveCount(0);
       // Each active card renders exactly one stretched-link anchor (LP-01).

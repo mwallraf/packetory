@@ -83,7 +83,7 @@ async function settledCls(page: Page): Promise<number> {
 test.describe("Password layout (PREG-03, D-16, D-17)", () => {
   test("the skeleton pin has a 44px mode row and no duplicate hero class", () => {
     const source = readSource("app/tools/password/PasswordToolLoader.tsx");
-    expect(source.match(/h-11 w-56/g)?.length).toBe(1);
+    expect(source.match(/h-11 w-48/g)?.length).toBe(1);
     expect(source).not.toMatch(/h-\[(\d+)px\] sm:h-\[\1px\] animate-pulse/);
   });
 
@@ -126,7 +126,7 @@ test.describe("Password layout (PREG-03, D-16, D-17)", () => {
     const html = await (await request.get("/tools/password")).text();
     const at = html.indexOf('data-testid="password-skeleton"');
     expect(at).toBeGreaterThan(-1);
-    expect(html.slice(at, at + 1200)).toContain("h-11 w-56");
+    expect(html.slice(at, at + 1200)).toContain("h-11 w-48");
     expect(html).not.toContain('data-testid="password-output"');
   });
 
@@ -160,32 +160,13 @@ test.describe("Password layout (PREG-03, D-16, D-17)", () => {
     await page.goto("/tools/password");
     await expect(page.getByTestId("password-mode")).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
-    const rows = await page.evaluate(() => {
-      const row = document.querySelector('[data-testid="password-mode"]')!;
-      const label = Array.from(row.parentElement!.querySelectorAll("*")).find(
-        (el) => el.children.length === 0 && el.textContent?.trim() === "Mode",
-      );
-      const rect = (el: Element | null) => {
-        const r = el?.getBoundingClientRect();
-        return r ? { top: r.top, mid: r.top + r.height / 2 } : null;
-      };
-      return {
-        label: rect(label ?? null),
-        items: ["password", "passphrase"].map((m) =>
-          rect(document.querySelector(`[data-testid="password-mode-${m}"]`)),
-        ),
-        height: row.parentElement!.getBoundingClientRect().height,
-      };
-    });
-    expect(rows.label, "the Mode label exists").not.toBeNull();
-    // One line: both toggle items share a top, and the label shares their
-    // vertical centre (items-center), so nothing wrapped onto a second row.
-    expect(rows.items[0]!.top, JSON.stringify(rows)).toBeCloseTo(
-      rows.items[1]!.top,
-      0,
-    );
-    expect(Math.abs(rows.label!.mid - rows.items[0]!.mid)).toBeLessThanOrEqual(1);
-    expect(rows.height, "mode row is one 44px line").toBeLessThanOrEqual(44.5);
+    const mode = page.getByTestId("password-mode");
+    await expect(mode).toHaveAccessibleName("Mode");
+    await expect(mode.getByText("Mode", { exact: true })).toHaveCount(0);
+    const password = (await page.getByTestId("password-mode-password").boundingBox())!;
+    const passphrase = (await page.getByTestId("password-mode-passphrase").boundingBox())!;
+    expect(password.y).toBeCloseTo(passphrase.y, 0);
+    expect((await mode.boundingBox())!.height).toBeLessThanOrEqual(44.5);
   });
 
   test("every pulse honors reduced motion", () => {

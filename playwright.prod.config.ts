@@ -1,8 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
 /**
- * Production-build e2e config (Phase 8, HASH-04): builds and serves the app
- * with `HASH_SMOKE=1` so the worker is proven in a real production bundle,
+ * Builds and serves the app with test-only smoke routes enabled so workers
+ * are proven in a real production bundle,
  * not `next dev`. Port 3101 (3100 is taken by an ssh tunnel locally). Never
  * run concurrently with `next dev` in the same checkout (shared `.next`).
  */
@@ -28,6 +28,6 @@ export default defineConfig({
     url: "http://localhost:3101",
     reuseExistingServer: false,
     timeout: 180_000,
-    env: { HASH_SMOKE: "1" },
+    env: { HASH_SMOKE: "1", DIFF_SMOKE: "1" },
   },
 });

@@ -4,8 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import {
-  LENGTH_MAX,
-  LENGTH_MIN,
   LOOK_ALIKES,
   SYMBOL_SET_MAX,
   normalizeSymbols,
@@ -16,7 +14,6 @@ import {
   HINT_CLASS,
   Kbd,
   LABEL_CLASS,
-  RangeRow,
   TEXT_INPUT_GUARDS,
 } from "./option-controls";
 
@@ -24,15 +21,9 @@ export type SetKey = "uppercase" | "lowercase" | "digits" | "symbols";
 
 type Props = {
   options: ToolOptions;
-  lengthDraft: string;
-  lengthError: boolean;
-  lengthRef: React.Ref<HTMLInputElement>;
   symbolDraft: string;
   batchDraft: string;
   batchError: boolean;
-  onLengthDraftChange: (value: string) => void;
-  onLengthBlur: () => void;
-  onSliderChange: (length: number) => void;
   onSetToggle: (key: SetKey, checked: boolean) => void;
   onSymbolDraftChange: (value: string) => void;
   onSymbolBlur: () => void;
@@ -80,15 +71,9 @@ function symbolHint(symbolsOn: boolean, draft: string): string {
  */
 export function PasswordOptionsPanel({
   options,
-  lengthDraft,
-  lengthError,
-  lengthRef,
   symbolDraft,
   batchDraft,
   batchError,
-  onLengthDraftChange,
-  onLengthBlur,
-  onSliderChange,
   onSetToggle,
   onSymbolDraftChange,
   onSymbolBlur,
@@ -110,25 +95,7 @@ export function PasswordOptionsPanel({
       >
         Options
       </h2>
-      <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <RangeRow
-          id="password-length"
-          label="Length"
-          min={LENGTH_MIN}
-          max={LENGTH_MAX}
-          draft={lengthDraft}
-          error={lengthError}
-          value={options.length}
-          inputRef={lengthRef}
-          suffix="characters"
-          testId="password-length"
-          sliderTestId="password-length-slider"
-          hintTestId="password-length-hint"
-          onDraftChange={onLengthDraftChange}
-          onBlur={onLengthBlur}
-          onSliderChange={onSliderChange}
-        />
-
+      <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)_auto]">
         <div
           role="group"
           aria-labelledby="password-sets-label"
@@ -144,7 +111,7 @@ export function PasswordOptionsPanel({
             const checked = options[key];
             const isLast = locked && checked;
             return (
-              <div key={key} className="flex min-h-11 items-center gap-4">
+              <div key={key} className="flex min-h-8 items-center gap-2">
                 <Switch
                   id={`password-set-${key}`}
                   data-testid={`password-set-${key}`}
@@ -180,7 +147,7 @@ export function PasswordOptionsPanel({
           )}
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-2">
             <Label htmlFor="password-symbols" className={LABEL_CLASS}>
               Symbol set
@@ -208,7 +175,7 @@ export function PasswordOptionsPanel({
 
 
           <div className="flex flex-col gap-2">
-            <div className="flex min-h-11 items-center gap-4">
+            <div className="flex min-h-8 items-center gap-2">
               <Switch
                 id="password-lookalikes"
                 data-testid="password-lookalikes"
@@ -242,7 +209,7 @@ export function PasswordOptionsPanel({
       </div>
       <p
         data-testid="password-shortcuts"
-        className="mt-6 text-[14px] leading-[1.4] font-normal text-muted-foreground"
+        className="mt-4 text-[14px] leading-[1.4] font-normal text-muted-foreground"
       >
         Keyboard: <Kbd>/</Kbd> length · <Kbd>Enter</Kbd> regenerate ·{" "}
         <Kbd>Esc</Kbd> reset options · <Kbd>Ctrl/Cmd</Kbd>+<Kbd>C</Kbd> copy

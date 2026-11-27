@@ -7,8 +7,6 @@ import {
   APPEND_NUMBER_BITS,
   SEPARATORS,
   SEPARATOR_TOKENS,
-  WORDS_MAX,
-  WORDS_MIN,
   type Separator,
   type ToolOptions,
 } from "@/lib/password";
@@ -18,20 +16,13 @@ import {
   HINT_CLASS,
   Kbd,
   LABEL_CLASS,
-  RangeRow,
 } from "./option-controls";
 import { TOGGLE_ITEM_CLASS } from "./toggle-classes";
 
 type Props = {
   options: ToolOptions;
-  wordsDraft: string;
-  wordsError: boolean;
-  wordCountRef: React.Ref<HTMLInputElement>;
   batchDraft: string;
   batchError: boolean;
-  onWordsDraftChange: (value: string) => void;
-  onWordsBlur: () => void;
-  onWordsSliderChange: (words: number) => void;
   onSeparatorChange: (separator: Separator) => void;
   onCapitalizeChange: (checked: boolean) => void;
   onAppendNumberChange: (checked: boolean) => void;
@@ -104,14 +95,8 @@ function SwitchRow({
  */
 export function PassphraseOptionsPanel({
   options,
-  wordsDraft,
-  wordsError,
-  wordCountRef,
   batchDraft,
   batchError,
-  onWordsDraftChange,
-  onWordsBlur,
-  onWordsSliderChange,
   onSeparatorChange,
   onCapitalizeChange,
   onAppendNumberChange,
@@ -138,24 +123,7 @@ export function PassphraseOptionsPanel({
       >
         Options
       </h2>
-      <div className="mt-4 grid grid-cols-1 gap-6 sm:grid-cols-2">
-        <RangeRow
-          id="password-words"
-          label="Word count"
-          min={WORDS_MIN}
-          max={WORDS_MAX}
-          draft={wordsDraft}
-          error={wordsError}
-          value={options.words}
-          inputRef={wordCountRef}
-          testId="password-words"
-          sliderTestId="password-words-slider"
-          hintTestId="password-words-hint"
-          onDraftChange={onWordsDraftChange}
-          onBlur={onWordsBlur}
-          onSliderChange={onWordsSliderChange}
-        />
-
+      <div className="mt-3 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
         <div className="flex flex-col gap-2 sm:col-span-2">
           <span
             id="password-separator-label"
@@ -229,7 +197,7 @@ export function PassphraseOptionsPanel({
       </div>
       <p
         data-testid="password-shortcuts"
-        className="mt-6 text-[14px] leading-[1.4] font-normal text-muted-foreground"
+        className="mt-4 text-[14px] leading-[1.4] font-normal text-muted-foreground"
       >
         Keyboard: <Kbd>/</Kbd> word count · <Kbd>Enter</Kbd> regenerate ·{" "}
         <Kbd>Esc</Kbd> reset options · <Kbd>Ctrl/Cmd</Kbd>+<Kbd>C</Kbd> copy

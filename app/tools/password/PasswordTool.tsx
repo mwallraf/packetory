@@ -27,6 +27,7 @@ import { loadWordlist } from "@/lib/password/wordlist";
 import { useCopyToClipboard } from "@/lib/hooks/useCopyToClipboard";
 import { useKeyboardShortcut } from "@/lib/hooks/useKeyboardShortcut";
 import { reloadPage } from "./reload";
+import { RangeRow } from "./option-controls";
 import { ModeToggle } from "./ModeToggle";
 import { PassphraseOptionsPanel } from "./PassphraseOptionsPanel";
 import { PasswordOptionsPanel, type SetKey } from "./PasswordOptionsPanel";
@@ -565,40 +566,67 @@ export function PasswordTool() {
   });
 
   return (
-    <div data-testid="password-tool" className="flex flex-col gap-8">
-      <div className="flex flex-col gap-4">
+    <div data-testid="password-tool" className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:gap-6">
         <ModeToggle mode={options.mode} onModeChange={onModeChange} />
-        <div data-testid="password-output-zone">
-          <PasswordOutput
-            gen={gen}
-            mode={options.mode}
-            separator={options.separator}
-            heroCopy={heroCopy}
-            allCopy={allCopy}
-            onCopyHero={(value) => void copyHero(value)}
-            onCopyAll={(value) => void copyAll(value)}
-            onRegenerate={regenerate}
-            onRetry={retryLoad}
-            onRowCopied={onRowCopied}
-          />
+        <div className="min-w-0 flex-1">
+          {options.mode === "passphrase" ? (
+            <RangeRow
+              id="password-words"
+              label="Word count"
+              min={WORDS_MIN}
+              max={WORDS_MAX}
+              draft={wordsDraft}
+              error={wordsError}
+              value={options.words}
+              inputRef={wordCountRef}
+              testId="password-words"
+              sliderTestId="password-words-slider"
+              hintTestId="password-words-hint"
+              onDraftChange={onWordsDraftChange}
+              onBlur={onWordsBlur}
+              onSliderChange={onWordsSliderChange}
+            />
+          ) : (
+            <RangeRow
+              id="password-length"
+              label="Length"
+              min={LENGTH_MIN}
+              max={LENGTH_MAX}
+              draft={lengthDraft}
+              error={lengthError}
+              value={options.length}
+              inputRef={lengthRef}
+              suffix="characters"
+              testId="password-length"
+              sliderTestId="password-length-slider"
+              hintTestId="password-length-hint"
+              onDraftChange={onLengthDraftChange}
+              onBlur={onLengthBlur}
+              onSliderChange={onSliderChange}
+            />
+          )}
         </div>
-        <StrengthPanel
-          options={options}
-          scenario={scenario}
-          onScenarioChange={setScenario}
+      </div>
+      <div data-testid="password-output-zone">
+        <PasswordOutput
+          gen={gen}
+          mode={options.mode}
+          separator={options.separator}
+          heroCopy={heroCopy}
+          allCopy={allCopy}
+          onCopyHero={(value) => void copyHero(value)}
+          onCopyAll={(value) => void copyAll(value)}
+          onRegenerate={regenerate}
+          onRetry={retryLoad}
+          onRowCopied={onRowCopied}
         />
       </div>
       {options.mode === "passphrase" ? (
         <PassphraseOptionsPanel
           options={options}
-          wordsDraft={wordsDraft}
-          wordsError={wordsError}
-          wordCountRef={wordCountRef}
           batchDraft={batchDraft}
           batchError={batchError}
-          onWordsDraftChange={onWordsDraftChange}
-          onWordsBlur={onWordsBlur}
-          onWordsSliderChange={onWordsSliderChange}
           onSeparatorChange={onSeparatorChange}
           onCapitalizeChange={onCapitalizeChange}
           onAppendNumberChange={onAppendNumberChange}
@@ -608,15 +636,9 @@ export function PasswordTool() {
       ) : (
         <PasswordOptionsPanel
           options={options}
-          lengthDraft={lengthDraft}
-          lengthError={lengthError}
-          lengthRef={lengthRef}
           symbolDraft={symbolDraft}
           batchDraft={batchDraft}
           batchError={batchError}
-          onLengthDraftChange={onLengthDraftChange}
-          onLengthBlur={onLengthBlur}
-          onSliderChange={onSliderChange}
           onSetToggle={onSetToggle}
           onSymbolDraftChange={onSymbolDraftChange}
           onSymbolBlur={onSymbolBlur}
@@ -625,6 +647,11 @@ export function PasswordTool() {
           onBatchBlur={onBatchBlur}
         />
       )}
+      <StrengthPanel
+        options={options}
+        scenario={scenario}
+        onScenarioChange={setScenario}
+      />
       <span
         aria-live="polite"
         className="sr-only"

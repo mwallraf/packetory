@@ -4,9 +4,9 @@ import { getSortedTools, getToolBySlug, tools } from "./registry";
 
 describe("tools/registry", () => {
   it("contains the active tool entries", () => {
-    expect(tools).toHaveLength(7);
+    expect(tools).toHaveLength(8);
     const slugs = tools.map((t) => t.slug).sort();
-    expect(slugs).toEqual(["config", "dns", "hash", "mac", "password", "subnet", "uuid"]);
+    expect(slugs).toEqual(["config", "diff", "dns", "hash", "mac", "password", "subnet", "uuid"]);
   });
 
   it("getSortedTools() sorts by featured desc, then name asc (case-insensitive)", () => {
@@ -19,6 +19,7 @@ describe("tools/registry", () => {
       "hash",
       "mac",
       "password",
+      "diff",
     ]);
   });
 
@@ -54,12 +55,21 @@ describe("tools/registry", () => {
       hash: "active",
       config: "active",
       password: "active",
+      diff: "active",
     });
   });
 
   it("getToolBySlug() returns the matching entry or undefined", () => {
     expect(getToolBySlug("uuid")?.name).toBe("UUID Generator");
     expect(getToolBySlug("hash")?.name).toBe("Hash Generator");
+    expect(getToolBySlug("diff")).toMatchObject({
+      name: "Text Diff",
+      shortName: "Diff",
+      category: "web",
+      icon: "FileDiff",
+      clientOnly: true,
+      featured: false,
+    });
     expect(getToolBySlug("does-not-exist")).toBeUndefined();
   });
 
