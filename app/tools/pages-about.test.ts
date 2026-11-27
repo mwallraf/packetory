@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { tools } from "@/tools/registry";
 import { faqItems as configFaq } from "./config/faq-data";
+import { faqItems as diffFaq } from "./diff/faq-data";
 import { faqItems as dnsFaq } from "./dns/faq-data";
 import { faqItems as hashFaq } from "./hash/faq-data";
 import { faqItems as macFaq } from "./mac/faq-data";
@@ -22,6 +23,7 @@ const FAQ_BY_SLUG: Record<
   hash: hashFaq,
   config: configFaq,
   password: passwordFaq,
+  diff: diffFaq,
 };
 
 const ACTIVE_TOOLS = tools.filter((t) => t.status !== "planned");
