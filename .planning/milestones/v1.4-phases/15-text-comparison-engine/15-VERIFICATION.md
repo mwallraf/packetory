@@ -4,8 +4,8 @@ verified: 2026-11-27T07:45:00Z
 status: passed
 score: 3/3 must-haves verified
 covered_files:
-  - .planning/phases/15-text-comparison-engine/15-01-PLAN.md
-  - .planning/phases/15-text-comparison-engine/15-01-SUMMARY.md
+  - .planning/milestones/v1.4-phases/15-text-comparison-engine/15-01-PLAN.md
+  - .planning/milestones/v1.4-phases/15-text-comparison-engine/15-01-SUMMARY.md
   - app/diff-smoke/DiffSmoke.tsx
   - app/diff-smoke/page.tsx
   - lib/text-diff/client.test.ts
@@ -19,7 +19,7 @@ covered_files:
   - package.json
   - playwright.prod.config.ts
   - tests/e2e-prod/text-diff-worker.spec.ts
-covered_digest: "v4:sha256:07d07b2cec18067e3d2b5fbc7040357ff7ee6d03f00dad5e2ca48ea9aed88056"
+covered_digest: "v4:sha256:847177a9e986e07c8c3187994c90bbc993d8b008c91c02fe88a3237173ea3991"
 behavior_unverified: 0
 overrides_applied: 0
 ---

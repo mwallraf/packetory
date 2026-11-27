@@ -204,10 +204,11 @@ export function TextDiffWorkspace() {
                 type="checkbox"
                 checked={Boolean(input.options?.[key])}
                 onChange={(event) => changeOption(key, event.currentTarget.checked)}
-                aria-description={description}
+                aria-describedby={`${id}-${key}-description`}
                 className="size-3.5 accent-cyan-700 dark:accent-primary"
               />
               {label}
+              <span id={`${id}-${key}-description`} hidden>{description}</span>
             </label>
           ))}
         </fieldset>
