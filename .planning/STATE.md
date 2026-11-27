@@ -1,19 +1,19 @@
 ---
 gsd_state_version: "1.0"
 milestone: v1.5
-current_phase: 18
-status: completed
+status: Awaiting next milestone
 stopped_at: Phase 18 complete — all phases complete
-last_updated: "2026-11-27T16:33:05.722Z"
+last_updated: "2026-11-27T16:43:21.442Z"
 last_activity: 2026-11-27
-last_activity_desc: Phase 18 complete
-state_head: d021b4b0da79f0597f3fe60e8179a6f095aac6a0
+last_activity_desc: Milestone v1.5 completed and archived
+state_head: 2d816f627ce11860490e48517eb6e9df11bad493
 progress:
   total_phases: 2
   completed_phases: 2
   total_plans: 2
   completed_plans: 2
 milestone_name: BGP Looking Glass
+current_phase: 18
 ---
 
 # Project State
@@ -23,15 +23,14 @@ milestone_name: BGP Looking Glass
 See: .planning/PROJECT.md (updated 2026-11-27)
 
 **Core value:** Zero-effort, instant results — every tool shows a useful output immediately with no login, no required input, and one-click copy.
-**Current focus:** v1.5 BGP Looking Glass, starting with Phase 17.
+**Current focus:** v1.5 BGP Looking Glass archived locally. Awaiting the next milestone.
 
 ## Current Position
 
-Phase: 18
-Plan: Not started
-Status: All phases complete
-Last activity: 2026-11-27 — Phase 18 complete
-
+Phase: Milestone v1.5 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-11-27 — Milestone v1.5 completed and archived
 
 ## Performance Metrics
 
@@ -235,10 +234,11 @@ None. The batched UAT for phases 11-14 was completed on 2026-11-12, and the stal
 
 Last session: 2026-11-27T16:23:13.166Z
 Stopped at: Phase 18 complete — all phases complete
-Resume file: .planning/phases/18-asn-and-address-registration/18-UI-SPEC.md
+Resume file: .planning/milestones/v1.5-phases/18-asn-and-address-registration/18-UI-SPEC.md
 
 ## Operator Next Steps
 
 
 
-- Plan Phase 17 with $gsd-plan-phase 17.
+
+- Start the next milestone with $gsd-new-milestone

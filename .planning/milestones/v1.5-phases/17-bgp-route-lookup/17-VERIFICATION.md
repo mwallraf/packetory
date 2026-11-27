@@ -3,8 +3,8 @@ phase: 17-bgp-route-lookup
 verified: 2026-11-27
 status: passed
 score: 5/5 roadmap criteria verified
-covered_files: [".planning/phases/17-bgp-route-lookup/17-01-PLAN.md", ".planning/phases/17-bgp-route-lookup/17-01-SUMMARY.md", ".planning/phases/17-bgp-route-lookup/17-UI-SPEC.md", "app/sitemap.test.ts", "app/tools/bgp/BgpResults.tsx", "app/tools/bgp/BgpTool.tsx", "app/tools/bgp/faq-data.ts", "app/tools/bgp/page.tsx", "app/tools/pages-about.test.ts", "components/SiteHeader.tsx", "components/ToolCard.tsx", "lib/bgp/lookup.test.ts", "lib/bgp/lookup.ts", "lib/bgp/nonpublic.ts", "lib/bgp/transport.ts", "tests/e2e-prod/bgp.spec.ts", "tests/e2e-prod/text-diff-discovery.spec.ts", "tests/e2e/home.spec.ts", "tests/e2e/navigation.spec.ts", "tools/registry.test.ts", "tools/registry.ts", "tools/related.ts"]
-covered_digest: "v4:sha256:b68d1541b262c7ec3bc1f2f31bd11f4c8805ef023ae3cf65e21e729f5f63a4b2"
+covered_files: [".planning/milestones/v1.5-phases/17-bgp-route-lookup/17-01-PLAN.md", ".planning/milestones/v1.5-phases/17-bgp-route-lookup/17-01-SUMMARY.md", ".planning/milestones/v1.5-phases/17-bgp-route-lookup/17-UI-SPEC.md", "app/sitemap.test.ts", "app/tools/bgp/BgpResults.tsx", "app/tools/bgp/BgpTool.tsx", "app/tools/bgp/faq-data.ts", "app/tools/bgp/page.tsx", "app/tools/pages-about.test.ts", "components/SiteHeader.tsx", "components/ToolCard.tsx", "lib/bgp/lookup.test.ts", "lib/bgp/lookup.ts", "lib/bgp/nonpublic.ts", "lib/bgp/transport.ts", "tests/e2e-prod/bgp.spec.ts", "tests/e2e-prod/text-diff-discovery.spec.ts", "tests/e2e/home.spec.ts", "tests/e2e/navigation.spec.ts", "tools/registry.test.ts", "tools/registry.ts", "tools/related.ts"]
+covered_digest: "v4:sha256:9eef047e3ec64c8c8ec8769982e30351a724cbc8a19a2115c0bd2afee100eca8"
 behavior_unverified: 0
 ---
 

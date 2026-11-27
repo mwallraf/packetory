@@ -1,5 +1,18 @@
 # Milestones
 
+## v1.5 BGP Looking Glass (Completed locally: 2026-11-27)
+
+**Phases completed:** 2 phases, 2 plans, 5 tasks
+
+**Key accomplishments:**
+- Added browser-only IPv4 and IPv6 route lookup backed by RIPE RIS observations.
+- Showed route bounds, origin ASNs, collector coverage, and observation time in the result summary.
+- Added expandable collector and peer details with copyable AS paths that preserve prepending.
+- Added registered ASN holder names and on-demand regional registry and registered block details.
+- Verified all seven requirements, including live RIPEstat lookups and shared request controls.
+
+---
+
 ## v1.4 Text Diff (Completed locally: 2026-11-27)
 
 **Phases completed:** 2 phases, 4 plans

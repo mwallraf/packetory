@@ -157,6 +157,12 @@
 
 ---
 
+## v1.5 BGP Looking Glass
+
+- Verified browser CORS for live route and registry endpoints and kept provider fixtures deterministic for routine testing.
+- Added optional enrichment to the same request scheduler so user-submitted lookups retain priority.
+- The audit verified Phase 17's manual-only checks against a live RIPEstat response. Automated coverage debt remains recorded.
+
 ## Cross-Milestone Trends
 
 ### Process Evolution
