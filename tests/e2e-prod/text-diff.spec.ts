@@ -21,3 +21,22 @@ test("public worker tracer displays the exact IP digit change", async ({ page })
   await expect(results.locator("del").filter({ visible: true })).toHaveText("1");
   await expect(results.locator("ins").filter({ visible: true })).toHaveText("2");
 });
+
+test("learns from the editable example and clears all comparison state", async ({ page }) => {
+  await page.goto("/tools/diff");
+  await page.getByRole("button", { name: "Try an example" }).click();
+  const original = page.getByLabel("Original", { exact: true });
+  const modified = page.getByLabel("Modified", { exact: true });
+  await expect(original).toHaveValue(/192\.0\.2\.1/);
+  await expect(modified).toHaveValue(/192\.0\.2\.2/);
+  await expect(page.getByRole("status")).toHaveText("1 added · 1 modified");
+  await modified.fill("edited");
+  await expect(page.getByRole("status")).toHaveText("Out of date. Compare again to update the results.");
+  await page.getByRole("button", { name: "Clear all" }).click();
+  await expect(original).toHaveValue("");
+  await expect(modified).toHaveValue("");
+  await expect(original).toBeFocused();
+  await expect(page.getByRole("status")).toBeEmpty();
+  await expect(page.getByRole("region", { name: "Comparison results" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Try an example" })).toBeVisible();
+});

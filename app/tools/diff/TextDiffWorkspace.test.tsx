@@ -122,4 +122,24 @@ describe("Text Diff workspace", () => {
     expect(cancel).toHaveBeenCalledTimes(1);
     await act(async () => job.resolve({ status: "done", rows: [] }));
   });
+
+  it("loads the editable example from an empty workspace", async () => {
+    render(<TextDiffWorkspace />);
+    expect(Boolean(screen.queryByRole("button", { name: "Try an example" }))).toBe(true);
+    expect(compare).not.toHaveBeenCalled();
+    compare.mockImplementationOnce(async (input) => compareText(input));
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Try an example" })));
+    expect((original() as HTMLTextAreaElement).value).toContain("192.0.2.1");
+    expect((modified() as HTMLTextAreaElement).value).toContain("192.0.2.2");
+    expect(status().textContent).toBe("1 added · 1 modified");
+    expect(screen.queryByRole("button", { name: "Try an example" })).toBeNull();
+
+    fireEvent.click(clearButton());
+    await act(async () => {
+      paste("same rule", "same rule");
+      compare.mockImplementationOnce(async (input) => compareText(input));
+    });
+    await act(async () => fireEvent.click(compareButton()));
+    expect(status().textContent).toBe("No differences found.");
+  });
 });
