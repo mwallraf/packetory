@@ -150,7 +150,7 @@ export function TextDiffWorkspace() {
               autoCapitalize="off"
               autoCorrect="off"
               placeholder={`Paste ${side} text`}
-              className="min-h-36 bg-background p-4 font-mono text-base leading-normal md:min-h-48 md:text-base dark:bg-background"
+              className="min-h-36 bg-background p-4 font-mono text-[10pt] leading-normal md:min-h-48 md:text-[10pt] dark:bg-background"
               value={input[side]}
               onChange={(event) => edit(side, event.currentTarget.value)}
             />
