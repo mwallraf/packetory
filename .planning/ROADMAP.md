@@ -91,9 +91,12 @@ Full phase details archived at `.planning/milestones/v1.3-ROADMAP.md`.
 1. The route result is immediately usable when the route request completes. Registered holder names appear for each origin ASN when available.
 2. Opening address registration fetches the registry details on demand and presents the registered block separately from the announced prefix.
 
+**Plans:** 1 plan
+- [ ] 18-01-PLAN.md — ASN holder enrichment and on-demand address registration
+
 ## Progress
 
 | Phase | Requirements | Status |
 |---|---|---|
 | 17. BGP Route Lookup | BGP-01, BGP-02, BGP-03, BGP-06, BGP-07 | Complete    |
-| 18. ASN and Address Registration | BGP-04, BGP-05 | Not started |
+| 18. ASN and Address Registration | BGP-04, BGP-05 | Planned |
