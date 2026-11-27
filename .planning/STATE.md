@@ -1,18 +1,18 @@
 ---
 gsd_state_version: "1.0"
 milestone: v1.4
-milestone_name: Text Diff
 status: Awaiting next milestone
 stopped_at: v1.4 completed and archived locally
-last_updated: "2026-11-27T07:48:04.406Z"
+last_updated: "2026-11-27T07:55:58.502Z"
 last_activity: 2026-11-27
 last_activity_desc: Milestone v1.4 completed and archived
-state_head: cb56b810695ed42ce2e4e5023e04a9b3c412120d
+state_head: a3a149180fb78360a491e8ae3182622e77966c1a
 progress:
   total_phases: 2
   completed_phases: 2
   total_plans: 4
   completed_plans: 4
+milestone_name: Text Diff
 current_phase: 16
 ---
 
@@ -208,6 +208,7 @@ None yet.
 | 8 | Automatically compare small Text Diff edits | 2026-11-27 | e22715c | — |
 | 9 | Add compact Text Diff ignore options | 2026-11-27 | 5a17357 | — |
 | 10 | Add related tools to all app pages | 2026-11-27 | b793e3d | — |
+| 11 | Compact MAC inspection results | 2026-11-27 | a3a1491 | — |
 
 ## Deferred Items
 
