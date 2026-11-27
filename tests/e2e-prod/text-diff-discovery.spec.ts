@@ -32,7 +32,7 @@ test("mobile drawer opens Text Diff and the tool includes canonical and About me
   await page.keyboard.press("Enter");
   const drawer = page.getByTestId("mobile-nav-drawer");
   const diffLink = drawer.getByRole("link", { name: "Diff", exact: true });
-  await expect(drawer.getByRole("link")).toHaveCount(8);
+  await expect(drawer.getByRole("link")).toHaveCount(9);
   await diffLink.focus();
   await page.keyboard.press("Enter");
 

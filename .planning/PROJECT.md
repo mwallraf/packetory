@@ -17,6 +17,8 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 
 ## Current State
 
+**Completed locally:** v1.5 BGP Looking Glass (2026-11-27) adds browser-only RIPEstat route lookups, copyable AS paths, ASN holders, and on-demand registration.
+
 **Completed locally:** v1.4 Text Diff (2026-11-27) adds browser-only text comparison with responsive results, bounded automatic comparison, and optional ignore rules. All tool pages share a content width and a Related tools disclosure.
 
 **Previously shipped:** v1.3 Password Generator & Tool Page Polish (2026-11-12) — `/tools/password` shows a fresh 20-character password on load, with length/sets/symbol-set/look-alike options, batch 1–20, per-row copy and Copy all, Regenerate, keyboard shortcuts, an options-only bookmarkable URL, a Passphrase mode over the lazily loaded EFF long word list, and an entropy-based strength meter with crack-time scenarios. Every tool page is now tool-first: the Worked Example and FAQ live in one shared, closed-by-default "About this tool" area below the tool. Config gained its worked example, FAQ and own icon, and the Subnet result fits a 1366×650 laptop viewport without scrolling.
@@ -28,6 +30,8 @@ Zero-effort, instant results: every tool shows a useful output immediately with 
 Next milestone scope is open.
 
 ## Milestone History
+
+- v1.5 BGP Looking Glass completed locally on 2026-11-27. See the [roadmap](milestones/v1.5-ROADMAP.md) and [audit](milestones/v1.5-MILESTONE-AUDIT.md).
 
 - v1.4 Text Diff completed on 2026-11-27. See the [archived roadmap](milestones/v1.4-ROADMAP.md) and [requirements](milestones/v1.4-REQUIREMENTS.md).
 
@@ -81,6 +85,8 @@ Next milestone scope is open.
 
 ### Validated
 
+- ✓ BGP Looking Glass (BGP-01 through BGP-07) — v1.5 Phases 17–18.
+
 - ✓ Browser-side Text Diff, shared tool page width, and Related tools links on all eight pages — v1.4
 
 - ✓ Shared site shell: landing page, consistent navigation, tool registry (`tools/registry.ts`) driving nav/cards/sitemap — Phase 1
@@ -110,8 +116,6 @@ Next milestone scope is open.
 - ✓ Config Syntax Highlighter parity (CFG-01..03) — server-rendered highlighted worked example (RFC 5737 sample, shared `lib/config/token-classes.ts`), 4-item FAQ + JSON-LD, own `FileTerminal` landing-card icon with a throwing `assertToolIcon` (no fallback icon) — v1.3 Phase 10
 
 ### Active
-
-- [ ] Text Diff — paste two snippets, compare them locally, read the highlighted result, and clear the workspace for another comparison.
 
 - [ ] Global Ctrl/Cmd+C and Esc shortcuts should not fire while the user has selected text or has focus inside the About area (Phase 10 review WR-01/WR-02; made newly reachable by the About prose) — candidate for a quick task; still open at v1.3 close
 - [ ] Site footer contrast — muted-foreground #64748b on #f1f5f9 measures 4.34:1 (4.5:1 required), the only thing holding Accessibility at 96 on tool pages (deferred at v1.3 close)
@@ -216,4 +220,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-11-27 after v1.4 completion*
+*Last updated: 2026-11-27 after v1.5 completion*

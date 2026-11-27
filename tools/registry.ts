@@ -126,6 +126,18 @@ export const tools: ToolDefinition[] = [
     clientOnly: true,
     featured: false,
   },
+  {
+    slug: "bgp",
+    name: "BGP Looking Glass",
+    shortName: "BGP",
+    description: "Find origin ASNs and AS paths for public IP addresses and prefixes observed by RIPE RIS.",
+    category: "network",
+    keywords: ["bgp", "asn", "routing", "looking glass", "ripe"],
+    icon: "Route",
+    status: "active",
+    clientOnly: true,
+    featured: false,
+  },
 ];
 
 /**

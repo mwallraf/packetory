@@ -24,7 +24,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-secondary">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-2 px-4 min-[700px]:gap-4 py-3 sm:px-6 lg:px-8">
         <Link
           href="/"
           data-testid="site-logo"
@@ -35,7 +35,7 @@ export function SiteHeader() {
 
         <nav
           aria-label="Tool navigation"
-          className="hidden flex-1 items-center justify-center gap-1 sm:flex"
+          className="hidden flex-1 items-center justify-center gap-0.5 sm:flex min-[700px]:gap-1"
         >
           {tools.map((tool) => {
             const href = `/tools/${tool.slug}`;
@@ -67,7 +67,7 @@ export function SiteHeader() {
                 data-testid="nav-link"
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "rounded-md border-b-2 px-1.5 min-[700px]:px-2 py-1.5 text-[14px] leading-[1.4] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                  "rounded-md border-b-2 px-1 min-[700px]:px-2 py-1.5 text-[14px] leading-[1.4] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
                   isActive
                     ? "border-primary text-primary"
                     : "border-transparent text-foreground hover:text-primary"

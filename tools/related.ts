@@ -9,6 +9,10 @@ export const relatedTools: Readonly<Record<string, readonly RelatedTool[] | unde
     { name: "UUIDTools Decoder", href: "https://uuidtools.com/decode", description: "Inspect an existing UUID’s version, variant, and timestamp where available." },
     { name: "UUIDTools Generators", href: "https://www.uuidtools.com/generate", description: "Generate additional UUID versions, including name-based UUIDs." },
   ],
+  bgp: [
+    { name: "IP Subnet Calculator", href: "/tools/subnet", description: "Inspect the address range and mask for a CIDR block." },
+    { name: "RIPEstat", href: "https://stat.ripe.net/", description: "Explore routing history and resource registration." },
+  ],
   subnet: [
     { name: "ipcalc", href: "https://jodies.de/ipcalc", description: "See IPv4 subnet masks and address ranges in binary." },
     { name: "RIPEstat", href: "https://stat.ripe.net/", description: "Explore public IP prefix routing and registration data." },

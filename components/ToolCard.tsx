@@ -8,6 +8,7 @@ import {
   Hash,
   KeyRound,
   Network,
+  Route,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -30,6 +31,7 @@ import type { ToolDefinition } from "@/tools/registry";
 export const ICONS: Record<string, LucideIcon> = {
   Fingerprint,
   Network,
+  Route,
   Globe,
   Cpu,
   Hash,

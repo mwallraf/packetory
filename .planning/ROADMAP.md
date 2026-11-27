@@ -7,8 +7,10 @@
 - ✅ **v1.2 Hash Generator** — Phases 8-9 (shipped 2026-10-17)
 - ✅ **v1.3 Password Generator & Tool Page Polish** — Phases 10-14 (shipped 2026-11-12)
 - ✅ **v1.4 Text Diff** — Phases 15–16 ([completed locally 2026-11-27](milestones/v1.4-ROADMAP.md))
+- ✅ **v1.5 BGP Looking Glass** — Phases 17–18 ([completed locally 2026-11-27](milestones/v1.5-ROADMAP.md))
 
 ## Phases
+
 
 <details>
 <summary>✅ v1.0 MVP (Phases 1-5) — SHIPPED 2026-07-25</summary>

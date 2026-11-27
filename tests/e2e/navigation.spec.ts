@@ -29,12 +29,12 @@ test.describe("Mobile nav drawer (320px, D-04, SHELL-06)", () => {
     await expect(drawer).toBeVisible();
 
     // All active registry entries render as real links using their shortName.
-    for (const shortName of ["Subnet", "UUID", "Config", "DNS", "Hash", "MAC", "Password", "Diff"]) {
+    for (const shortName of ["Subnet", "UUID", "BGP", "Config", "DNS", "Hash", "MAC", "Password", "Diff"]) {
       await expect(
         drawer.getByText(shortName, { exact: true })
       ).toBeVisible();
     }
-    await expect(drawer.locator("a")).toHaveCount(8);
+    await expect(drawer.locator("a")).toHaveCount(9);
     await expect(
       drawer.getByTestId("mobile-nav-link").getByText("UUID", { exact: true })
     ).toBeVisible();
@@ -88,17 +88,17 @@ test.describe("Mobile nav drawer (320px, D-04, SHELL-06)", () => {
 });
 
 for (const width of [640, 700]) {
-  test.describe(`Desktop nav fits eight tools at ${width}px`, () => {
+  test.describe(`Desktop nav fits nine tools at ${width}px`, () => {
     test.use({ viewport: { width, height: 800 } });
 
-    test("eight nav links share one row and the theme toggle keeps 8px clearance", async ({
+    test("nine nav links share one row and the theme toggle keeps 8px clearance", async ({
       page,
     }) => {
       await page.goto("/");
 
       const links = page.getByTestId("nav-link");
-      await expect(links).toHaveCount(8);
-      for (let i = 0; i < 8; i++) {
+      await expect(links).toHaveCount(9);
+      for (let i = 0; i < 9; i++) {
         await expect(links.nth(i)).toBeVisible();
       }
       await expect(page.getByTestId("site-logo")).toBeVisible();
@@ -107,6 +107,7 @@ for (const width of [640, 700]) {
       expect(await links.allTextContents()).toEqual([
         "Subnet",
         "UUID",
+        "BGP",
         "Config",
         "DNS",
         "Hash",
@@ -116,7 +117,7 @@ for (const width of [640, 700]) {
       ]);
 
       await page.getByTestId("site-logo").focus();
-      for (let index = 0; index < 8; index++) {
+      for (let index = 0; index < 9; index++) {
         await page.keyboard.press("Tab");
         await expect(links.nth(index)).toBeFocused();
       }
